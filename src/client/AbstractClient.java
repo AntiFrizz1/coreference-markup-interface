@@ -24,4 +24,9 @@ public abstract class AbstractClient implements Client {
      * Client address.
      */
     protected String serviceAddress;
+
+    /**
+     * Client id.
+     */
+    protected int id;
 }

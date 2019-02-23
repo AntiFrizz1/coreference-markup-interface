@@ -1,10 +1,9 @@
 package server;
 
-import client.Judge;
-import client.User;
-
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This class describes interaction protocol of Server
@@ -21,7 +20,7 @@ public class ServerImpl implements Server {
     /**
      * An internal endpoint for sending or receiving data.
      */
-    private Socket socket;
+    private ServerSocket socket;
 
     /**
      * Texts.
@@ -31,10 +30,16 @@ public class ServerImpl implements Server {
     /**
      * Pool of users.
      */
-    private List<User> users;
+    private List<Socket> users;
+
+
+    /**
+     * Set of judges id.
+     */
+    private Set<Integer> judgesId;
 
     /**
      * Pool of judges.
      */
-    private List<Judge> judges;
+    private List<Socket> judges;
 }

@@ -26,12 +26,10 @@ public class Judge extends AbstractClient {
         return null;
     }
 
-
     @Override
     public void join() {
 
     }
-
 
     @Override
     public void close() {
