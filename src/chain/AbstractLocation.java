@@ -13,10 +13,20 @@ public abstract class AbstractLocation implements Location {
     /**
      * Number of text that contains this part of chain.
      */
-    protected int textId;
+    private int textId;
 
     /**
      * Number of sentence that contains this part of chain.
      */
-    protected int sentenceNumber;
+    private int sentenceNumber;
+
+    @Override
+    public int getTextId() {
+        return textId;
+    }
+
+    @Override
+    public int getSentenceNumber() {
+        return sentenceNumber;
+    }
 }

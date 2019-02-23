@@ -14,14 +14,8 @@ public class Phrase extends AbstractLocation {
      */
     private Set<Integer> positions;
 
-    @Override
-    public int getTextId() {
-        return 0;
-    }
-
-    @Override
-    public int getSentenceNumber() {
-        return 0;
+    Phrase(Set<Integer> positions) {
+        this.positions = positions;
     }
 
     /**

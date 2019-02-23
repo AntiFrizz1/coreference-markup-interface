@@ -39,7 +39,7 @@ public interface Chain {
      *
      * @param location the location op part that should be deleted.
      */
-    void deleteWord(Location location);
+    void deletePart(Location location);
 
     /**
      * Get color of the chain.
@@ -60,7 +60,7 @@ public interface Chain {
      *
      * @return the list of parts of the chain.
      */
-    List<List<String>> getWords();
+    List<List<String>> getParts();
 
     /**
      * Merge with {@code chain}.
@@ -68,4 +68,6 @@ public interface Chain {
      * @param chain the chain to merge with.
      */
     void mergeWith(Chain chain);
+
+    List<Location> getLocations();
 }

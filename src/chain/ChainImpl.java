@@ -1,6 +1,7 @@
 package chain;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,44 +31,60 @@ public class ChainImpl implements Chain {
      */
     private List<Location> locations;
 
+
+    ChainImpl(String name, Color color) {
+        this.color = color;
+        this.name = name;
+        phrases = new ArrayList<>();
+        locations = new ArrayList<>();
+    }
+
     @Override
     public void setName(String name) {
-
+        this.name = name;
     }
 
     @Override
     public String getName() {
-        return null;
+        return name;
     }
 
     @Override
     public void addPart(List<String> phrase, Location location) {
-
+        phrases.add(phrase);
+        locations.add(location);
     }
 
     @Override
-    public void deleteWord(Location location) {
-
+    public void deletePart(Location location) {
+        locations.remove(location);
     }
 
     @Override
     public Color getColor() {
-        return null;
+        return color;
     }
 
     @Override
     public void setColor(Color color) {
-
+        this.color = color;
     }
 
     @Override
-    public List<List<String>> getWords() {
-        return null;
+    public List<List<String>> getParts() {
+        return phrases;
     }
-
 
     @Override
     public void mergeWith(Chain chain) {
-
+        phrases.addAll(chain.getParts());
+        locations.addAll(chain.getLocations());
     }
+
+    @Override
+    public List<Location> getLocations() {
+        return locations;
+    }
+
+
 }

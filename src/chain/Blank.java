@@ -12,14 +12,8 @@ public class Blank extends AbstractLocation {
      */
     private int position;
 
-    @Override
-    public int getTextId() {
-        return 0;
-    }
-
-    @Override
-    public int getSentenceNumber() {
-        return 0;
+    Blank(int position) {
+        this.position = position;
     }
 
     /**
