@@ -3,10 +3,31 @@ package chain;
 import java.awt.*;
 import java.util.List;
 
+/**
+ * This class describes dedicated coreference
+ *
+ * @author Vadim Bydyuk
+ * @see Location
+ */
 public class ChainImpl implements Chain {
+    /**
+     * Color of the chain.
+     */
     private Color color;
+
+    /**
+     * Name of the chain.
+     */
     private String name;
-    private List<String> words;
+
+    /**
+     * Part of the chain
+     */
+    private List<List<String>> phrases;
+
+    /**
+     * Location of the chain.
+     */
     private List<Location> locations;
 
     @Override
@@ -20,7 +41,7 @@ public class ChainImpl implements Chain {
     }
 
     @Override
-    public void addWord(String word, Location location) {
+    public void addPart(List<String> phrase, Location location) {
 
     }
 
@@ -40,9 +61,10 @@ public class ChainImpl implements Chain {
     }
 
     @Override
-    public List<String> getWords() {
+    public List<List<String>> getWords() {
         return null;
     }
+
 
     @Override
     public void mergeWith(Chain chain) {

@@ -2,9 +2,14 @@ package client;
 
 import document.Document;
 
-import java.net.Socket;
-
+/**
+ * This class describes interaction protocol of User
+ *
+ * @author Vadim Baydyuk
+ * @see Client
+ */
 public class User extends AbstractClient {
+    //private Listener listener;
 
     @Override
     public void sendUpdates(Document document) {
@@ -17,17 +22,12 @@ public class User extends AbstractClient {
     }
 
     @Override
-    public String getInfo() {
+    public Document getInfo() {
         return null;
     }
 
     @Override
-    public void join(int who) {
-
-    }
-
-    @Override
-    public void listener() {
+    public void join() {
 
     }
 
