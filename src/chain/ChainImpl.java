@@ -2,7 +2,9 @@ package chain;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This class describes dedicated coreference
@@ -22,21 +24,16 @@ public class ChainImpl implements Chain {
     private String name;
 
     /**
-     * Part of the chain
-     */
-    private List<List<String>> phrases;
-
-    /**
      * Location of the chain.
      */
     private List<Location> locations;
 
 
-    public ChainImpl(String name, Color color) {
+    public ChainImpl(String name, Color color, Location... locations) {
         this.color = color;
         this.name = name;
-        phrases = new ArrayList<>();
-        locations = new ArrayList<>();
+        this.locations = new ArrayList<>();
+        this.locations.addAll(Arrays.asList(locations));
     }
 
 
@@ -51,8 +48,7 @@ public class ChainImpl implements Chain {
     }
 
     @Override
-    public void addPart(List<String> phrase, Location location) {
-        phrases.add(phrase);
+    public void addPart(Location location) {
         locations.add(location);
     }
 
@@ -71,16 +67,16 @@ public class ChainImpl implements Chain {
         this.color = color;
     }
 
-    @Override
-    public List<List<String>> getParts() {
-        return phrases;
-    }
-
-    @Override
-    public void mergeWith(Chain chain) {
-        phrases.addAll(chain.getParts());
-        locations.addAll(chain.getLocations());
-    }
+//    @Override
+//    public List<List<String>> getParts() {
+//        return phrases;
+//    }
+//
+//    @Override
+//    public void mergeWith(Chain chain) {
+//        phrases.addAll(chain.getParts());
+//        locations.addAll(chain.getLocations());
+//    }
 
     @Override
     public List<Location> getLocations() {
@@ -90,13 +86,16 @@ public class ChainImpl implements Chain {
 
     @Override
     public void pack(StringBuilder sb) {
-        sb.append(name).append(' ').append(color.getRed()).
-                append(' ').append(color.getGreen()).
-                append(' ').append(color.getBlue()).
-                append(' ').append(phrases.size()).append('\n');
-        phrases.forEach(phrase -> {
-            sb.append(String.join(" ", phrase)).append('\n');
-        });
+        sb.append(name).append(' ').append(color.getRed())
+                .append(' ').append(color.getGreen())
+                .append(' ').append(color.getBlue())
+                .append(' ').append(locations.size()).append('\n')
+                .append(this.toString());
         locations.forEach(location -> location.pack(sb));
+    }
+
+    @Override
+    public String toString() {
+        return locations.stream().map(Object::toString).collect(Collectors.joining(" -- "));
     }
 }

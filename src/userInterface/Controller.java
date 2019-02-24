@@ -2,13 +2,16 @@ package userInterface;
 
 import chain.Chain;
 
+import java.util.List;
+
 public interface Controller {
     void showUI();
     void onlineMode();
     void offlineMode();
     void nextSentence();
     void prevSentence();
-    void addChain(Chain chain);
+    List<Chain> addToChain();
+    List<Chain> addNewChain();
     void deleteChain(Chain chain);
     void saeStateOffline();
     void cancel();
