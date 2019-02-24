@@ -1,5 +1,9 @@
 package client;
 
+import document.Document;
+import document.DocumentImpl;
+
+import java.io.*;
 import java.net.Socket;
 
 /**
@@ -9,6 +13,59 @@ import java.net.Socket;
  * @see Client
  */
 public abstract class AbstractClient implements Client {
+
+    public AbstractClient() {
+        try {
+            socket = new Socket(serviceAddress, port);
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+        } catch (IOException e) {
+            System.err.println("Can't connect to server");
+        }
+    }
+
+    /**
+     * Send connection information to server and waiting for positive response
+     * @param info information for sending
+     */
+    protected void sendConnectionInfo(String info) {
+        try {
+            writer.println(info);
+            writer.flush();
+            String request = reader.readLine();
+            if (!request.equals("OK")) {
+                System.err.println("Can't connect to server");
+                return;
+            }
+        } catch (IOException e) {
+            System.err.println("Can't read answer from server");
+        }
+    }
+
+    @Override
+    public void sendInfo(Document document) {
+        writer.println(document.pack());
+        writer.flush();
+    }
+
+    @Override
+    public Document getInfo() {
+        try {
+            return new DocumentImpl(reader.readLine());
+        } catch (IOException e) {
+            System.err.println("Can't get information from server");
+        }
+        return null;
+    }
+
+    @Override
+    public void close() {
+        try {
+            socket.close();
+        } catch (IOException e) {
+            System.err.println("Can't close socket");
+        }
+    }
 
     /**
      * An internal endpoint for sending or receiving data.
@@ -29,4 +86,14 @@ public abstract class AbstractClient implements Client {
      * Client id.
      */
     protected int id;
+
+    /**
+     * Client reader
+     */
+    protected BufferedReader reader;
+
+    /**
+     * Client writer
+     */
+    protected PrintWriter writer;
 }

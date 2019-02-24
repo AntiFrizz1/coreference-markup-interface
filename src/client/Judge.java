@@ -17,22 +17,18 @@ public class Judge extends AbstractClient {
     }
 
     @Override
-    public void sendInfo(Document document) {
-
-    }
-
-    @Override
-    public Document getInfo() {
-        return null;
-    }
-
-    @Override
     public void join() {
 
     }
 
     @Override
-    public void close() {
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        System.out.println("Successful connect to server as judge with id = " + id);
+    }
+
+    @Override
+    public void joinOffline() {
 
     }
 }

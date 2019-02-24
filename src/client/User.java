@@ -11,19 +11,22 @@ import document.Document;
 public class User extends AbstractClient {
     //private Listener listener;
 
+    public User() {
+        super();
+    }
+
     @Override
     public void sendUpdates(Document document) {
-
-    }
-
-    @Override
-    public void sendInfo(Document document) {
-
-    }
-
-    @Override
-    public Document getInfo() {
-        return null;
+        while (true) {
+            try {
+                writer.println(document.pack());
+                writer.flush();
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return;
+            }
+        }
     }
 
     @Override
@@ -32,7 +35,16 @@ public class User extends AbstractClient {
     }
 
     @Override
-    public void close() {
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("0");
+        System.out.println("Successful connect to server in online mode with id = " + id);
+    }
 
+    @Override
+    public void joinOffline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("1");
+        System.out.println("Successful connect to server in offline mode with id = " + id);
     }
 }

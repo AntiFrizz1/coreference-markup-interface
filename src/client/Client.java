@@ -35,9 +35,13 @@ public interface Client {
     Document getInfo();
 
     /**
-     * Connect to server as User of as Judge.
+     * Connect to server as User or as Judge.
      */
     void join();
+
+    void joinOnline();
+
+    void joinOffline();
 
     /**
      * Complete work.
