@@ -8,12 +8,12 @@ package chain;
 public class Blank extends AbstractLocation {
 
     /**
-     * Position of zero anaphora in sentence.
+     * Position of zero anaphora in the text.
      */
     private int position;
 
-    public Blank(int textId, int sentenceNumber, int position) {
-        super(textId, sentenceNumber);
+    public Blank(int textId, int position) {
+        super(textId);
         this.position = position;
     }
 
@@ -38,6 +38,6 @@ public class Blank extends AbstractLocation {
 
     @Override
     public void getPositions(StringBuilder sb) {
-        sb.append(position).append('\n');
+        sb.append("Blank: ").append(position).append('\n');
     }
 }

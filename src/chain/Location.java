@@ -16,9 +16,4 @@ public interface Location extends Packable {
      * @return Number of text that contains this part of chain.
      */
     int getTextId();
-
-    /**
-     * @return Number of sentence that contains this part of chain.
-     */
-    int getSentenceNumber();
 }

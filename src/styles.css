@@ -2,6 +2,7 @@
     -fx-base: white;
 }
 
-.test {
+.word {
     -fx-background-color: rgba(0,0,0,0);
+    -fx-padding: 0, 0, 0, 0;
 }

@@ -21,6 +21,32 @@ public class Main extends Application {
     final private int APP_HEIGHT = 720;
     final private int MIN_APP_WIDTH = 700;
     final private int MIN_APP_HEIGHT = 300;
+    final ControllerImpl controller = new ControllerImpl();
+    final private String TEXT_PLACEHOLDER = "Приехав с утренним поездом в Москву, Левин остановился у своего " +
+            "старшего брата по матери Кознышева и, переодевшись, вошел к нему в кабинет, намереваясь тотчас же " +
+            "рассказать ему, для чего он приехал, и просить его совета: но брат был не один. У него сидел известный " +
+            "профессор философии, приехавший из Харькова, собственно, затем, чтобы разъяснить недоразумение, " +
+            "возникшее между ними по весьма важному философскому вопросу. Профессор вел жаркую полемику против " +
+            "материалистов, а Сергей Кознышев с интересом следил за этою полемикой и, прочтя последнюю статью " +
+            "профессора, написал ему в письме свои возражения; он упрекал профессора за слишком большие уступки " +
+            "материалистам. И профессор тотчас же приехал, чтобы столковаться. Речь шла о модном вопросе: есть ли " +
+            "граница между психическими и физиологическими явлениями в деятельности человека и где она?";
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        primaryStage.setTitle("Разметка кореференсов");
+        Scene sc = genScene(primaryStage);
+        primaryStage.setMinWidth(MIN_APP_WIDTH);
+        primaryStage.setMinHeight(MIN_APP_HEIGHT);
+        primaryStage.setScene(sc);
+        primaryStage.show();
+    }
+
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
 
     private Scene genScene(Stage primaryStage) {
         GridPane overall = new GridPane();
@@ -46,7 +72,7 @@ public class Main extends Application {
             FlowPane text = new FlowPane();
             textWrapper.setContent(text);
             text.setPadding(new Insets(5));
-//            for (int i = 0; i < 100; i++) text.getChildren().add(new Button("Text"));
+            generateText(text);
             leftSide.setCenter(textWrapper);
             GridPane bottom = new GridPane();
             bottom.setGridLinesVisible(true);
@@ -87,18 +113,21 @@ public class Main extends Application {
         return sc;
     }
 
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("Разметка кореференсов");
-        Scene sc = genScene(primaryStage);
-        primaryStage.setMinWidth(MIN_APP_WIDTH);
-        primaryStage.setMinHeight(MIN_APP_HEIGHT);
-        primaryStage.setScene(sc);
-        primaryStage.show();
+    private void generateText(FlowPane textPane) {
+        String text = TEXT_PLACEHOLDER;
+        // TODO: should probably remove punctuation from buttons into separate TextAreas
+        String[] words = text.split(" ");
+        for (int i = 0; i < words.length; i++) {
+            Button word = new Button(words[i]);
+            word.getStyleClass().add("word");
+            final int iF = i;
+//            word.setOnAction(event -> System.out.println(iF));
+            textPane.getChildren().add(word);
+            Button space = new Button("   ");
+            space.getStyleClass().add("word");
+//            space.setOnAction(event -> System.out.println(iF + "SPACE"));
+            textPane.getChildren().add(space);
+        }
     }
 
-
-    public static void main(String[] args) {
-        launch(args);
-    }
 }

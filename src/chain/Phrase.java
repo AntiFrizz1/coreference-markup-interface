@@ -10,12 +10,12 @@ import java.util.Set;
 public class Phrase extends AbstractLocation {
 
     /**
-     * Positions of each word of phrase in the sentence.
+     * Positions of each word of phrase in the text.
      */
     private Set<Integer> positions;
 
-    public Phrase(int textId, int sentenceNumber, Set<Integer> positions) {
-        super(textId, sentenceNumber);
+    public Phrase(int textId, Set<Integer> positions) {
+        super(textId);
         this.positions = positions;
     }
 
@@ -40,6 +40,7 @@ public class Phrase extends AbstractLocation {
 
     @Override
     public void getPositions(StringBuilder sb) {
+        sb.append("Phrase: ");
         positions.forEach(position -> sb.append(position).append(' '));
         sb.append('\n');
     }
