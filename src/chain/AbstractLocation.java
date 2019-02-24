@@ -20,6 +20,10 @@ public abstract class AbstractLocation implements Location {
      */
     private int sentenceNumber;
 
+    AbstractLocation(int textId, int sentenceNumber) {
+        this.textId = textId;
+        this.sentenceNumber = sentenceNumber;
+    }
     @Override
     public int getTextId() {
         return textId;
@@ -28,5 +32,13 @@ public abstract class AbstractLocation implements Location {
     @Override
     public int getSentenceNumber() {
         return sentenceNumber;
+    }
+
+    abstract public void getPositions(StringBuilder sb);
+
+    @Override
+    public void pack(StringBuilder sb) {
+        sb.append(textId).append(' ').append(sentenceNumber).append('\n');
+        getPositions(sb);
     }
 }

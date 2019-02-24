@@ -1,8 +1,7 @@
 package chain;
 
 
-import java.util.AbstractCollection;
-import java.util.Set;
+import document.Packable;
 
 /**
  * Interface {@code Location} uses for description position
@@ -11,7 +10,7 @@ import java.util.Set;
  * @author Vadim Baydyuk
  * @see Chain
  */
-public interface Location {
+public interface Location extends Packable {
 
     /**
      * @return Number of text that contains this part of chain.

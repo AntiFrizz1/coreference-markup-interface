@@ -10,17 +10,7 @@ import java.util.List;
  * @author Vadim Baydyuk
  * @see Chain
  */
-public interface Document {
-
-    /**
-     * Pack all information in one string.
-     * It simplifies sending of message.
-     *
-     * @return the string with all information.
-     */
-    String pack();
-
-
+public interface Document extends Packable {
     /**
      * Get chains.
      *

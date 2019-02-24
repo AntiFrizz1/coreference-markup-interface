@@ -32,12 +32,13 @@ public class ChainImpl implements Chain {
     private List<Location> locations;
 
 
-    ChainImpl(String name, Color color) {
+    public ChainImpl(String name, Color color) {
         this.color = color;
         this.name = name;
         phrases = new ArrayList<>();
         locations = new ArrayList<>();
     }
+
 
     @Override
     public void setName(String name) {
@@ -87,4 +88,15 @@ public class ChainImpl implements Chain {
     }
 
 
+    @Override
+    public void pack(StringBuilder sb) {
+        sb.append(name).append(' ').append(color.getRed()).
+                append(' ').append(color.getGreen()).
+                append(' ').append(color.getBlue()).
+                append(' ').append(phrases.size()).append('\n');
+        phrases.forEach(phrase -> {
+            sb.append(String.join(" ", phrase)).append('\n');
+        });
+        locations.forEach(location -> location.pack(sb));
+    }
 }

@@ -1,7 +1,9 @@
 package chain;
 
 
-import java.awt.Color;
+import document.Packable;
+
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -11,7 +13,7 @@ import java.util.List;
  * @see Location
  */
 
-public interface Chain {
+public interface Chain extends Packable {
     /**
      * Set name of chain.
      *

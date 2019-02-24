@@ -12,9 +12,11 @@ public class Blank extends AbstractLocation {
      */
     private int position;
 
-    Blank(int position) {
+    public Blank(int textId, int sentenceNumber, int position) {
+        super(textId, sentenceNumber);
         this.position = position;
     }
+
 
     /**
      * Check if anaphora which described by {@code obj} and anaphora
@@ -32,5 +34,10 @@ public class Blank extends AbstractLocation {
         } else {
             return position == ((Blank) obj).position;
         }
+    }
+
+    @Override
+    public void getPositions(StringBuilder sb) {
+        sb.append(position).append('\n');
     }
 }

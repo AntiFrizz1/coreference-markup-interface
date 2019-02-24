@@ -14,9 +14,11 @@ public class Phrase extends AbstractLocation {
      */
     private Set<Integer> positions;
 
-    Phrase(Set<Integer> positions) {
+    public Phrase(int textId, int sentenceNumber, Set<Integer> positions) {
+        super(textId, sentenceNumber);
         this.positions = positions;
     }
+
 
     /**
      * Check if phrase which described by {@code obj} and phrase
@@ -34,5 +36,11 @@ public class Phrase extends AbstractLocation {
         } else {
             return positions.equals(((Phrase) obj).positions);
         }
+    }
+
+    @Override
+    public void getPositions(StringBuilder sb) {
+        positions.forEach(position -> sb.append(position).append(' '));
+        sb.append('\n');
     }
 }

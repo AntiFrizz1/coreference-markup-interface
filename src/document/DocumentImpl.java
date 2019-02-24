@@ -19,21 +19,25 @@ public class DocumentImpl implements Document {
     List<Chain> chains;
 
     /**
-     * Create document from string with information.
-     * @param content the information with selected chains.
+     * Create document from list with chains.
+     *
+     * @param chains the list of chains.
      */
-    DocumentImpl(String content) {
-
+    public DocumentImpl(List<Chain> chains) {
+        this.chains = chains;
     }
 
     @Override
-    public String pack() {
-        return null;
+    public void pack(StringBuilder sb) {
+        sb.append(chains.size()).append('\n');
+        chains.forEach(chain -> {
+            chain.pack(sb);
+        });
     }
 
 
     @Override
     public List<Chain> getChains() {
-        return null;
+        return chains;
     }
 }
