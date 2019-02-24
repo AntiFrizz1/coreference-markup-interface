@@ -37,10 +37,9 @@ public interface Chain extends Packable {
 
     /**
      * Add selected parts to chain.
-     * @param phrases   the list of parts which should be added.
      * @param locations the locations of parts.
      */
-    void addAll(List<List<String>> phrases, List<Location> locations);
+    void addAll(List<Location> locations);
     /**
      * Delete part of the chain.
      *

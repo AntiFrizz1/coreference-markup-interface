@@ -1,5 +1,7 @@
 package chain;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -7,18 +9,24 @@ import java.util.Set;
  *
  * @author Vadim Baydyuk
  */
-public class Phrase extends AbstractLocation {
+public class Phrase implements Location {
 
     /**
      * Positions of each word of phrase in the text.
      */
     private Set<Integer> positions;
 
-    public Phrase(int textId, Set<Integer> positions) {
-        super(textId);
-        this.positions = positions;
+    private String stringRepresentation;
+
+    public Phrase(String stringRepresentation, Integer... positions) {
+        this.positions = new HashSet<>(Arrays.asList(positions));
+        this.stringRepresentation = stringRepresentation;
     }
 
+    public Phrase(String stringRepresentation, Set<Integer> positions) {
+        this.positions = positions;
+        this.stringRepresentation = stringRepresentation;
+    }
 
     /**
      * Check if phrase which described by {@code obj} and phrase
@@ -38,8 +46,14 @@ public class Phrase extends AbstractLocation {
         }
     }
 
+
     @Override
-    public void getPositions(StringBuilder sb) {
+    public String toString() {
+        return stringRepresentation;
+    }
+
+    @Override
+    public void pack(StringBuilder sb) {
         sb.append("Phrase: ");
         positions.forEach(position -> sb.append(position).append(' '));
         sb.append('\n');

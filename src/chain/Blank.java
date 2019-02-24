@@ -39,4 +39,9 @@ public class Blank implements Location {
     public void pack(StringBuilder sb) {
         sb.append("Blank: ").append(position).append('\n');
     }
+
+    @Override
+    public String toString() {
+        return "";
+    }
 }

@@ -5,14 +5,8 @@ import chain.ChainImpl;
 import chain.Phrase;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ControllerImpl implements Controller {
@@ -75,7 +69,7 @@ public class ControllerImpl implements Controller {
         chains.remove(curChain);
         String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(Map.Entry::getValue).collect(Collectors.joining(" "));
-        curChain.addPart(new Phrase(textId, result, selected.keySet()));
+        curChain.addPart(new Phrase(result, selected.keySet()));
         chains.add(0, curChain);
         selected.clear();
         curChain = null;
@@ -89,7 +83,7 @@ public class ControllerImpl implements Controller {
         String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(Map.Entry::getValue).collect(Collectors.joining(" "));
         // TODO: maybe Utils.generateRandomColor()?
-        ChainImpl newChain = new ChainImpl(result, generateRandomColor(), new Phrase(textId, result, selected.keySet()));
+        ChainImpl newChain = new ChainImpl(result, generateRandomColor(), new Phrase(result, selected.keySet()));
         chains.add(0, newChain);
         selected.clear();
         return chains;

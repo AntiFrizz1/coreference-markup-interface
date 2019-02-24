@@ -53,8 +53,7 @@ public class ChainImpl implements Chain {
     }
 
     @Override
-    public void addAll(List<List<String>> phrases, List<Location> locations) {
-        this.phrases.addAll(phrases);
+    public void addAll(List<Location> locations) {
         this.locations.addAll(locations);
     }
 
@@ -96,7 +95,7 @@ public class ChainImpl implements Chain {
                 .append(' ').append(color.getGreen())
                 .append(' ').append(color.getBlue())
                 .append(' ').append(locations.size()).append('\n')
-                .append(this.toString());
+                .append(toString()).append('\n');
         locations.forEach(location -> location.pack(sb));
     }
 
