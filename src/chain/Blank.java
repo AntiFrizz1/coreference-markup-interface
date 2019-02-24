@@ -5,15 +5,14 @@ package chain;
  *
  * @author Vadim Baydyuk
  */
-public class Blank extends AbstractLocation {
+public class Blank implements Location {
 
     /**
      * Position of zero anaphora in the text.
      */
     private int position;
 
-    public Blank(int textId, int position) {
-        super(textId);
+    public Blank(int position) {
         this.position = position;
     }
 
@@ -37,7 +36,7 @@ public class Blank extends AbstractLocation {
     }
 
     @Override
-    public void getPositions(StringBuilder sb) {
+    public void pack(StringBuilder sb) {
         sb.append("Blank: ").append(position).append('\n');
     }
 }

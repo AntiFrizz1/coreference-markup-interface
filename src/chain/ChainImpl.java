@@ -53,6 +53,12 @@ public class ChainImpl implements Chain {
     }
 
     @Override
+    public void addAll(List<List<String>> phrases, List<Location> locations) {
+        this.phrases.addAll(phrases);
+        this.locations.addAll(locations);
+    }
+
+    @Override
     public void deletePart(Location location) {
         locations.remove(location);
     }

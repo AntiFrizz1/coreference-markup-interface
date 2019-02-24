@@ -1,5 +1,7 @@
 package client;
 
+import document.Converter;
+
 import java.net.Socket;
 
 /**
@@ -10,6 +12,7 @@ import java.net.Socket;
  */
 public abstract class AbstractClient implements Client {
 
+    protected Converter converter;
     /**
      * An internal endpoint for sending or receiving data.
      */
@@ -29,4 +32,8 @@ public abstract class AbstractClient implements Client {
      * Client id.
      */
     protected int id;
+
+    AbstractClient() {
+        converter = new Converter();
+    }
 }

@@ -1,7 +1,5 @@
 package chain;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -16,19 +14,9 @@ public class Phrase extends AbstractLocation {
      */
     private Set<Integer> positions;
 
-    private String stringRepresentation;
-
-    public Phrase(int textId, String stringRepresentation, Integer... positions) {
-        super(textId);
-        this.positions = new HashSet<>();
-        this.positions.addAll(Arrays.asList(positions));
-        this.stringRepresentation = stringRepresentation;
-    }
-
-    public Phrase(int textId, String stringRepresentation, Set<Integer> positions) {
+    public Phrase(int textId, Set<Integer> positions) {
         super(textId);
         this.positions = positions;
-        this.stringRepresentation = stringRepresentation;
     }
 
 
@@ -56,10 +44,4 @@ public class Phrase extends AbstractLocation {
         positions.forEach(position -> sb.append(position).append(' '));
         sb.append('\n');
     }
-
-    @Override
-    public String toString() {
-        return stringRepresentation;
-    }
-
 }

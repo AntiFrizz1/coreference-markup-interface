@@ -12,8 +12,4 @@ import document.Packable;
  */
 public interface Location extends Packable {
 
-    /**
-     * @return Number of text that contains this part of chain.
-     */
-    int getTextId();
 }
