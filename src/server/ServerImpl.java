@@ -1,5 +1,6 @@
 package server;
 
+import chain.Chain;
 import document.Document;
 import document.DocumentImpl;
 
@@ -360,36 +361,31 @@ public class ServerImpl implements Server {
      * Consist data about conflict
      */
     class ConflictInfo {
-        Document document;
+        Chain chain1;
+        Chain chain2;
         AtomicInteger status;
         Thread counter;
 
-        ConflictInfo(Document document) {
-            this.document = document;
+        ConflictInfo(Chain chain1, Chain chain2) {
+            this.chain1 = chain1;
+            this.chain2 = chain2;
             this.status = new AtomicInteger(0);
         }
 
-        boolean setDocument(Document document) {
-            if (status.compareAndSet(1, 2)) {
-                this.document = document;
-                return true;
-            } else {
-                return false;
-            }
-        }
-        
-        boolean again() {
-            int localStatus = status.get();
-            return localStatus != 0 && status.compareAndSet(localStatus, 0);
+        boolean complete() {
+            return status.compareAndSet(1, 2);
         }
 
         boolean apply() {
             if (status.compareAndSet(0, 1)) {
                 counter = new Thread(() -> {
-                    while (status.get() != 2) {
+                    while(status.get() != 2) {
                         try {
-                            Thread.sleep(100000);
-                            again();
+                            Thread.sleep(1000000);
+                            int localStatus = status.get();
+                            if(localStatus != 2) {
+                                status.compareAndSet(localStatus, 0);
+                            }
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
