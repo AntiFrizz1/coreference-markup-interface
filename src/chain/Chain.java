@@ -29,6 +29,13 @@ public interface Chain extends Packable {
     String getName();
 
     /**
+     * Get id of the chain.
+     *
+     * @return id of the chain.
+     */
+    int getId();
+
+    /**
      * Add selected part to chain.
      *
      * @param location the location of this part.

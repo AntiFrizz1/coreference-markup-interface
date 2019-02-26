@@ -1,8 +1,13 @@
 package userInterface;
 
+import chain.Blank;
 import chain.Chain;
+import chain.Location;
+import chain.Phrase;
 import javafx.application.Application;
+import javafx.event.Event;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
@@ -14,6 +19,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.util.List;
@@ -65,6 +72,7 @@ public class Main extends Application {
 
             TextField field = new TextField();
             ScrollPane pane = new ScrollPane();
+            pane.prefWidthProperty().bind(primaryStage.widthProperty().divide(4));
             GridPane chainsList = new GridPane();
             pane.setContent(chainsList);
             RowConstraints row1 = new RowConstraints();
@@ -87,26 +95,42 @@ public class Main extends Application {
             leftSide.setCenter(textWrapper);
 
             HBox box = new HBox(5);
+            Button b4 = new Button("Отменить");
+            b4.setOnAction(event -> {
+                List<Chain> chains = controller.cancel();
+                genChainsList(chainsList, chains);
+                generateText(text);  // TODO: remove that shit bcs we don't have to actually generate the whole text again
+                colorText(text, chains);
+                int remaining = controller.getPrevStatesSize();
+                if (remaining == 0) b4.setDisable(true);
+            });
+            b4.setDisable(true);
             Button b1 = new Button("Продолжить цепочку");
             b1.setOnAction(event -> {
                 Set<Integer> selected = controller.getSelected();
                 List<Chain> chains = controller.addToChain();
                 if (chains != null) {
                     genChainsList(chainsList, chains);
+                    colorText(text, chains);
                     removeSelectionFromText(selected, text);
+                    b4.setDisable(false);
                 }
             });
             Button b2 = new Button("Новая цепочка");
             b2.setOnAction(event -> {
                 Set<Integer> selected = controller.getSelected();
+                if (!selected.isEmpty()) {
+                    openChainNameDialogue(primaryStage);
+                }
                 List<Chain> chains = controller.addNewChain();
                 if (chains != null) {
                     genChainsList(chainsList, chains);
+                    colorText(text, chains);
                     removeSelectionFromText(selected, text);
+                    b4.setDisable(false);
                 }
             });
             Button b3 = new Button("Добавить нулевую анафору");
-            Button b4 = new Button("Отменить");
             box.getChildren().addAll(b1, b2, b3, b4);
             leftSide.setTop(box);
 
@@ -136,11 +160,13 @@ public class Main extends Application {
 
     private void generateText(FlowPane textPane) {
         String text = TEXT_PLACEHOLDER;
+        textPane.getChildren().clear();
         // TODO: should probably remove punctuation from buttons into separate TextAreas
         String[] words = text.split(" ");
         for (int i = 0; i < words.length; i++) {
             Button word = new Button(words[i]);
             word.getStyleClass().add("word");
+            word.setStyle("-fx-background-color: rgba(0,0,0,0)");
             final int iF = i;
             word.setOnAction(event -> {
                 controller.pressedButton(words[iF], iF);
@@ -149,6 +175,7 @@ public class Main extends Application {
             textPane.getChildren().add(word);
             Button space = new Button("   ");
             space.getStyleClass().add("word");
+            space.setStyle("-fx-background-color: rgba(0,0,0,0)");
             space.setOnAction(event -> {
                 controller.pressedButton("   ", iF);
                 toggleSelected(space, "word");
@@ -161,7 +188,7 @@ public class Main extends Application {
         chainsList.getChildren().clear();
         for (int i = 0; i < chains.size(); i++) {
             Chain c = chains.get(i);
-            Button chain = new Button(c.toString());
+            Button chain = new Button(c.getName());
             chain.setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
                     c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
             chain.getStyleClass().add("chain");
@@ -171,6 +198,27 @@ public class Main extends Application {
                 toggleSelected(chain, "chain");
             });
             chainsList.add(chain, 0, i);
+        }
+    }
+
+    private void colorText(FlowPane text, List<Chain> chains) {
+        for (Chain c: chains) {
+            List<Location> locations = c.getLocations();
+            for (Location l: locations) {
+                if (l instanceof Blank) {
+                    text.getChildren().get(2 * ((Blank) l).getPosition() + 1)
+                            .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
+                            c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
+                }
+                else if (l instanceof Phrase) {
+                    Set<Integer> pos = ((Phrase) l).getPositions();
+                    for (Integer i: pos) {
+                        text.getChildren().get(2 * i)
+                                .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
+                                        c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
+                    }
+                }
+            }
         }
     }
 
@@ -185,4 +233,29 @@ public class Main extends Application {
         for (Integer i: selected) toggleSelected((Button)text.getChildren().get(2*i), "word");
     }
 
+    private void openChainNameDialogue(Stage primaryStage) {
+        Stage stage = new Stage();
+        stage.setTitle("Введите название новой цепочки");
+        GridPane root = new GridPane();
+        root.add(new Text("Введите название новой цепочки:"), 0, 0);
+        TextField name = new TextField();
+        root.add(name, 0, 1);
+        Button ok = new Button("OK");
+        ok.setOnAction(event -> {
+            if (!name.getText().isEmpty()) {
+                stage.getScene().getWindow().hide();
+                controller.setNewChainName(name.getText());
+            }
+        });
+        ok.setAlignment(Pos.CENTER);
+        root.add(ok, 0, 2);
+        root.setAlignment(Pos.CENTER);
+        stage.setScene(new Scene(root, 190, 70));
+        stage.setResizable(false);
+        stage.setOnCloseRequest(Event::consume);
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initOwner(primaryStage);
+        stage.showAndWait();
+//        while (stage.isShowing()) {}
+    }
 }

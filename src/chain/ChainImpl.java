@@ -28,12 +28,26 @@ public class ChainImpl implements Chain {
      */
     private List<Location> locations;
 
+    /**
+     * Unique identificator of this chain.
+     */
+    private int id;
 
-    public ChainImpl(String name, Color color, Location... locations) {
+
+    public ChainImpl(String name, Color color, int id, Location... locations) {
         this.color = color;
         this.name = name;
+        this.id = id;
         this.locations = new ArrayList<>();
         this.locations.addAll(Arrays.asList(locations));
+    }
+
+    public ChainImpl(Chain another) {
+        this.color = another.getColor();
+        this.name = another.getName();
+        this.id = another.getId();
+        this.locations = new ArrayList<>();
+        this.locations.addAll(another.getLocations());
     }
 
 
@@ -45,6 +59,10 @@ public class ChainImpl implements Chain {
     @Override
     public String getName() {
         return name;
+    }
+
+    public int getId() {
+        return id;
     }
 
     @Override
@@ -91,7 +109,8 @@ public class ChainImpl implements Chain {
 
     @Override
     public void pack(StringBuilder sb) {
-        sb.append(name).append(' ').append(color.getRed())
+        sb.append(name).append(' ').append(id)
+                .append(' ').append(color.getRed())
                 .append(' ').append(color.getGreen())
                 .append(' ').append(color.getBlue())
                 .append(' ').append(locations.size()).append('\n')

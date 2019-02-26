@@ -14,7 +14,7 @@ public interface Controller {
     List<Chain> addNewChain();
     void deleteChain(Chain chain);
     void saeStateOffline();
-    void cancel();
+    List<Chain> cancel();
     void showConflict();
     void resolveConflict(int decision);
     void disableOption(int option);

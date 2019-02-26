@@ -5,8 +5,14 @@ import chain.ChainImpl;
 import chain.Phrase;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ControllerImpl implements Controller {
@@ -14,7 +20,7 @@ public class ControllerImpl implements Controller {
     private final int ADDCHAIN = 1;
     private final int DELCHAIN = 2;
 
-    private List<Chain> chains;
+    private List<Chain> chains;  // TODO: id for chains
     private List<List<Chain>> prevStates;
     private int textId;
     private int curSentence;
@@ -22,6 +28,7 @@ public class ControllerImpl implements Controller {
     int mode;
     private Map<Integer, String> selected;
     private int selectedSpace;
+    private String newChainName;
 
     ControllerImpl(String text) {
         chains = new ArrayList<>();
@@ -69,11 +76,15 @@ public class ControllerImpl implements Controller {
         chains.remove(curChain);
         String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(Map.Entry::getValue).collect(Collectors.joining(" "));
-        curChain.addPart(new Phrase(result, selected.keySet()));
+        curChain.addPart(new Phrase(result, new HashSet<>(selected.keySet())));
         chains.add(0, curChain);
         selected.clear();
         curChain = null;
         return chains;
+    }
+
+    public void setNewChainName(String name) {
+        newChainName = name;
     }
 
     @Override
@@ -83,7 +94,9 @@ public class ControllerImpl implements Controller {
         String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(Map.Entry::getValue).collect(Collectors.joining(" "));
         // TODO: maybe Utils.generateRandomColor()?
-        ChainImpl newChain = new ChainImpl(result, generateRandomColor(), new Phrase(result, selected.keySet()));
+        ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
+                chains.size(), new Phrase(result, new HashSet<>(selected.keySet())));
+        newChainName = "";
         chains.add(0, newChain);
         selected.clear();
         return chains;
@@ -112,8 +125,14 @@ public class ControllerImpl implements Controller {
     }
 
     @Override
-    public void cancel() {
+    public List<Chain> cancel() {  // TODO: it might be better to save changes instead of full chains and redo them
+        chains = prevStates.get(prevStates.size() - 1);
+        prevStates.remove(prevStates.size() - 1);
+        return chains;
+    }
 
+    public int getPrevStatesSize() {
+        return prevStates.size();
     }
 
     @Override
@@ -143,12 +162,15 @@ public class ControllerImpl implements Controller {
         int g = R.nextInt(256);
         int b = R.nextInt(256);
         if (r + g + b < 120) return generateRandomColor();
+        if (r + g + b > 600) return generateRandomColor();
         else return new Color(r, g, b);
     }
 
     private void saveState() {
         if (prevStates.size() >= 20) prevStates.remove(0);
-        prevStates.add(new ArrayList<>(chains));
+        List<Chain> copy = new ArrayList<>();
+        for (Chain c: chains) copy.add(new ChainImpl(c));
+        prevStates.add(copy);
     }
 
 }

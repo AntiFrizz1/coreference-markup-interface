@@ -1,6 +1,10 @@
 package document;
 
-import chain.*;
+import chain.Blank;
+import chain.Chain;
+import chain.ChainImpl;
+import chain.Location;
+import chain.Phrase;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -19,10 +23,10 @@ public class Converter {
             List<String> list1 = Arrays.asList(list.get(i).split(" "));
 
             Chain temp = new ChainImpl(list1.get(0), new Color(
-                    Integer.valueOf(list1.get(1)),
                     Integer.valueOf(list1.get(2)),
-                    Integer.valueOf(list1.get(3))
-            ));
+                    Integer.valueOf(list1.get(3)),
+                    Integer.valueOf(list1.get(4))),
+                    Integer.valueOf(list1.get(1)));
 
             i++;
             List<String> reprs = Arrays.asList(list.get(i++).split(" -- "));

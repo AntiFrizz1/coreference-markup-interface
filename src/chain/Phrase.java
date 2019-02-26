@@ -46,6 +46,9 @@ public class Phrase implements Location {
         }
     }
 
+    public Set<Integer> getPositions() {
+        return positions;
+    }
 
     @Override
     public String toString() {
