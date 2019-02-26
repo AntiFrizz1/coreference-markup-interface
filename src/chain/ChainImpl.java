@@ -41,6 +41,14 @@ public class ChainImpl implements Chain {
         this.locations.addAll(Arrays.asList(locations));
     }
 
+    public ChainImpl(String name, Color color, int id, List<Location> locations) {
+        this.color = color;
+        this.name = name;
+        this.id = id;
+        this.locations = new ArrayList<>();
+        this.locations.addAll(locations);
+    }
+
     public ChainImpl(Chain another) {
         this.color = another.getColor();
         this.name = another.getName();

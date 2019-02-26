@@ -1,10 +1,14 @@
 package server;
 
 import chain.Chain;
+import chain.ChainImpl;
+import chain.Location;
+import document.Converter;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -34,7 +38,7 @@ public class ServerImpl implements Server {
     /**
      * Texts.
      */
-    private List<List<String>> texts;
+    private List<String> texts;
 
     /**
      * Pool of clients.
@@ -67,11 +71,6 @@ public class ServerImpl implements Server {
     private List<JudgeInfo> judges;
 
     /**
-     * Set of selected texts
-     */
-    private Set<Integer> selectedTexts;
-
-    /**
      * List of workers
      */
     private List<Thread> workers;
@@ -84,6 +83,8 @@ public class ServerImpl implements Server {
     private Queue<AddTask> tasks;
 
     private Store store;
+
+    private Converter converter;
 
     public ServerImpl() {
         try {
@@ -101,9 +102,10 @@ public class ServerImpl implements Server {
         workers = new CopyOnWriteArrayList<>();
 
         judgesId = new ConcurrentSkipListSet<>();
-        selectedTexts = new ConcurrentSkipListSet<>();
 
         store = new StoreImpl();
+
+        converter = new Converter();
     }
 
     /**
@@ -240,8 +242,8 @@ public class ServerImpl implements Server {
                             PrintWriter writer1 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client1.getOutputStream())));
                             PrintWriter writer2 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client2.getOutputStream())));
 
-                            writer1.println(/*document.pack()*/);
-                            writer2.println(/*document.pack()*/);
+                            writer1.println(texts.get(text));
+                            writer2.println(texts.get(text));
 
                             writer1.flush();
                             writer2.flush();
@@ -250,15 +252,34 @@ public class ServerImpl implements Server {
 
                             Thread thread1 = new Thread(() -> {
                                 while (true) {
-                                    List<Chain> localChains;
+                                    List<Chain> localChains = new ArrayList<>();
                                     try {
                                         String request = reader1.readLine();
                                         if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
                                             store.putAns(request, text, 1);
                                         } else {
+                                            List<Chain> updatedChains = converter.unpack(request);
+                                            List<Chain> newChains = new ArrayList<>();
+                                            for (int i = 0; i < updatedChains.size(); i++) {
+                                                if (i < localChains.size()) {
+                                                    if (localChains.get(i).getLocations().size() < updatedChains.get(i).getLocations().size()) {
+                                                        List<Location> locations = new ArrayList<>();
 
+                                                        for (int k = localChains.get(i).getLocations().size(); k < updatedChains.get(i).getLocations().size(); k++) {
+                                                            locations.add(updatedChains.get(i).getLocations().get(k));
+                                                        }
+
+                                                        Chain chain = new ChainImpl(localChains.get(i).getName(), localChains.get(i).getColor(), localChains.get(i).getId(), locations);
+                                                        newChains.add(chain);
+                                                        localChains.set(i, updatedChains.get(i));
+                                                    }
+                                                } else {
+                                                    tasks.add(new AddTask(updatedChains.get(i), text, 1));
+                                                    localChains.add(updatedChains.get(i));
+                                                }
+                                            }
+                                            tasks.add(new AddTask(newChains, text, 1));
                                         }
-                                        //process data
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
@@ -267,15 +288,34 @@ public class ServerImpl implements Server {
 
                             Thread thread2 = new Thread(() -> {
                                 while (true) {
-                                    List<Chain> localChains;
+                                    List<Chain> localChains = new ArrayList<>();
                                     try {
                                         String request = reader2.readLine();
                                         if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
-                                            store.putAns(request, text, 1);
+                                            store.putAns(request, text, 2);
                                         } else {
+                                            List<Chain> updatedChains = converter.unpack(request);
+                                            List<Chain> newChains = new ArrayList<>();
+                                            for (int i = 0; i < updatedChains.size(); i++) {
+                                                if (i < localChains.size()) {
+                                                    if (localChains.get(i).getLocations().size() < updatedChains.get(i).getLocations().size()) {
+                                                        List<Location> locations = new ArrayList<>();
 
+                                                        for (int k = localChains.get(i).getLocations().size(); k < updatedChains.get(i).getLocations().size(); k++) {
+                                                            locations.add(updatedChains.get(i).getLocations().get(k));
+                                                        }
+
+                                                        Chain chain = new ChainImpl(localChains.get(i).getName(), localChains.get(i).getColor(), localChains.get(i).getId(), locations);
+                                                        newChains.add(chain);
+                                                        localChains.set(i, updatedChains.get(i));
+                                                    }
+                                                } else {
+                                                    tasks.add(new AddTask(updatedChains.get(i), text, 2));
+                                                    localChains.add(updatedChains.get(i));
+                                                }
+                                            }
+                                            tasks.add(new AddTask(newChains, text, 2));
                                         }
-                                        //process data
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
@@ -306,6 +346,7 @@ public class ServerImpl implements Server {
      * Give task for offline users
      */
     private Runnable offlineUsersScheduler = () -> {
+        int texNumber = 0;
         try {
             while (true) {
                 if (!offlineUsers.isEmpty()) {
@@ -314,12 +355,16 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
+                        int text = texNumber;
 
-                        writer.println("doc");
+                        texNumber++;
+
+                        writer.println(texts.get(text));
                         writer.flush();
                         Thread worker = new Thread(() -> {
                             try {
                                 String doc = reader.readLine();
+                                List<Chain> answer = converter.unpack(doc);
                                 //save data
                                 System.out.println("offlineUsersScheduler :=: " + client.toString() + " doc = " + doc);
                             } catch (IOException e) {
