@@ -1,8 +1,6 @@
 package server;
 
 import chain.Chain;
-import document.Document;
-import document.DocumentImpl;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -232,8 +230,6 @@ public class ServerImpl implements Server {
                     Socket client2 = onlineUsers.poll();
                     Thread worker = new Thread(() -> {
                         try {
-                            DocumentImpl document1;
-                            DocumentImpl document2;
 
                             int text = textNumber.get();
 
@@ -375,7 +371,11 @@ public class ServerImpl implements Server {
     /*Runnable judgeScheduler = () -> {
         try {
             while (true) {
+                for (ConflictInfo conflictInfo: conflicts) {
+                    if (conflictInfo.status.get() == 0) {
 
+                    }
+                }
             }
         }
     };*/

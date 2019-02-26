@@ -1,9 +1,11 @@
 package client;
 
+import chain.Chain;
 import document.Converter;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 
 /**
  * This class provides some extra fields for {@code Client}.
@@ -28,7 +30,7 @@ public abstract class AbstractClient implements Client {
     /**
      * Client address.
      */
-    protected String serviceAddress;
+    protected String serviceAddress = "localhost";
 
     /**
      * Client id.
@@ -75,15 +77,15 @@ public abstract class AbstractClient implements Client {
     }
 
     @Override
-    public void sendInfo(Document document) {
-        writer.println(document.pack());
+    public void sendInfo(List<Chain> document) {
+        writer.println(converter.pack(document));
         writer.flush();
     }
 
     @Override
-    public Document getInfo() {
+    public List<Chain> getInfo() {
         try {
-            return new DocumentImpl(reader.readLine());
+            return converter.unpack(reader.readLine());
         } catch (IOException e) {
             System.err.println("Can't get information from server");
         }

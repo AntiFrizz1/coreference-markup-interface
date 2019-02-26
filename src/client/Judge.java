@@ -15,20 +15,6 @@ public class Judge extends AbstractClient {
 
     @Override
     public void sendUpdates(List<Chain> document) {
-
-    }
-
-    @Override
-    public void sendInfo(List<Chain> document) {
-
-    }
-
-    @Override
-    public List<Chain> getInfo() {
-        return null;
-      
-    public void join() {
-
     }
 
     @Override

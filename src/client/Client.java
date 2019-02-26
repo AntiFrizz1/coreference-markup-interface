@@ -36,12 +36,13 @@ public interface Client {
     List<Chain> getInfo();
 
     /**
-     * Connect to server as User or as Judge.
+     * Connect to server as User or as Judge for work online.
      */
-    void join();
-
     void joinOnline();
 
+    /**
+     * Connect to server as User or as Judge for work offline.
+     */
     void joinOffline();
 
     /**
