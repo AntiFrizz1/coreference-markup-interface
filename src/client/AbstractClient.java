@@ -1,7 +1,6 @@
 package client;
 
-import document.Document;
-import document.DocumentImpl;
+import document.Converter;
 
 import java.io.*;
 import java.net.Socket;
@@ -14,8 +13,41 @@ import java.net.Socket;
  */
 public abstract class AbstractClient implements Client {
 
+    protected Converter converter;
+ 
+    /**
+     * An internal endpoint for sending or receiving data.
+     */
+    protected Socket socket;
+
+    /**
+     * Identifier of client.
+     */
+    protected int port;
+
+    /**
+     * Client address.
+     */
+    protected String serviceAddress;
+
+    /**
+     * Client id.
+     */
+    protected int id;
+
+    /**
+     * Client reader
+     */
+    protected BufferedReader reader;
+
+    /**
+     * Client writer
+     */
+    protected PrintWriter writer;
+  
     public AbstractClient() {
         try {
+            converter = new Converter();
             socket = new Socket(serviceAddress, port);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -67,33 +99,4 @@ public abstract class AbstractClient implements Client {
         }
     }
 
-    /**
-     * An internal endpoint for sending or receiving data.
-     */
-    protected Socket socket;
-
-    /**
-     * Identifier of client.
-     */
-    protected int port;
-
-    /**
-     * Client address.
-     */
-    protected String serviceAddress;
-
-    /**
-     * Client id.
-     */
-    protected int id;
-
-    /**
-     * Client reader
-     */
-    protected BufferedReader reader;
-
-    /**
-     * Client writer
-     */
-    protected PrintWriter writer;
 }

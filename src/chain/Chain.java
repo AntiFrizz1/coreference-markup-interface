@@ -1,7 +1,9 @@
 package chain;
 
 
-import java.awt.Color;
+import document.Packable;
+
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -11,7 +13,7 @@ import java.util.List;
  * @see Location
  */
 
-public interface Chain {
+public interface Chain extends Packable {
     /**
      * Set name of chain.
      *
@@ -27,19 +29,30 @@ public interface Chain {
     String getName();
 
     /**
+     * Get id of the chain.
+     *
+     * @return id of the chain.
+     */
+    int getId();
+
+    /**
      * Add selected part to chain.
      *
-     * @param phrase   the list of words which should be added as part of chain.
      * @param location the location of this part.
      */
-    void addPart(List<String> phrase, Location location);
+    void addPart(Location location);
 
+    /**
+     * Add selected parts to chain.
+     * @param locations the locations of parts.
+     */
+    void addAll(List<Location> locations);
     /**
      * Delete part of the chain.
      *
      * @param location the location op part that should be deleted.
      */
-    void deleteWord(Location location);
+    void deletePart(Location location);
 
     /**
      * Get color of the chain.
@@ -55,17 +68,23 @@ public interface Chain {
      */
     void setColor(Color color);
 
-    /**
-     * Get all parts of the chain.
-     *
-     * @return the list of parts of the chain.
-     */
-    List<List<String>> getWords();
+//    /**
+//     * Get all parts of the chain.
+//     *
+//     * @return the list of parts of the chain.
+//     */
+//    List<List<String>> getParts();
+//
+//    /**
+//     * Merge with {@code chain}.
+//     *
+//     * @param chain the chain to merge with.
+//     */
+//    void mergeWith(Chain chain);
 
     /**
-     * Merge with {@code chain}.
-     *
-     * @param chain the chain to merge with.
+     * Get locations of all parts of the chain
+     * @return
      */
-    void mergeWith(Chain chain);
+    List<Location> getLocations();
 }

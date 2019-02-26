@@ -1,6 +1,9 @@
 package client;
 
-import document.Document;
+import chain.Chain;
+import document.Converter;
+
+import java.util.List;
 
 /**
  * This class describes interaction protocol of User
@@ -10,7 +13,7 @@ import document.Document;
  */
 public class User extends AbstractClient {
     //private Listener listener;
-
+  
     public User() {
         super();
     }
@@ -29,6 +32,16 @@ public class User extends AbstractClient {
         }
     }
 
+  @Override
+    public void sendInfo(List<Chain> document) {
+
+    }
+
+    @Override
+    public List<Chain> getInfo() {
+        return null;
+
+  
     @Override
     public void join() {
 

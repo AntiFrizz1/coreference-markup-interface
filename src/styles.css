@@ -1,0 +1,29 @@
+.root {
+    -fx-base: white;
+}
+
+.word {
+    -fx-background-color: rgba(0,0,0,0);
+    -fx-padding: 0, 0, 0, 0;
+    -fx-font-size: 20pt;
+}
+
+.word-selected {
+    -fx-background-color: rgba(0,0,0,0);
+    -fx-border-color: red;
+    -fx-border-width: 1px;
+    -fx-padding: 0, 0, 0, 0;
+    -fx-font-size: 20pt;
+}
+
+.chain {
+    -fx-padding: 0, 0, 0, 0;
+    -fx-font-size: 14pt;
+}
+
+.chain-selected {
+    -fx-border-color: red;
+    -fx-border-width: 1px;
+    -fx-padding: 0, 0, 0, 0;
+    -fx-font-size: 14pt;
+}
