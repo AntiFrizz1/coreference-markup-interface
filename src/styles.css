@@ -3,17 +3,30 @@
 }
 
 .word {
-    -fx-background-color: rgba(0,0,0,0);
     -fx-padding: 0, 0, 0, 0;
     -fx-font-size: 20pt;
 }
 
 .word-selected {
-    -fx-background-color: rgba(0,0,0,0);
     -fx-border-color: red;
     -fx-border-width: 1px;
     -fx-padding: 0, 0, 0, 0;
     -fx-font-size: 20pt;
+}
+
+.highlight {
+    -fx-text-fill: rgba(0,0,0,0.7);
+}
+
+.highlight-selected {
+    -fx-text-fill: rgba(0,0,0,1);
+}
+
+.search {
+}
+
+.search-selected {
+    -fx-text-fill: yellow;
 }
 
 .chain {
