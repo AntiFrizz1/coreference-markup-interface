@@ -1,8 +1,7 @@
 package userInterface;
 
+import chain.Action;
 import chain.Chain;
-
-import java.util.List;
 
 public interface Controller {
     void showUI();
@@ -10,11 +9,12 @@ public interface Controller {
     void offlineMode();
     void nextSentence();
     void prevSentence();
-    List<Chain> addToChain();
-    List<Chain> addNewChain();
+    Action addToChain();
+    Action addAnaphoraToChain();
+    Action addNewChain();
     void deleteChain(Chain chain);
-    void saeStateOffline();
-    List<Chain> cancel();
+    void saveStateOffline();
+    Action cancel();
     void showConflict();
     void resolveConflict(int decision);
     void disableOption(int option);
