@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicMarkableReference;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -381,25 +382,28 @@ public class ServerImpl implements Server {
 
     class JudgeInfo {
         Socket socket;
-        AtomicReference<ConflictInfo> task;
+        /**
+         * reference has mark set false if judge is free otherwise true
+         */
+        AtomicMarkableReference<ConflictInfo> task;
         Thread worker;
 
         JudgeInfo(Socket socket) {
             this.socket = socket;
-            task = new AtomicReference<>(null);
+            task = new AtomicMarkableReference<>(null, false);
             worker = new Thread(judgeWorker);
             worker.start();
         }
 
         boolean setTask(ConflictInfo task) {
-            return (this.task.compareAndSet(null, task));
+            return this.task.compareAndSet(null, task, false, true);
         }
 
         Runnable judgeWorker = () -> {
             try {
                 while (true) {
-                    if (task.get() != null) {
-                        task.get().apply();
+                    if (task.getReference() != null) {
+                        task.getReference().apply();
                         //process
                     } else {
                         Thread.sleep(1000);
@@ -416,36 +420,31 @@ public class ServerImpl implements Server {
      * Consist data about conflict
      */
     class ConflictInfo {
-        Document document;
+        Chain chain1;
+        Chain chain2;
         AtomicInteger status;
         Thread counter;
 
-        ConflictInfo(Document document) {
-            this.document = document;
+        ConflictInfo(Chain chain1, Chain chain2) {
+            this.chain1 = chain1;
+            this.chain2 = chain2;
             this.status = new AtomicInteger(0);
         }
 
-        boolean setDocument(Document document) {
-            if (status.compareAndSet(1, 2)) {
-                this.document = document;
-                return true;
-            } else {
-                return false;
-            }
-        }
-        
-        boolean again() {
-            int localStatus = status.get();
-            return localStatus != 0 && status.compareAndSet(localStatus, 0);
+        boolean complete() {
+            return status.compareAndSet(1, 2);
         }
 
         boolean apply() {
             if (status.compareAndSet(0, 1)) {
                 counter = new Thread(() -> {
-                    while (status.get() != 2) {
+                    while(status.get() != 2) {
                         try {
-                            Thread.sleep(100000);
-                            again();
+                            Thread.sleep(1000000);
+                            int localStatus = status.get();
+                            if(localStatus == 1) {
+                                status.compareAndSet(localStatus, 0);
+                            }
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
