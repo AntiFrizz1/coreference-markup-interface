@@ -106,7 +106,7 @@ public class StoreImpl implements Store {
             for (Chain chain : tmp.approved) {
                 if (chain.getName().equals(ans)) {
                     added = true;
-                    chain.mergeWith(union);
+                    chain.addAll(union.getLocations());
                 }
             }
         }
@@ -165,7 +165,7 @@ public class StoreImpl implements Store {
                             if (f) {
                                 for (Chain chain: curGame.approved) {
                                     if (chain.getName().equals(approvedName)) {
-                                        chain.mergeWith(chainApproved);
+                                        chain.addAll(chainApproved.getLocations());
                                     }
                                 }
                             } else {
@@ -206,7 +206,7 @@ public class StoreImpl implements Store {
             for (Chain chain1 : chains) {
                 for (Chain chain2 : curChains) {
                     if (chain1.getName().equals(chain2.getName())) {
-                        chain2.mergeWith(chain1);
+                        chain2.addAll(chain1.getLocations());
                     }
                 }
             }

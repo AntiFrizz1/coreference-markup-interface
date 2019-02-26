@@ -33,7 +33,6 @@ public class ChainImpl implements Chain {
      */
     private int id;
 
-
     public ChainImpl(String name, Color color, int id, Location... locations) {
         this.color = color;
         this.name = name;
@@ -50,6 +49,8 @@ public class ChainImpl implements Chain {
         this.locations.addAll(another.getLocations());
     }
 
+    public ChainImpl() {
+    }
 
     @Override
     public void setName(String name) {
