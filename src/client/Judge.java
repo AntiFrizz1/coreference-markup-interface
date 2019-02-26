@@ -26,15 +26,19 @@ public class Judge extends AbstractClient {
     @Override
     public List<Chain> getInfo() {
         return null;
-    }
-
-    @Override
+      
     public void join() {
 
     }
 
     @Override
-    public void close() {
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        System.out.println("Successful connect to server as judge with id = " + id);
+    }
+
+    @Override
+    public void joinOffline() {
 
     }
 }

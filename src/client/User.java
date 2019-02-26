@@ -13,13 +13,26 @@ import java.util.List;
  */
 public class User extends AbstractClient {
     //private Listener listener;
-
-    @Override
-    public void sendUpdates(List<Chain> document) {
-
+  
+    public User() {
+        super();
     }
 
     @Override
+    public void sendUpdates(Document document) {
+        while (true) {
+            try {
+                writer.println(document.pack());
+                writer.flush();
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+    }
+
+  @Override
     public void sendInfo(List<Chain> document) {
 
     }
@@ -27,15 +40,24 @@ public class User extends AbstractClient {
     @Override
     public List<Chain> getInfo() {
         return null;
-    }
 
+  
     @Override
     public void join() {
 
     }
 
     @Override
-    public void close() {
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("0");
+        System.out.println("Successful connect to server in online mode with id = " + id);
+    }
 
+    @Override
+    public void joinOffline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("1");
+        System.out.println("Successful connect to server in offline mode with id = " + id);
     }
 }
