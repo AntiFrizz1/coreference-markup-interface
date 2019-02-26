@@ -2,8 +2,10 @@ package server;
 
 import chain.Chain;
 
+import java.net.Socket;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public interface Store {
     /**
@@ -12,8 +14,9 @@ public interface Store {
      * @param chain   that we want to put
      * @param textNum text number
      * @param teamNum team number (one or two)
+     * @return true if put successful, false otherwise
      */
-    void put(Chain chain, int textNum, int teamNum);
+    boolean put(Chain chain, int textNum, int teamNum);
 
     /**
      * This method trying to find collision in two given lists
@@ -35,5 +38,28 @@ public interface Store {
      */
     void get();
 
+    /**
+     * Update local List<Chain>
+     * @param chains changed list of chains
+     * @param textNum text number
+     * @param teamNum team number (one or two)
+     * @return true if update successful, false otherwise
+     */
     boolean update(List<Chain> chains, int textNum, int teamNum);
+
+    /**
+     * Add new pair of teams to Store
+     * @param socket1 first team
+     * @param socket2 second team
+     */
+    void addNewGame(Socket socket1, Socket socket2);
+
+    /**
+     * Put answer about conflict
+     * @param ans answer from client
+     * @param textNum text number
+     * @param teamNum team number (one or two)
+     * @return true if put successful, false otherwise
+     */
+    boolean putAns(String ans, int textNum, int teamNum);
 }

@@ -3,26 +3,39 @@ package server;
 import chain.Chain;
 import chain.ChainImpl;
 
+import java.io.*;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class StoreImpl implements Store {
     class Game {
         Socket teamOneSocket;
         Socket teamTwoSocket;
+
         Map<String, String> names;
+
         List<Chain> approved;
         List<Chain> teamOneList;
         List<Chain> teamTwoList;
 
+        AtomicReference<String> ans1;
+        AtomicReference<String> ans2;
+
         Game(Socket socket1, Socket socket2) {
             teamOneSocket = socket1;
             teamTwoSocket = socket2;
+
             names = new HashMap<>();
+
             approved = new ArrayList<>(0);
             teamOneList = new ArrayList<>(0);
             teamTwoList = new ArrayList<>(0);
+
+            ans1 = new AtomicReference<>(null);
+            ans2 = new AtomicReference<>(null);
         }
     }
 
@@ -31,10 +44,10 @@ public class StoreImpl implements Store {
 
     StoreImpl() {
         texts = new ArrayList<>(0);
-        atomicIntegerArray = new AtomicIntegerArray(0);
+        atomicIntegerArray = new AtomicIntegerArray(100);
     }
 
-    public void put(Chain chain, int textNum, int teamNum) {
+    public boolean put(Chain chain, int textNum, int teamNum) {
         if (atomicIntegerArray.compareAndSet(textNum, 0, 1)) {
             if (teamNum == 1) {
                 texts.get(textNum).teamOneList.add(chain);
@@ -42,6 +55,9 @@ public class StoreImpl implements Store {
                 texts.get(textNum).teamTwoList.add(chain);
             }
             atomicIntegerArray.compareAndSet(textNum, 1, 0);
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -85,6 +101,7 @@ public class StoreImpl implements Store {
             //unite chainOne and chainTwo
             Chain union = null;
             String ans = first + "|" + second;
+
             boolean added = false;
             for (Chain chain : tmp.approved) {
                 if (chain.getName().equals(ans)) {
@@ -103,7 +120,61 @@ public class StoreImpl implements Store {
                     Chain chain1 = new ChainImpl();
                     Chain chain2 = new ChainImpl();
                     if (compareChains(curGame.names, curGame.approved, curGame.teamOneList, curGame.teamTwoList, chain1, chain2)) {
-                        // send conflict {chain1 & chain2} to clients
+                        try {
+                            PrintWriter writer1 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+                                    curGame.teamOneSocket.getOutputStream())));
+                            PrintWriter writer2 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+                                    curGame.teamTwoSocket.getOutputStream())));
+
+                            writer1.println(chain1.toString());
+                            writer1.flush();
+                            writer1.println(chain2.toString());
+                            writer1.flush();
+
+                            writer2.println(chain2.toString());
+                            writer2.flush();
+                            writer2.println(chain1.toString());
+                            writer2.flush();
+
+                            while (curGame.ans1.get() == null || curGame.ans2.get() == null) {
+                                Thread.sleep(1000);
+                            }
+                            String ans1 = curGame.ans1.getAndSet(null);
+                            String ans2 = curGame.ans2.getAndSet(null);
+
+                            String name1 = chain1.getName();
+                            String name2 = chain2.getName();
+                            String approvedName = name1 + "|" + name2;
+
+                            Chain chainApproved = null;
+                            boolean f = false;
+
+                            if (ans1.equals("{1}") && ans2.equals("{2}")) {
+                                f = true;
+                                chainApproved = chain1;
+                            } else if (ans1.equals("{2}") && ans2.equals("{1}")) {
+                                f = true;
+                                chainApproved = chain2;
+                            } else if (ans1.startsWith("{3}") && ans2.startsWith("{3}") && ans1.equals(ans2)) {
+                                f = true;
+                                String newChainString = ans1.substring(3);
+                                //convert String to Chain
+                                //chainApproved = newChain;
+                            }
+
+                            if (f) {
+                                for (Chain chain: curGame.approved) {
+                                    if (chain.getName().equals(approvedName)) {
+                                        chain.mergeWith(chainApproved);
+                                    }
+                                }
+                            } else {
+                                //send to Judge
+                            }
+
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     } else {
                         doApproved(curGame);
                         // transfer chains to approved
@@ -146,4 +217,30 @@ public class StoreImpl implements Store {
         }
     }
 
+    public boolean putAns(String ans, int textNum, int teamNum) {
+        if (atomicIntegerArray.get(textNum) == 1) {
+            Game curGame = texts.get(textNum);
+            if (teamNum == 1) {
+                if (curGame.ans1.compareAndSet(null, ans)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                if (curGame.ans2.compareAndSet(null, ans)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    synchronized public void addNewGame(Socket socket1, Socket socket2) {
+        Game newGame = new Game(socket1, socket2);
+        texts.add(newGame);
+    }
 }

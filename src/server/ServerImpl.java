@@ -1,5 +1,6 @@
 package server;
 
+import chain.Chain;
 import document.Document;
 import document.DocumentImpl;
 
@@ -82,7 +83,9 @@ public class ServerImpl implements Server {
      */
     private List<ConflictInfo> conflicts;
 
+    private Queue<AddTask> tasks;
 
+    private Store store;
 
     public ServerImpl() {
         try {
@@ -96,10 +99,13 @@ public class ServerImpl implements Server {
         clients = new ConcurrentLinkedQueue<>();
         offlineUsers = new ConcurrentLinkedQueue<>();
         onlineUsers = new ConcurrentLinkedQueue<>();
+        tasks = new ConcurrentLinkedQueue<>();
         workers = new CopyOnWriteArrayList<>();
 
         judgesId = new ConcurrentSkipListSet<>();
         selectedTexts = new ConcurrentSkipListSet<>();
+
+        store = new StoreImpl();
     }
 
     /**
@@ -217,7 +223,7 @@ public class ServerImpl implements Server {
      * Give task for online users
      */
     private Runnable onlineUsersScheduler = () -> {
-        int textNumber = 0;
+        AtomicInteger textNumber = new AtomicInteger();
         try {
             while (true) {
                 if (onlineUsers.size() >= 2) {
@@ -227,6 +233,10 @@ public class ServerImpl implements Server {
                         try {
                             DocumentImpl document1;
                             DocumentImpl document2;
+
+                            int text = textNumber.get();
+
+                            textNumber.getAndIncrement();
 
                             BufferedReader reader1 = new BufferedReader(new InputStreamReader(client1.getInputStream()));
                             BufferedReader reader2 = new BufferedReader(new InputStreamReader(client2.getInputStream()));
@@ -240,10 +250,18 @@ public class ServerImpl implements Server {
                             writer1.flush();
                             writer2.flush();
 
+                            AtomicInteger mutex = new AtomicInteger(0);
+
                             Thread thread1 = new Thread(() -> {
                                 while (true) {
+                                    List<Chain> localChains;
                                     try {
                                         String request = reader1.readLine();
+                                        if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
+                                            store.putAns(request, text, 1);
+                                        } else {
+
+                                        }
                                         //process data
                                     } catch (IOException e) {
                                         e.printStackTrace();
@@ -253,18 +271,26 @@ public class ServerImpl implements Server {
 
                             Thread thread2 = new Thread(() -> {
                                 while (true) {
+                                    List<Chain> localChains;
                                     try {
                                         String request = reader2.readLine();
+                                        if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
+                                            store.putAns(request, text, 1);
+                                        } else {
+
+                                        }
                                         //process data
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
                                 }
                             });
+
                             thread1.start();
                             thread2.start();
                             thread1.join();
                             thread2.join();
+
                         } catch (IOException | InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -308,6 +334,33 @@ public class ServerImpl implements Server {
                         workers.add(worker);
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }
+                } else {
+                    Thread.sleep(1000);
+                }
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    };
+
+    Runnable storeRunnable = () -> {
+      store.get();
+    };
+
+    Runnable taskRunnable = () -> {
+        try {
+            while (true) {
+                if (!tasks.isEmpty()) {
+                    AddTask task = tasks.poll();
+                    if (task.taskType == 0) {
+                        if (!store.put(task.chain, task.textNum, task.taskType)) {
+                            tasks.add(task);
+                        }
+                    } else {
+                        if (!store.update(task.chainList, task.textNum, task.taskType)) {
+                            tasks.add(task);
+                        }
                     }
                 } else {
                     Thread.sleep(1000);
