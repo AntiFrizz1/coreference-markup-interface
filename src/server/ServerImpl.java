@@ -7,7 +7,9 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,22 +40,22 @@ public class ServerImpl implements Server {
     /**
      * Pool of clients.
      */
-    private List<Socket> clients;
+    private Queue<Socket> clients;
 
     /**
      * Pool of users.
      */
-    private List<Socket> users;
+    private Queue<Socket> users;
 
     /**
      * Pool of users.
      */
-    private List<Socket> onlineUsers;
+    private Queue<Socket> onlineUsers;
 
     /**
      * Pool of users.
      */
-    private List<Socket> offlineUsers;
+    private Queue<Socket> offlineUsers;
 
     /**
      * Set of judges id.
@@ -81,6 +83,7 @@ public class ServerImpl implements Server {
     private List<ConflictInfo> conflicts;
 
 
+
     public ServerImpl() {
         try {
             socket = new ServerSocket(port);
@@ -88,11 +91,11 @@ public class ServerImpl implements Server {
             e.printStackTrace();
         }
 
-        users = new CopyOnWriteArrayList<>();
+        users = new ConcurrentLinkedQueue<>();
         judges = new CopyOnWriteArrayList<>();
-        clients = new CopyOnWriteArrayList<>();
-        offlineUsers = new CopyOnWriteArrayList<>();
-        onlineUsers = new CopyOnWriteArrayList<>();
+        clients = new ConcurrentLinkedQueue<>();
+        offlineUsers = new ConcurrentLinkedQueue<>();
+        onlineUsers = new ConcurrentLinkedQueue<>();
         workers = new CopyOnWriteArrayList<>();
 
         judgesId = new ConcurrentSkipListSet<>();
@@ -131,7 +134,7 @@ public class ServerImpl implements Server {
             try {
                 Socket client = socket.accept();
                 System.out.println("listener :=: connected: " + client.toString());
-                clients.add(client);
+                clients.offer(client);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -145,7 +148,7 @@ public class ServerImpl implements Server {
         try {
             while (true) {
                 if (!clients.isEmpty()) {
-                    Socket client = clients.remove(0);
+                    Socket client = clients.poll();
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
@@ -157,7 +160,7 @@ public class ServerImpl implements Server {
                         if (judgesId.contains(id)) {
                             judges.add(new JudgeInfo(client));
                         } else {
-                            users.add(client);
+                            users.offer(client);
                         }
 
                         writer.println("OK");
@@ -181,7 +184,7 @@ public class ServerImpl implements Server {
         try {
             while (true) {
                 if (!users.isEmpty()) {
-                    Socket client = users.remove(0);
+                    Socket client = users.poll();
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
@@ -191,9 +194,9 @@ public class ServerImpl implements Server {
 
                         int id = Integer.parseInt(request);
                         if (id == 0) {
-                            onlineUsers.add(client);
+                            onlineUsers.offer(client);
                         } else {
-                            offlineUsers.add(client);
+                            offlineUsers.offer(client);
                         }
 
                         writer.println("OK");
@@ -218,8 +221,8 @@ public class ServerImpl implements Server {
         try {
             while (true) {
                 if (onlineUsers.size() >= 2) {
-                    Socket client1 = onlineUsers.remove(0);
-                    Socket client2 = onlineUsers.remove(0);
+                    Socket client1 = onlineUsers.poll();
+                    Socket client2 = onlineUsers.poll();
                     Thread worker = new Thread(() -> {
                         try {
                             DocumentImpl document1;
@@ -284,7 +287,7 @@ public class ServerImpl implements Server {
         try {
             while (true) {
                 if (!offlineUsers.isEmpty()) {
-                    Socket client = offlineUsers.remove(0);
+                    Socket client = offlineUsers.poll();
                     System.out.println("offlineUsersScheduler :=: " + client.toString());
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
