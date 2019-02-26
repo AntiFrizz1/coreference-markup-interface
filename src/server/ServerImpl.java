@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicMarkableReference;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -326,25 +327,28 @@ public class ServerImpl implements Server {
 
     class JudgeInfo {
         Socket socket;
-        AtomicReference<ConflictInfo> task;
+        /**
+         * reference has mark set false if judge is free otherwise true
+         */
+        AtomicMarkableReference<ConflictInfo> task;
         Thread worker;
 
         JudgeInfo(Socket socket) {
             this.socket = socket;
-            task = new AtomicReference<>(null);
+            task = new AtomicMarkableReference<>(null, false);
             worker = new Thread(judgeWorker);
             worker.start();
         }
 
         boolean setTask(ConflictInfo task) {
-            return (this.task.compareAndSet(null, task));
+            return this.task.compareAndSet(null, task, false, true);
         }
 
         Runnable judgeWorker = () -> {
             try {
                 while (true) {
-                    if (task.get() != null) {
-                        task.get().apply();
+                    if (task.getReference() != null) {
+                        task.getReference().apply();
                         //process
                     } else {
                         Thread.sleep(1000);
@@ -383,7 +387,7 @@ public class ServerImpl implements Server {
                         try {
                             Thread.sleep(1000000);
                             int localStatus = status.get();
-                            if(localStatus != 2) {
+                            if(localStatus == 1) {
                                 status.compareAndSet(localStatus, 0);
                             }
                         } catch (InterruptedException e) {
