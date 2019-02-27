@@ -12,5 +12,7 @@ public interface Packable {
      *
      * @return the string with all information.
      */
-    void pack(StringBuilder sb);
+    String pack();
+
+
 }

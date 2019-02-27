@@ -2,7 +2,9 @@ package chain;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * This class describes phrase of text.
@@ -26,6 +28,13 @@ public class Phrase implements Location {
     public Phrase(String stringRepresentation, Set<Integer> positions) {
         this.positions = positions;
         this.stringRepresentation = stringRepresentation;
+    }
+
+    Phrase(String info) {
+        String suff = info.substring(8);
+        stringRepresentation = suff.split(" :: ")[0];
+        positions = Arrays.stream(suff.split(" :: ")[1].split(" ")).
+                map(Integer::valueOf).collect(Collectors.toSet());
     }
 
     /**
@@ -61,9 +70,10 @@ public class Phrase implements Location {
     }
 
     @Override
-    public void pack(StringBuilder sb) {
-        sb.append("Phrase: ");
-        positions.forEach(position -> sb.append(position).append(' '));
-        sb.append('\n');
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Phrase: ").append(stringRepresentation).append(" :: ");
+        sb.append(positions.stream().map(Objects::toString).collect(Collectors.joining(" ")));
+        return sb.toString();
     }
 }

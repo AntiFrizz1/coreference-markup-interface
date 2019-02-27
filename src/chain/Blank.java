@@ -19,6 +19,10 @@ public class Blank implements Location {
         this.position = position;
     }
 
+    public Blank(String info) {
+        position = Integer.valueOf(info.substring(7));
+    }
+
 
     /**
      * Check if anaphora which described by {@code obj} and anaphora
@@ -43,11 +47,6 @@ public class Blank implements Location {
     }
 
     @Override
-    public void pack(StringBuilder sb) {
-        sb.append("Blank: ").append(position).append('\n');
-    }
-
-    @Override
     public String toString() {
         return "@";
     }
@@ -55,5 +54,12 @@ public class Blank implements Location {
     @Override
     public Set<String> getWords() {
         return new HashSet<>();
+    }
+
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Blank: ").append(position);
+        return sb.toString();
     }
 }

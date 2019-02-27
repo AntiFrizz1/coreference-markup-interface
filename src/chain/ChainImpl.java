@@ -56,23 +56,23 @@ public class ChainImpl implements Chain {
         this.locations.addAll(another.getLocations());
     }
 
+    public ChainImpl(Action action) {
+        id = action.getChainId();
+        locations = Collections.singletonList(action.getLocation());
+    }
+
     public ChainImpl(String info) {
         List<String> list = Arrays.asList(info.split("\n"));
         List<String> nameColor = Arrays.asList(list.get(0).split(" "));
         name = nameColor.get(0);
         id = Integer.valueOf(nameColor.get(1));
         color = new Color(Integer.valueOf(nameColor.get(2)), Integer.valueOf(nameColor.get(3)), Integer.valueOf(nameColor.get(4)));
-        List<String> partsList = Arrays.asList(list.get(1).split(" -- "));
         locations = new ArrayList<>();
-        for (int i = 2; i < list.size(); i++) {
+        for (int i = 1; i < list.size(); i++) {
             if (list.get(i).contains("Blank: ")) {
-                locations.add(new Blank(Integer.valueOf(list.get(i).substring(7))));
+                locations.add(new Blank(list.get(i)));
             } else {
-                locations.add(new Phrase(partsList.get(i - 2), new HashSet<>(
-                        Arrays.stream(list.get(i).substring(8).split(" ")).
-                                map(Integer::valueOf).
-                                collect(Collectors.toList())
-                )));
+                locations.add(new Phrase(list.get(i)));
             }
         }
     }
@@ -119,32 +119,9 @@ public class ChainImpl implements Chain {
         this.color = color;
     }
 
-//    @Override
-//    public List<List<String>> getParts() {
-//        return phrases;
-//    }
-//
-//    @Override
-//    public void mergeWith(Chain chain) {
-//        phrases.addAll(chain.getParts());
-//        locations.addAll(chain.getLocations());
-//    }
-
     @Override
     public List<Location> getLocations() {
         return locations;
-    }
-
-
-    @Override
-    public void pack(StringBuilder sb) {
-        sb.append(name).append(' ').append(id)
-                .append(' ').append(color.getRed())
-                .append(' ').append(color.getGreen())
-                .append(' ').append(color.getBlue())
-                .append(' ').append(locations.size()).append('\n')
-                .append(toString()).append('\n');
-        locations.forEach(location -> location.pack(sb));
     }
 
     @Override
@@ -154,5 +131,16 @@ public class ChainImpl implements Chain {
 
     public List<Set<String>> listOfParts() {
         return locations.stream().map(Location::getWords).collect(Collectors.toList());
+    }
+
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(name).append(' ').append(id)
+                .append(' ').append(color.getRed())
+                .append(' ').append(color.getGreen())
+                .append(' ').append(color.getBlue()).append('\n');
+        sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\n")));
+        return sb.toString();
     }
 }

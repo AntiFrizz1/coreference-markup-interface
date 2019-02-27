@@ -44,9 +44,11 @@ public interface Chain extends Packable {
 
     /**
      * Add selected parts to chain.
+     *
      * @param locations the locations of parts.
      */
     void addAll(List<Location> locations);
+
     /**
      * Delete part of the chain.
      *
@@ -68,23 +70,10 @@ public interface Chain extends Packable {
      */
     void setColor(Color color);
 
-//    /**
-//     * Get all parts of the chain.
-//     *
-//     * @return the list of parts of the chain.
-//     */
-//    List<List<String>> getParts();
-//
-//    /**
-//     * Merge with {@code chain}.
-//     *
-//     * @param chain the chain to merge with.
-//     */
-//    void mergeWith(Chain chain);
-
     /**
      * Get locations of all parts of the chain
-     * @return
+     *
+     * @return locations for all parts of chain
      */
     List<Location> getLocations();
 }
