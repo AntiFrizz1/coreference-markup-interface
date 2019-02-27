@@ -1,10 +1,11 @@
 package client;
 
-import document.Document;
-import document.DocumentImpl;
+import chain.Chain;
+import document.Converter;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 
 /**
  * This class provides some extra fields for {@code Client}.
@@ -14,8 +15,41 @@ import java.net.Socket;
  */
 public abstract class AbstractClient implements Client {
 
+    protected Converter converter;
+ 
+    /**
+     * An internal endpoint for sending or receiving data.
+     */
+    protected Socket socket;
+
+    /**
+     * Identifier of client.
+     */
+    protected int port;
+
+    /**
+     * Client address.
+     */
+    protected String serviceAddress = "localhost";
+
+    /**
+     * Client id.
+     */
+    protected int id;
+
+    /**
+     * Client reader
+     */
+    protected BufferedReader reader;
+
+    /**
+     * Client writer
+     */
+    protected PrintWriter writer;
+  
     public AbstractClient() {
         try {
+            converter = new Converter();
             socket = new Socket(serviceAddress, port);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -43,15 +77,15 @@ public abstract class AbstractClient implements Client {
     }
 
     @Override
-    public void sendInfo(Document document) {
-        writer.println(document.pack());
+    public void sendInfo(List<Chain> document) {
+        writer.println(converter.pack(document));
         writer.flush();
     }
 
     @Override
-    public Document getInfo() {
+    public List<Chain> getInfo() {
         try {
-            return new DocumentImpl(reader.readLine());
+            return converter.unpack(reader.readLine());
         } catch (IOException e) {
             System.err.println("Can't get information from server");
         }
@@ -67,33 +101,4 @@ public abstract class AbstractClient implements Client {
         }
     }
 
-    /**
-     * An internal endpoint for sending or receiving data.
-     */
-    protected Socket socket;
-
-    /**
-     * Identifier of client.
-     */
-    protected int port;
-
-    /**
-     * Client address.
-     */
-    protected String serviceAddress;
-
-    /**
-     * Client id.
-     */
-    protected int id;
-
-    /**
-     * Client reader
-     */
-    protected BufferedReader reader;
-
-    /**
-     * Client writer
-     */
-    protected PrintWriter writer;
 }

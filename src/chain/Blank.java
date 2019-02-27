@@ -1,26 +1,28 @@
 package chain;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This class describes zero anaphora.
  *
  * @author Vadim Baydyuk
  */
-public class Blank extends AbstractLocation {
+public class Blank implements Location {
 
     /**
-     * Position of zero anaphora in sentence.
+     * Position of zero anaphora in the text.
      */
     private int position;
 
-    @Override
-    public int getTextId() {
-        return 0;
+    public Blank(int position) {
+        this.position = position;
     }
 
-    @Override
-    public int getSentenceNumber() {
-        return 0;
+    public Blank(String info) {
+        position = Integer.valueOf(info.substring(7));
     }
+
 
     /**
      * Check if anaphora which described by {@code obj} and anaphora
@@ -38,5 +40,26 @@ public class Blank extends AbstractLocation {
         } else {
             return position == ((Blank) obj).position;
         }
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    @Override
+    public String toString() {
+        return "@";
+    }
+
+    @Override
+    public Set<String> getWords() {
+        return new HashSet<>();
+    }
+
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Blank: ").append(position);
+        return sb.toString();
     }
 }
