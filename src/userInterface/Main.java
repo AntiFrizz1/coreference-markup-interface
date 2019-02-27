@@ -3,11 +3,13 @@ package userInterface;
 import chain.Action;
 import chain.Blank;
 import chain.Chain;
+import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
@@ -24,6 +26,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.awt.*;
 import java.util.List;
 import java.util.Set;
 
@@ -43,6 +46,8 @@ public class Main extends Application {
             "материалистам. И профессор тотчас же приехал, чтобы столковаться. Речь шла о модном вопросе: есть ли " +
             "граница между психическими и физиологическими явлениями в деятельности человека и где она?";
     final ControllerImpl controller = new ControllerImpl(TEXT_PLACEHOLDER);
+    private int selectedSentenceStart, selectedSentenceEnd, textSizeInWords;
+    private String chainFilter = "";
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -65,13 +70,11 @@ public class Main extends Application {
         {
             ColumnConstraints col1 = new ColumnConstraints();
             col1.setHgrow(Priority.ALWAYS);
-//            col1.setFillWidth(true);  // looks like we can omit this
             ColumnConstraints col2 = new ColumnConstraints();
             overall.getColumnConstraints().addAll(col1, col2);
         }
         GridPane rightSide = new GridPane();
 
-        TextField field = new TextField();
         ScrollPane pane = new ScrollPane();
         pane.prefWidthProperty().bind(primaryStage.widthProperty().divide(4));
         GridPane chainsList = new GridPane();
@@ -79,7 +82,14 @@ public class Main extends Application {
         RowConstraints row1 = new RowConstraints();
         RowConstraints row2 = new RowConstraints();
         row2.setVgrow(Priority.ALWAYS);
-//            row2.setFillHeight(true);  // looks like we can omit this
+
+        TextField field = new TextField();
+        field.textProperty().addListener((observable, oldValue, newValue) -> {
+            chainFilter = newValue;
+            genChainsList(chainsList, controller.getChains());
+        });
+        field.setPromptText("Введите текст для поиска в цепочках...");
+
         rightSide.getRowConstraints().addAll(row1, row2);
         rightSide.add(field, 0, 0);
         rightSide.add(pane, 0, 1);
@@ -96,15 +106,17 @@ public class Main extends Application {
             leftSide.setCenter(textWrapper);
 
             HBox box = new HBox(5);
+
             Button b4 = new Button("Отменить");
             b4.setOnAction(event -> {
                 Action ac = controller.cancel();
                 genChainsList(chainsList, controller.getChains());
-                undoAction(ac, text);
+                undoAction(ac, text, controller.getChains());
                 int remaining = controller.getPrevStatesSize();
                 if (remaining == 0) b4.setDisable(true);
             });
             b4.setDisable(true);
+
             Button b1 = new Button("Продолжить цепочку");
             b1.setOnAction(event -> {
                 Set<Integer> selected = controller.getSelected();
@@ -123,6 +135,7 @@ public class Main extends Application {
                     b4.setDisable(false);
                 }
             });
+
             Button b2 = new Button("Новая цепочка");
             b2.setOnAction(event -> {
                 Set<Integer> selected = controller.getSelected();
@@ -144,6 +157,7 @@ public class Main extends Application {
                     b4.setDisable(false);
                 }
             });
+
             Button b3 = new Button("Добавить нулевую анафору");
             b3.setOnAction(event -> {
                 int selectedBlank = controller.getSelectedBlank();
@@ -163,19 +177,67 @@ public class Main extends Application {
                     b4.setDisable(false);
                 }
             });
+
             box.getChildren().addAll(b1, b2, b3, b4);
             leftSide.setTop(box);
 
             GridPane bottom = new GridPane();
+
             Button left = new Button("<");
+            left.setOnAction(event -> {
+                if (selectedSentenceStart != 0) {
+                    for (int i = selectedSentenceStart; i <= selectedSentenceEnd; i++) {
+                        toggleSelected((Button) text.getChildren().get(2*i), "highlight");
+                    }
+                    selectedSentenceEnd = selectedSentenceStart - 1;
+                    selectedSentenceStart--;
+                    while (selectedSentenceStart != 0 &&
+                            !isSentenceStart(((Button)text.getChildren().get(2*selectedSentenceStart - 2)).getText(),
+                                    ((Button)text.getChildren().get(2*selectedSentenceStart)).getText())) {
+                        selectedSentenceStart--;
+                    }
+                    for (int i = selectedSentenceStart; i <= selectedSentenceEnd; i++) {
+                        toggleSelected((Button) text.getChildren().get(2*i), "highlight");
+                    }
+                }
+            });
+
             TextField textField = new TextField();
             textField.setPromptText("Введите слово для поиска...");
             textField.textProperty().addListener((observable, oldValue, newValue) -> {
-                if (!oldValue.isEmpty()) {
+                if (oldValue.length() >= 3) {  // remove highlight from old query
+                    for (Node button: text.getChildren()) {
+                        if (((Button)button).getText().toLowerCase().contains(oldValue.toLowerCase()))
+                            toggleSelected((Button) button, "search");
+                    }
                 }
-                System.out.println("textfield changed from " + oldValue + " to " + newValue);
+                if (newValue.length() >= 3) {  // highlight all found words
+                    for (Node button: text.getChildren()) {
+                        if (((Button)button).getText().toLowerCase().contains(newValue.toLowerCase()))
+                            toggleSelected((Button) button, "search");
+                    }
+                }
             });
+
             Button right = new Button(">");
+            right.setOnAction(event -> {
+                if (selectedSentenceEnd != textSizeInWords - 1) {
+                    for (int i = selectedSentenceStart; i <= selectedSentenceEnd; i++) {
+                        toggleSelected((Button) text.getChildren().get(2*i), "highlight");
+                    }
+                    selectedSentenceStart = selectedSentenceEnd + 1;
+                    selectedSentenceEnd++;
+                    while (selectedSentenceEnd != textSizeInWords - 1 &&
+                            !isSentenceStart(((Button)text.getChildren().get(2*selectedSentenceEnd)).getText(),
+                                    ((Button)text.getChildren().get(2*selectedSentenceEnd + 2)).getText())) {
+                        selectedSentenceEnd++;
+                    }
+                    for (int i = selectedSentenceStart; i <= selectedSentenceEnd; i++) {
+                        toggleSelected((Button) text.getChildren().get(2*i), "highlight");
+                    }
+                }
+            });
+
             ColumnConstraints col1 = new ColumnConstraints();
             ColumnConstraints col2 = new ColumnConstraints();
             col2.setHgrow(Priority.ALWAYS);
@@ -201,10 +263,22 @@ public class Main extends Application {
         textPane.getChildren().clear();
         // TODO: should probably remove punctuation from buttons into separate TextAreas
         String[] words = text.split(" ");
+        textSizeInWords = words.length;
+        boolean firstSentence = true;
+        selectedSentenceStart = 0;
         for (int i = 0; i < words.length; i++) {
             Button word = new Button(words[i]);
             word.getStyleClass().add("word");
-            word.setStyle("-fx-background-color: rgba(0,0,0,0); -fx-text-fill: rgba(0,0,0,1);");
+            word.getStyleClass().add("search");
+            word.setStyle("-fx-background-color: rgba(0,0,0,0);");
+            if (i != 0 && firstSentence) {
+                if (isSentenceStart(words[i - 1], words[i])) {
+                    firstSentence = false;
+                    selectedSentenceEnd = i - 1;
+                }
+            }
+            if (firstSentence) word.getStyleClass().add("highlight-selected");
+            else { word.getStyleClass().add("highlight"); }
             final int iF = i;
             word.setOnAction(event -> {
                 if (controller.pressedButton(words[iF], iF)) toggleSelected(word, "word");
@@ -226,7 +300,7 @@ public class Main extends Application {
             Chain c = chains.get(i);
             Button chain = new Button(c.getName());
             chain.setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
-                    c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
+                    c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
             chain.getStyleClass().add("chain");
             final int iF = i;
             chain.setOnAction(ev -> {
@@ -236,7 +310,8 @@ public class Main extends Application {
             });
             Tooltip fullChain = new Tooltip(c.toString());
             Tooltip.install(chain, fullChain);
-            chainsList.add(chain, 0, i);
+            if (c.toString().toLowerCase().contains(chainFilter.toLowerCase())
+                    || c.getName().toLowerCase().contains(chainFilter.toLowerCase())) chainsList.add(chain, 0, i);
         }
     }
 
@@ -245,18 +320,18 @@ public class Main extends Application {
         if (l instanceof Blank) {
             text.getChildren().get(2 * ((Blank) l).getPosition() + 1)
                     .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
-                            c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
+                            c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
             for (Integer i : pos) {
                 text.getChildren().get(2 * i)
                         .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
-                                c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.1)");
+                                c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
             }
         }
     }
 
-    private void undoAction(Action ac, FlowPane text) {
+    private void undoAction(Action ac, FlowPane text, List<Chain> chains) {
         Location l = ac.getLocation();
         if (l instanceof Blank) {
             text.getChildren().get(2 * ((Blank) l).getPosition() + 1)
@@ -264,21 +339,38 @@ public class Main extends Application {
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
             for (Integer i : pos) {
+                Color c = chains.stream().filter(ch -> ch.getLocations().stream().filter(li -> li instanceof Phrase)
+                            .map(ph -> ((Phrase) ph).getPositions()).anyMatch(s -> s.contains(i))).findAny()
+                            .orElseGet(() -> new ChainImpl("", new Color(0, 0, 0), 0, new Blank(0))).getColor();
                 text.getChildren().get(2 * i)
-                        .setStyle("-fx-background-color: rgba(0,0,0,0)");
+                        .setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
+                                c.getGreen() + "," + c.getBlue() + ((c.getRGB() == -16777216) ? ",0)" : ",0.3)"));  // that number is (0, 0, 0)
             }
         }
     }
 
     private void toggleSelected(Button button, String type) {  // word for words, chain for chains
-        String wasSelected = button.getStyleClass().get(1);
-        button.getStyleClass().remove(1); // 0 - button, 1 - word/word-selected
+        String wasSelected = button.getStyleClass().filtered(s -> s.contains(type)).get(0);
+        button.getStyleClass().remove(wasSelected);
         if (wasSelected.equals(type)) button.getStyleClass().add(type + "-selected");
         else button.getStyleClass().add(type);
     }
 
     private void removeSelectionFromText(Set<Integer> selected, FlowPane text) {
         for (Integer i : selected) toggleSelected((Button) text.getChildren().get(2 * i), "word");
+    }
+
+    /**
+     * Returns true whether cur is a start of a new sentence.
+     * @param prev the word before the current one
+     * @param cur the current word
+     * @return true if cur is a start of a new sentence
+     */
+    private boolean isSentenceStart(String prev, String cur) {
+        return Character.isUpperCase(cur.charAt(0)) &&
+                (prev.endsWith(".") ||
+                        prev.endsWith("?") ||
+                        prev.endsWith("!"));
     }
 
     private void openSelectedAlreadyBoundError(Stage primaryStage) {
@@ -322,6 +414,5 @@ public class Main extends Application {
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(primaryStage);
         stage.showAndWait();
-//        while (stage.isShowing()) {}
     }
 }

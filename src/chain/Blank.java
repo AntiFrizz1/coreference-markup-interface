@@ -1,5 +1,8 @@
 package chain;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This class describes zero anaphora.
  *
@@ -14,6 +17,10 @@ public class Blank implements Location {
 
     public Blank(int position) {
         this.position = position;
+    }
+
+    public Blank(String info) {
+        position = Integer.valueOf(info.substring(7));
     }
 
 
@@ -40,12 +47,19 @@ public class Blank implements Location {
     }
 
     @Override
-    public void pack(StringBuilder sb) {
-        sb.append("Blank: ").append(position).append('\n');
+    public String toString() {
+        return "@";
     }
 
     @Override
-    public String toString() {
-        return "";
+    public Set<String> getWords() {
+        return new HashSet<>();
+    }
+
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Blank: ").append(position);
+        return sb.toString();
     }
 }

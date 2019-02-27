@@ -1,6 +1,11 @@
 package chain;
 
-public class Action {
+import document.Packable;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class Action implements Packable {
 
     private int action;
 
@@ -12,6 +17,17 @@ public class Action {
         action = ac;
         chainId = id;
         location = loc;
+    }
+
+    public Action(String info) {
+        List<String> list = Arrays.asList(info.split("\n"));
+        action = Integer.valueOf(list.get(0).split(" ")[0]);
+        chainId = Integer.valueOf(list.get(0).split(" ")[1]);
+        if (list.get(1).contains("Blank")) {
+            location = new Blank(list.get(1));
+        } else {
+            location = new Phrase(list.get(1));
+        }
     }
 
     public int getAction() {
@@ -26,4 +42,11 @@ public class Action {
         return location;
     }
 
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(action).append(' ').append(chainId).append('\n');
+        sb.append(location.pack());
+        return sb.toString();
+    }
 }
