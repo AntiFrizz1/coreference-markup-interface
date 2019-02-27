@@ -1,10 +1,8 @@
 package chain;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -152,5 +150,9 @@ public class ChainImpl implements Chain {
     @Override
     public String toString() {
         return locations.stream().map(Object::toString).collect(Collectors.joining(" -- "));
+    }
+
+    public List<Set<String>> listOfParts() {
+        return locations.stream().map(Location::getWords).collect(Collectors.toList());
     }
 }

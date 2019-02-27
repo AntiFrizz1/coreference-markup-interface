@@ -56,6 +56,11 @@ public class Phrase implements Location {
     }
 
     @Override
+    public Set<String> getWords() {
+        return new HashSet<>(Arrays.asList(stringRepresentation.split(" ")));
+    }
+
+    @Override
     public void pack(StringBuilder sb) {
         sb.append("Phrase: ");
         positions.forEach(position -> sb.append(position).append(' '));

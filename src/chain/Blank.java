@@ -1,5 +1,8 @@
 package chain;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This class describes zero anaphora.
  *
@@ -47,5 +50,10 @@ public class Blank implements Location {
     @Override
     public String toString() {
         return "@";
+    }
+
+    @Override
+    public Set<String> getWords() {
+        return new HashSet<>();
     }
 }
