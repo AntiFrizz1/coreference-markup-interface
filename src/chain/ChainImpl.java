@@ -28,7 +28,7 @@ public class ChainImpl implements Chain {
     private List<Location> locations;
 
     /**
-     * Unique identificator of this chain.
+     * Unique идентификатор of this chain.
      */
     private int id;
 

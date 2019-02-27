@@ -1,19 +1,13 @@
 package client;
 
-import chain.Chain;
-import chain.Location;
+import chain.*;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class ConflictImpl implements Conflict {
-    int firstUserId, secondUserId;
     Chain firstSolution, secondSolution;
     Location collisionOne, collisionTwo;
-
-    ConflictImpl(int firstUserId, int secondUserId, Chain firstSolution, Chain secondSolution) {
-        this.secondSolution = secondSolution;
-        this.firstSolution = firstSolution;
-        this.firstUserId = firstUserId;
-        this.secondUserId = secondUserId;
-    }
 
     public ConflictImpl(Chain firstSolution, Chain secondSolution, Location collisionOne, Location collisionTwo) {
         this.firstSolution = firstSolution;
@@ -22,8 +16,21 @@ public class ConflictImpl implements Conflict {
         this.collisionTwo = collisionTwo;
     }
 
-    ConflictImpl(String info) {
-        
+    public ConflictImpl(String info) {
+        List<String> list = Arrays.asList(info.split("\n\n"));
+        firstSolution = new ChainImpl(list.get(0));
+        secondSolution = new ChainImpl(list.get(1));
+        if (list.get(2).contains("Blank")) {
+            collisionOne = new Blank(list.get(2));
+        } else {
+            collisionOne = new Phrase(list.get(2));
+        }
+
+        if (list.get(3).contains("Blank")) {
+            collisionTwo = new Blank(list.get(3));
+        } else {
+            collisionTwo = new Phrase(list.get(3));
+        }
     }
 
     @Override
@@ -37,4 +44,13 @@ public class ConflictImpl implements Conflict {
     }
 
 
+    @Override
+    public String pack() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(firstSolution.pack()).append("\n\n").
+                append(secondSolution.pack()).append("\n\n").
+                append(collisionOne.pack()).append("\n\n").
+                append(collisionTwo.pack());
+        return sb.toString();
+    }
 }
