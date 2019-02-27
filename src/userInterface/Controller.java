@@ -1,5 +1,6 @@
 package userInterface;
 
+import chain.Action;
 import chain.Chain;
 
 public interface Controller {
@@ -8,10 +9,12 @@ public interface Controller {
     void offlineMode();
     void nextSentence();
     void prevSentence();
-    void addChain(Chain chain);
+    Action addToChain();
+    Action addAnaphoraToChain();
+    Action addNewChain();
     void deleteChain(Chain chain);
-    void saeStateOffline();
-    void cancel();
+    void saveStateOffline();
+    Action cancel();
     void showConflict();
     void resolveConflict(int decision);
     void disableOption(int option);

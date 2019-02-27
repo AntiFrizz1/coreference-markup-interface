@@ -1,12 +1,13 @@
 package client;
 
-import document.Document;
+import chain.Chain;
+
+import java.util.List;
 
 /**
  * This interface describes client.
  *
  * @author Vadim Baydyuk
- * @see Document
  * @TODO Listener with endless loop that waiting for tasks from server
  * @TODO class Task which describes conflict for Judge or User
  */
@@ -18,26 +19,31 @@ public interface Client {
      *
      * @param document the information that should be sent.
      */
-    void sendUpdates(Document document);
+    void sendUpdates(List<Chain> document);
 
     /**
      * Send information about conflict resolution to server.
      *
      * @param document the information that should be sent.
      */
-    void sendInfo(Document document);
+    void sendInfo(List<Chain> document);
 
     /**
      * Get information about conflict from server.
      *
      * @return the document with information about conflict.
      */
-    Document getInfo();
+    List<Chain> getInfo();
 
     /**
-     * Connect to server as User of as Judge.
+     * Connect to server as User or as Judge for work online.
      */
-    void join();
+    void joinOnline();
+
+    /**
+     * Connect to server as User or as Judge for work offline.
+     */
+    void joinOffline();
 
     /**
      * Complete work.

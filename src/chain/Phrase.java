@@ -1,5 +1,7 @@
 package chain;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -7,21 +9,23 @@ import java.util.Set;
  *
  * @author Vadim Baydyuk
  */
-public class Phrase extends AbstractLocation {
+public class Phrase implements Location {
 
     /**
-     * Positions of each word of phrase in the sentence.
+     * Positions of each word of phrase in the text.
      */
     private Set<Integer> positions;
 
-    @Override
-    public int getTextId() {
-        return 0;
+    private String stringRepresentation;
+
+    public Phrase(String stringRepresentation, Integer... positions) {
+        this.positions = new HashSet<>(Arrays.asList(positions));
+        this.stringRepresentation = stringRepresentation;
     }
 
-    @Override
-    public int getSentenceNumber() {
-        return 0;
+    public Phrase(String stringRepresentation, Set<Integer> positions) {
+        this.positions = positions;
+        this.stringRepresentation = stringRepresentation;
     }
 
     /**
@@ -40,5 +44,26 @@ public class Phrase extends AbstractLocation {
         } else {
             return positions.equals(((Phrase) obj).positions);
         }
+    }
+
+    public Set<Integer> getPositions() {
+        return positions;
+    }
+
+    @Override
+    public String toString() {
+        return stringRepresentation;
+    }
+
+    @Override
+    public Set<String> getWords() {
+        return new HashSet<>(Arrays.asList(stringRepresentation.split(" ")));
+    }
+
+    @Override
+    public void pack(StringBuilder sb) {
+        sb.append("Phrase: ");
+        positions.forEach(position -> sb.append(position).append(' '));
+        sb.append('\n');
     }
 }

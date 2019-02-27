@@ -1,7 +1,8 @@
 package chain;
 
 
-import java.util.AbstractCollection;
+import document.Packable;
+
 import java.util.Set;
 
 /**
@@ -11,15 +12,7 @@ import java.util.Set;
  * @author Vadim Baydyuk
  * @see Chain
  */
-public interface Location {
+public interface Location extends Packable {
+    Set<String> getWords();
 
-    /**
-     * @return Number of text that contains this part of chain.
-     */
-    int getTextId();
-
-    /**
-     * @return Number of sentence that contains this part of chain.
-     */
-    int getSentenceNumber();
 }

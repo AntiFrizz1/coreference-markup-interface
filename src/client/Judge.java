@@ -1,6 +1,8 @@
 package client;
 
-import document.Document;
+import chain.Chain;
+
+import java.util.List;
 
 /**
  * This class describes interaction protocol of Judge
@@ -12,27 +14,17 @@ public class Judge extends AbstractClient {
     //private Listener listener;
 
     @Override
-    public void sendUpdates(Document document) {
-
+    public void sendUpdates(List<Chain> document) {
     }
 
     @Override
-    public void sendInfo(Document document) {
-
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        System.out.println("Successful connect to server as judge with id = " + id);
     }
 
     @Override
-    public Document getInfo() {
-        return null;
-    }
-
-    @Override
-    public void join() {
-
-    }
-
-    @Override
-    public void close() {
+    public void joinOffline() {
 
     }
 }

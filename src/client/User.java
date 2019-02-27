@@ -1,6 +1,9 @@
 package client;
 
-import document.Document;
+import chain.Chain;
+import document.Converter;
+
+import java.util.List;
 
 /**
  * This class describes interaction protocol of User
@@ -10,29 +13,36 @@ import document.Document;
  */
 public class User extends AbstractClient {
     //private Listener listener;
-
-    @Override
-    public void sendUpdates(Document document) {
-
+  
+    public User() {
+        super();
     }
 
     @Override
-    public void sendInfo(Document document) {
-
+    public void sendUpdates(List<Chain> document) {
+        while (true) {
+            try {
+                writer.println(converter.pack(document));
+                writer.flush();
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return;
+            }
+        }
     }
 
     @Override
-    public Document getInfo() {
-        return null;
+    public void joinOnline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("0");
+        System.out.println("Successful connect to server in online mode with id = " + id);
     }
 
     @Override
-    public void join() {
-
-    }
-
-    @Override
-    public void close() {
-
+    public void joinOffline() {
+        sendConnectionInfo(String.valueOf(id));
+        sendConnectionInfo("1");
+        System.out.println("Successful connect to server in offline mode with id = " + id);
     }
 }
