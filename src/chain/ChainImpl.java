@@ -3,6 +3,7 @@ package chain;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,6 +56,27 @@ public class ChainImpl implements Chain {
         this.id = another.getId();
         this.locations = new ArrayList<>();
         this.locations.addAll(another.getLocations());
+    }
+
+    public ChainImpl(String info) {
+        List<String> list = Arrays.asList(info.split("\n"));
+        List<String> nameColor = Arrays.asList(list.get(0).split(" "));
+        name = nameColor.get(0);
+        id = Integer.valueOf(nameColor.get(1));
+        color = new Color(Integer.valueOf(nameColor.get(2)), Integer.valueOf(nameColor.get(3)), Integer.valueOf(nameColor.get(4)));
+        List<String> partsList = Arrays.asList(list.get(1).split(" -- "));
+        locations = new ArrayList<>();
+        for (int i = 2; i < list.size(); i++) {
+            if (list.get(i).contains("Blank: ")) {
+                locations.add(new Blank(Integer.valueOf(list.get(i).substring(7))));
+            } else {
+                locations.add(new Phrase(partsList.get(i - 2), new HashSet<>(
+                        Arrays.stream(list.get(i).substring(8).split(" ")).
+                                map(Integer::valueOf).
+                                collect(Collectors.toList())
+                )));
+            }
+        }
     }
 
     public ChainImpl() {

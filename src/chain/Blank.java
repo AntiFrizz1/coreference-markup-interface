@@ -46,6 +46,6 @@ public class Blank implements Location {
 
     @Override
     public String toString() {
-        return "";
+        return "@";
     }
 }
