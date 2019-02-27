@@ -2,6 +2,7 @@ package server;
 
 import chain.Chain;
 import chain.ChainImpl;
+import chain.Location;
 
 import java.io.*;
 import java.net.Socket;
@@ -75,6 +76,21 @@ public class StoreImpl implements Store {
      * @return true if found collision, false otherwise
      */
     public boolean compareChains(Map<String, String> names, List<Chain> approved, List<Chain> teamOne, List<Chain> teamTwo, Chain chain1, Chain chain2) {
+        for(Chain chainOne : teamOne) {
+            for(Chain chainTwo : teamTwo) {
+                if(chainOne.equals(chainTwo)) {
+                    List<Location> locOne = chainOne.getLocations();
+                    List<Location> locTwo = chainTwo.getLocations();
+                    int size = Math.min(locOne.size(), locTwo.size());
+
+                    for(int i = 0; i < size;i++) {
+
+                    }
+                } else {
+
+                }
+            }
+        }
         return false;
     }
 
