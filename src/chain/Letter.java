@@ -54,6 +54,7 @@ public class Letter {
                 }
             }
         }
+        letterList.sort(Letter::compareTo);
         return letterList;
     }
 
@@ -65,4 +66,15 @@ public class Letter {
             return "|";
         }
     }
+
+    public int compareTo(Letter anotherLetter) {
+        if (this.position == anotherLetter.position) {
+            return 0;
+        } else if (this.position < anotherLetter.position) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
 }
