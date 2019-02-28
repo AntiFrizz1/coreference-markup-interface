@@ -27,11 +27,11 @@ public class JudgeStore {
             teamTwoApproved = new ArrayList<>(0);
             decisions = new ArrayList<>(0);
 
-            try {
+           /* try {
                 writer = new PrintWriter("data/" + teamOneId + "vs" + teamTwoId);
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file: " + "data/" + teamOneId + "vs" + teamTwoId);
-            }
+            }*/
         }
     }
 

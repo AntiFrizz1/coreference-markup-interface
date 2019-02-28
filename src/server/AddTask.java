@@ -1,27 +1,29 @@
 package server;
 
-import chain.Chain;
+import chain.Action;
 
 import java.util.List;
 
 public class AddTask {
-    int taskType;
-    Chain chain;
-    List<Chain> chainList;
-    int textNum;
-    int teamNum;
+    private List<Action> actionList;
+    private int textNum;
+    private int teamNum;
 
-    public AddTask(Chain chain, int textNum, int teamNum) {
-        taskType = 0;
-        this.chain = chain;
+    public AddTask(List<Action> actionList, int textNum, int teamNum) {
+        this.actionList = actionList;
         this.textNum = textNum;
         this.teamNum = teamNum;
     }
 
-    public AddTask(List<Chain> chainList, int textNum, int teamNum) {
-        taskType = 1;
-        this.chainList = chainList;
-        this.textNum = textNum;
-        this.teamNum = teamNum;
+    public int getTeamNum() {
+        return teamNum;
+    }
+
+    public int getTextNum() {
+        return textNum;
+    }
+
+    public List<Action> getActionList() {
+        return actionList;
     }
 }
