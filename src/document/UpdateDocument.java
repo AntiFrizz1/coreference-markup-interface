@@ -40,4 +40,9 @@ public class UpdateDocument implements Document {
     public String packSB(StringBuilder sb) {
         return null;
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }

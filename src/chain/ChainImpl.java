@@ -154,4 +154,9 @@ public class ChainImpl implements Chain {
     public String packSB(StringBuilder sb) {
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return sb.toString();
+    }
 }
