@@ -33,7 +33,7 @@ public class ServerStore {
         mutexArray = new AtomicIntegerArray(100);
     }
 
-    boolean putActions(List<Letter> actions, int textNum, int teamNum) {
+    boolean putLetters(List<Letter> actions, int textNum, int teamNum) {
         if (mutexArray.compareAndSet(textNum, 0, 1)) {
             Game curGame = games.get(textNum);
             if (teamNum == 1) {
