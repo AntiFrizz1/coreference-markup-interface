@@ -415,9 +415,9 @@ public class ServerImpl implements Server {
 
                             ConflictInfo conflict = task.getReference();
 
-                            List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
+                            /*List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
                             List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
-                            List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
+                            List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);*/
 
                         }
                     } else {

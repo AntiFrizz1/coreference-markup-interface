@@ -1,7 +1,6 @@
 package document;
 
 import chain.Action;
-import chain.Letter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,15 +12,15 @@ public class ConflictInfo {
     public int teamOneId;
     public int teamTwoId;
 
-    public Letter letter1;
-    public Letter letter2;
+    public Action action1;
+    public Action action2;
 
     public AtomicInteger status;
     public Thread counter;
 
     public ConflictInfo(ConflictData data) {
-        this.letter1 = data.letter1;
-        this.letter2 = data.letter2;
+        this.action1 = data.action1;
+        this.action2 = data.action2;
         this.teamOneId = data.teamOneId;
         this.teamTwoId = data.teamTwoId;
         this.textId = data.textId;

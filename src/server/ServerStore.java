@@ -1,6 +1,6 @@
 package server;
 
-import chain.Letter;
+import chain.Action;
 import document.ConflictData;
 import document.ConflictInfo;
 
@@ -13,8 +13,8 @@ public class ServerStore {
     class Game {
         int teamOne;
         int teamTwo;
-        List<Letter> teamOneList;
-        List<Letter> teamTwoList;
+        List<Action> teamOneList;
+        List<Action> teamTwoList;
 
         Game(int teamOne, int teamTwo) {
             this.teamOne = teamOne;
@@ -33,7 +33,7 @@ public class ServerStore {
         mutexArray = new AtomicIntegerArray(100);
     }
 
-    boolean putLetters(List<Letter> actions, int textNum, int teamNum) {
+    boolean putActions(List<Action> actions, int textNum, int teamNum) {
         if (mutexArray.compareAndSet(textNum, 0, 1)) {
             Game curGame = games.get(textNum);
             if (teamNum == 1) {
@@ -55,22 +55,9 @@ public class ServerStore {
                 if (mutexArray.compareAndSet(i, 0, 1)) {
                     Game curGame = games.get(i);
                     if (!curGame.teamOneList.isEmpty() && !curGame.teamTwoList.isEmpty()) {
-                        Letter letterFromTeamOne = curGame.teamOneList.get(0);
-                        Letter letterFromTeamTwo = curGame.teamTwoList.get(0);
-                        if (letterFromTeamOne.getPosition() < letterFromTeamTwo.getPosition()) {
-                            conflicts.add(new ConflictInfo(new ConflictData(letterFromTeamOne, new Letter(), i,
-                                    curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                        } else if (letterFromTeamOne.getPosition() > letterFromTeamTwo.getPosition()) {
-                            conflicts.add(new ConflictInfo(new ConflictData(new Letter(), letterFromTeamTwo, i,
-                                    curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamTwoList.remove(0);
-                        } else {
-                            conflicts.add(new ConflictInfo(new ConflictData(letterFromTeamOne, letterFromTeamTwo, i,
-                                    curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                            curGame.teamTwoList.remove(0);
-                        }
+                        Action actionFromTeamOne = curGame.teamOneList.get(0);
+                        Action actionFromTeamTwo = curGame.teamTwoList.get(0);
+                        //compare actions
                     }
                     mutexArray.compareAndSet(i, 1, 0);
                 }
