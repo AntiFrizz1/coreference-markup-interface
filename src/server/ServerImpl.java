@@ -400,7 +400,8 @@ public class ServerImpl implements Server {
                         Thread worker = new Thread(() -> {
                             try {
                                 String doc = reader.readLine();
-                                List<Chain> answer = converter.unpack(doc);
+                                UpdateDocument document = new UpdateDocument(doc);
+                                List<Action> answer = document.getActions();
                                 //save data
 
                             } catch (IOException e) {
