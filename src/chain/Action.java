@@ -20,7 +20,7 @@ public class Action implements Packable {
     }
 
     public Action(String info) {
-        List<String> list = Arrays.asList(info.split("\n"));
+        List<String> list = Arrays.asList(info.split("\t"));
         action = Integer.valueOf(list.get(0).split(" ")[0]);
         chainId = Integer.valueOf(list.get(0).split(" ")[1]);
         if (list.get(1).contains("Blank")) {
@@ -45,7 +45,7 @@ public class Action implements Packable {
     @Override
     public String pack() {
         StringBuilder sb = new StringBuilder();
-        sb.append(action).append(' ').append(chainId).append('\n');
+        sb.append(action).append(' ').append(chainId).append('\t');
         sb.append(location.pack());
         return sb.toString();
     }

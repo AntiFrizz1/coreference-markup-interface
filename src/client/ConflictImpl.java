@@ -17,7 +17,7 @@ public class ConflictImpl implements Conflict {
     }
 
     public ConflictImpl(String info) {
-        List<String> list = Arrays.asList(info.split("\n\n"));
+        List<String> list = Arrays.asList(info.split("\t\t"));
         firstSolution = new ChainImpl(list.get(0));
         secondSolution = new ChainImpl(list.get(1));
         if (list.get(2).contains("Blank")) {
@@ -47,9 +47,9 @@ public class ConflictImpl implements Conflict {
     @Override
     public String pack() {
         StringBuilder sb = new StringBuilder();
-        sb.append(firstSolution.pack()).append("\n\n").
-                append(secondSolution.pack()).append("\n\n").
-                append(collisionOne.pack()).append("\n\n").
+        sb.append(firstSolution.pack()).append("\t\t").
+                append(secondSolution.pack()).append("\t\t").
+                append(collisionOne.pack()).append("\t\t").
                 append(collisionTwo.pack());
         return sb.toString();
     }

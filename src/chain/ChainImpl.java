@@ -68,7 +68,7 @@ public class ChainImpl implements Chain {
     }
 
     public ChainImpl(String info) {
-        List<String> list = Arrays.asList(info.split("\n"));
+        List<String> list = Arrays.asList(info.split("\t"));
         List<String> nameColor = Arrays.asList(list.get(0).split(" "));
         name = nameColor.get(0);
         id = Integer.valueOf(nameColor.get(1));
@@ -145,8 +145,8 @@ public class ChainImpl implements Chain {
         sb.append(name).append(' ').append(id)
                 .append(' ').append(color.getRed())
                 .append(' ').append(color.getGreen())
-                .append(' ').append(color.getBlue()).append('\n');
-        sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\n")));
+                .append(' ').append(color.getBlue()).append('\t');
+        sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\t")));
         return sb.toString();
     }
 }
