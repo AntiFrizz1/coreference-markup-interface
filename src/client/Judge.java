@@ -1,6 +1,6 @@
 package client;
 
-import chain.Chain;
+import chain.Action;
 
 import java.util.List;
 
@@ -14,7 +14,8 @@ public class Judge extends AbstractClient {
     //private Listener listener;
 
     @Override
-    public void sendUpdates(List<Chain> document) {
+    public void sendUpdates(List<Action> actions) {
+
     }
 
     @Override

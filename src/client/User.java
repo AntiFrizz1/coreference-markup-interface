@@ -1,7 +1,7 @@
 package client;
 
-import chain.Chain;
-import document.Converter;
+import chain.Action;
+import document.UpdateDocument;
 
 import java.util.List;
 
@@ -19,10 +19,12 @@ public class User extends AbstractClient {
     }
 
     @Override
-    public void sendUpdates(List<Chain> document) {
+    public void sendUpdates(List<Action> actions) {
+        // probably need to cut last 15-20 actions
         while (true) {
             try {
-                writer.println(converter.pack(document));
+                UpdateDocument document = new UpdateDocument(actions);
+                writer.println(document.pack());
                 writer.flush();
                 Thread.sleep(30000);
             } catch (InterruptedException e) {

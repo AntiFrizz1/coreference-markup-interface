@@ -1,6 +1,5 @@
 package document;
 
-
 import chain.Action;
 
 import java.util.ArrayList;
@@ -26,6 +25,10 @@ public class UpdateDocument implements Document {
         for (int i = 0; i < list.size(); i += 2) {
             actions.add(new Action(list.get(i).concat("\n").concat(list.get(i + 1))));
         }
+    }
+
+    public List<Action> getActions() {
+        return actions;
     }
 
     @Override
