@@ -32,4 +32,9 @@ public class UpdateDocument implements Document {
     public String pack() {
         return actions.stream().map(Action::pack).collect(Collectors.joining("\t"));
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }

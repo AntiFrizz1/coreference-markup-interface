@@ -14,5 +14,7 @@ public interface Packable {
      */
     String pack();
 
+    String packSB(StringBuilder sb);
+
 
 }
