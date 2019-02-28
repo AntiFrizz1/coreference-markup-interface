@@ -11,6 +11,7 @@ public class SimpleUser {
         User user = new User(Integer.parseInt(args[0]), 3333, "localhost");
         user.joinOnline();
         Thread.sleep(1000);
+        System.out.println(user.getText());
         user.sendUpdates(Arrays.asList(new Action(0, 0, new Phrase("q", 1)),
                 new Action(1, 0, new Phrase("q", 2))));
         user.close();
