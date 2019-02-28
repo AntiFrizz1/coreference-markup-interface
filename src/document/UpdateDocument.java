@@ -41,8 +41,4 @@ public class UpdateDocument implements Document {
         return null;
     }
 
-    @Override
-    public String packSB(StringBuilder sb) {
-        return null;
-    }
 }
