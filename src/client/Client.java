@@ -1,5 +1,6 @@
 package client;
 
+import chain.Action;
 import chain.Chain;
 
 import java.util.List;
@@ -17,9 +18,9 @@ public interface Client {
      * Send updated information about coreferences to server.
      * It happens every 30 seconds.
      *
-     * @param document the information that should be sent.
+     * @param actions the information that should be sent.
      */
-    void sendUpdates(List<Chain> document);
+    void sendUpdates(List<Action> actions);
 
     /**
      * Send information about conflict resolution to server.
@@ -46,7 +47,7 @@ public interface Client {
     void joinOffline();
 
     /**
-     * Complete work.
+     * Complete work and send last actions to server
      */
-    void close();
+    void close(List<Action> actions);
 }
