@@ -32,6 +32,12 @@ public class ChainImpl implements Chain {
      */
     private int id;
 
+    public ChainImpl(List<Action> actions, Color color, int userNumber) {
+        this.color = color;
+        locations = actions.stream().map(Action::getLocation).collect(Collectors.toList());
+        name = "User " + userNumber + " solution";
+    }
+
     public ChainImpl(String name, Color color, int id, Location... locations) {
         this.color = color;
         this.name = name;
