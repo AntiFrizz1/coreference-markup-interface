@@ -5,19 +5,33 @@ import java.util.List;
 import java.util.Set;
 
 public class Letter {
+    private boolean empty;
     private int position;
     private int chainId;
 
     public Letter(int position, int chainId) {
         this.position = position;
         this.chainId = chainId;
+        empty = false;
     }
 
     public Letter(String string) {
-        String[] strings = string.split("|");
-        position = Integer.parseInt(strings[0]);
-        chainId = Integer.parseInt(strings[1]);
+        if (string.length() > 1) {
+            String[] strings = string.split("|");
+            position = Integer.parseInt(strings[0]);
+            chainId = Integer.parseInt(strings[1]);
+            empty = false;
+        } else {
+            empty = true;
+        }
+    }
 
+    public Letter() {
+        empty = true;
+    }
+
+    public boolean isEmpty() {
+        return false;
     }
 
     public int getChainId() {
@@ -45,6 +59,10 @@ public class Letter {
 
     @Override
     public String toString() {
-        return position + "|" + chainId;
+        if (!empty) {
+            return position + "|" + chainId;
+        } else {
+            return "|";
+        }
     }
 }
