@@ -132,7 +132,7 @@ public class ServerImpl implements Server {
                 String help = "";
 
                 while ((help = reader.readLine()) != null) {
-                    text.append(help + "\n");
+                    text.append(help + " ");
                 }
 
                 texts.add(text.toString());
@@ -174,6 +174,11 @@ public class ServerImpl implements Server {
         serverStoreWorkerThread.start();
         addTaskWorkerThread.start();
         conflictInfoSchedulerThread.start();
+        try {
+            listenerThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void close() {

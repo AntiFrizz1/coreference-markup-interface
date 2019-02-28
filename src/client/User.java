@@ -22,7 +22,11 @@ public class User extends AbstractClient {
 
     public String getText() {
         try {
-            return reader.readLine();
+            StringBuilder text = new StringBuilder(reader.readLine());
+            while (reader.ready()) {
+                text.append(reader.readLine());
+            }
+            return text.toString();
         } catch (IOException e) {
             e.printStackTrace();
             return "";
