@@ -8,15 +8,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Consist data about conflict
  */
 public class ConflictInfo {
-    int textId;
-    int teamOneId;
-    int teamTwoId;
+    public int textId;
+    public int teamOneId;
+    public int teamTwoId;
 
-    Action action1;
-    Action action2;
+    public Action action1;
+    public Action action2;
 
-    AtomicInteger status;
-    Thread counter;
+    public AtomicInteger status;
+    public Thread counter;
 
     public ConflictInfo(ConflictData data) {
         this.action1 = data.action1;
