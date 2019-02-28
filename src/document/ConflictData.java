@@ -1,29 +1,27 @@
 package document;
 
-import chain.Action;
-
-import java.util.concurrent.atomic.AtomicInteger;
+import chain.Letter;
 
 public class ConflictData {
     public int textId;
     public int teamOneId;
     public int teamTwoId;
 
-    public Action action1;
-    public Action action2;
+    public Letter letter1;
+    public Letter letter2;
 
-    public ConflictData(Action action1, Action action2, int textId, int teamOneId, int teamTwoId) {
-        this.action1 = action1;
-        this.action2 = action2;
+    public ConflictData(Letter letter1, Letter letter2, int textId, int teamOneId, int teamTwoId) {
+        this.letter1 = letter1;
+        this.letter2 = letter2;
         this.teamOneId = teamOneId;
         this.teamTwoId = teamTwoId;
         this.textId = textId;
     }
 
     public ConflictData(String string) {
-        String[] strings = string.split("|");
-        this.action1 = new Action(strings[0]);
-        this.action2 = new Action(strings[1]);
+        String[] strings = string.split("\\|");
+        this.letter1 = new Letter(strings[0]);
+        this.letter2 = new Letter(strings[1]);
         this.textId = Integer.parseInt(strings[2]);
         this.teamOneId = Integer.parseInt(strings[3]);
         this.teamTwoId = Integer.parseInt(strings[4]);
@@ -31,10 +29,7 @@ public class ConflictData {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(action1.pack()).append("|").append(action2.pack()).append("|").append(textId).append("|")
-                .append(teamOneId).append("|").append(teamTwoId);
-        return sb.toString();
+        return letter1.toString() + "|" + letter2.toString() + "|" + textId + "|" + teamOneId + "|" + teamTwoId;
     }
 
 }

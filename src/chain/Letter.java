@@ -17,16 +17,20 @@ public class Letter {
 
     public Letter(String string) {
         if (string.length() > 1) {
-            String[] strings = string.split("|");
+            String[] strings = string.split("#");
             position = Integer.parseInt(strings[0]);
             chainId = Integer.parseInt(strings[1]);
             empty = false;
         } else {
+            position = -1;
+            chainId = -1;
             empty = true;
         }
     }
 
     public Letter() {
+        position = -1;
+        chainId = -1;
         empty = true;
     }
 
@@ -54,15 +58,27 @@ public class Letter {
                 }
             }
         }
+        letterList.sort(Letter::compareTo);
         return letterList;
     }
 
     @Override
     public String toString() {
         if (!empty) {
-            return position + "|" + chainId;
+            return position + "#" + chainId;
         } else {
-            return "|";
+            return "#";
         }
     }
+
+    public int compareTo(Letter anotherLetter) {
+        if (this.position == anotherLetter.position) {
+            return 0;
+        } else if (this.position < anotherLetter.position) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
 }
