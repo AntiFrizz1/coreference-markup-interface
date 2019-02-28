@@ -1,6 +1,6 @@
 package server;
 
-import chain.Action;
+import chain.Letter;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -13,8 +13,8 @@ public class JudgeStore {
         int teamOneId;
         int teamTwoId;
 
-        List<Action> teamOneApproved;
-        List<Action> teamTwoApproved;
+        List<Letter> teamOneApproved;
+        List<Letter> teamTwoApproved;
         List<Integer> decisions;
 
         PrintWriter writer;
@@ -43,7 +43,7 @@ public class JudgeStore {
         atomicIntegerArray = new AtomicIntegerArray(100);
     }
 
-    public boolean putActions(List<Action> teamOne, List<Action> teamTwo, int textNum, List<Integer> decisions) {
+    public boolean putLetters(List<Letter> teamOne, List<Letter> teamTwo, int textNum, List<Integer> decisions) {
         if (atomicIntegerArray.compareAndSet(textNum, 0, 1)) {
             games.get(textNum).teamOneApproved.addAll(teamOne);
             games.get(textNum).teamTwoApproved.addAll(teamTwo);
@@ -51,7 +51,7 @@ public class JudgeStore {
 
             PrintWriter writer = games.get(textNum).writer;
             for (int i = 0; i < teamOne.size(); i++) {
-                writer.println(teamOne.get(i).pack() + "|" + teamTwo.get(i).pack() + "|" + decisions.get(i));
+                writer.println(teamOne.get(i).toString() + "$" + teamTwo.get(i).toString() + "$" + decisions.get(i));
                 writer.flush();
             }
 
@@ -62,7 +62,7 @@ public class JudgeStore {
         }
     }
 
-    public boolean putOneAction(Action teamOne, Action teamTwo, int textNum, int decision) {
+    public boolean putOneLetter(Letter teamOne, Letter teamTwo, int textNum, int decision) {
         if (atomicIntegerArray.compareAndSet(textNum, 0, 1)) {
             games.get(textNum).teamOneApproved.add(teamOne);
             games.get(textNum).teamTwoApproved.add(teamTwo);
@@ -70,7 +70,7 @@ public class JudgeStore {
             games.get(textNum).decisions.add(decision);
 
             PrintWriter writer = games.get(textNum).writer;
-            writer.println(teamOne.pack() + "|" + teamTwo.pack() + "|" + decision);
+            writer.println(teamOne.toString() + "$" + teamTwo.toString() + "$" + decision);
             writer.flush();
 
             atomicIntegerArray.compareAndSet(textNum, 1, 0);
@@ -80,7 +80,7 @@ public class JudgeStore {
         }
     }
 
-    public List<Action> getTeamList(int textNum, int teamNum) {
+    public List<Letter> getTeamList(int textNum, int teamNum) {
         if (teamNum == 1) {
             return games.get(textNum).teamOneApproved;
         } else {
