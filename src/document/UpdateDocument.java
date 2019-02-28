@@ -1,6 +1,5 @@
 package document;
 
-
 import chain.Action;
 
 import java.util.ArrayList;
