@@ -76,4 +76,9 @@ public class Phrase implements Location {
         sb.append(positions.stream().map(Objects::toString).collect(Collectors.joining(" ")));
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }

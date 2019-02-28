@@ -1,17 +1,17 @@
 package server;
 
+import chain.Action;
 import chain.Chain;
-import chain.ChainImpl;
-import chain.Location;
+import client.Conflict;
+import document.ConflictData;
+import document.ConflictInfo;
 import document.Converter;
+import document.UpdateDocument;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -78,13 +78,18 @@ public class ServerImpl implements Server {
     /**
      * List of conflicts
      */
-    private List<ConflictInfo> conflicts;
+    static Queue<ConflictInfo> conflicts;
 
     private Queue<AddTask> tasks;
 
-    private Store store;
+    private ServerStore serverStore;
+    private JudgeStore judgeStore;
 
     private Converter converter;
+
+    Map<Integer, Socket> idToSocket;
+
+    Map<Socket, Integer> socketToId;
 
     public ServerImpl() {
         try {
@@ -103,9 +108,14 @@ public class ServerImpl implements Server {
 
         judgesId = new ConcurrentSkipListSet<>();
 
-        store = new StoreImpl();
+        serverStore = new ServerStore();
+        judgeStore = new JudgeStore();
 
         converter = new Converter();
+
+        idToSocket = new HashMap<>();
+
+        conflicts = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -118,18 +128,21 @@ public class ServerImpl implements Server {
         Thread userSchedulerThread = new Thread(userScheduler);
         Thread onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
         Thread offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
+        Thread serverStoreWorkerThred = new Thread(serverStore.worker);
 
         listenerThread.start();
         schedulerThread.start();
         userSchedulerThread.start();
         onlineUsersSchedulerThread.start();
         offlineUsersSchedulerThread.start();
+        serverStoreWorkerThred.start();
 
         listenerThread.join();
         schedulerThread.join();
         userSchedulerThread.join();
         onlineUsersSchedulerThread.join();
         offlineUsersSchedulerThread.join();
+        serverStoreWorkerThred.join();
     }
 
     /**
@@ -163,6 +176,10 @@ public class ServerImpl implements Server {
                         System.out.println("scheduler :=: request from " + client.toString() + " = " + request);
 
                         int id = Integer.parseInt(request);
+
+                        idToSocket.put(id, client);
+                        socketToId.put(client, id);
+
                         if (judgesId.contains(id)) {
                             judges.add(new JudgeInfo(client));
                         } else {
@@ -248,77 +265,32 @@ public class ServerImpl implements Server {
                             writer1.flush();
                             writer2.flush();
 
-                            AtomicInteger mutex = new AtomicInteger(0);
+                            serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
+                            judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
 
                             Thread thread1 = new Thread(() -> {
                                 while (true) {
-                                    List<Chain> localChains = new ArrayList<>();
                                     try {
                                         String request = reader1.readLine();
-                                        if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
-                                            store.putAns(request, text, 1);
-                                        } else {
-                                            List<Chain> updatedChains = converter.unpack(request);
-                                            List<Chain> newChains = new ArrayList<>();
-                                            for (int i = 0; i < updatedChains.size(); i++) {
-                                                if (i < localChains.size()) {
-                                                    if (localChains.get(i).getLocations().size() < updatedChains.get(i).getLocations().size()) {
-                                                        List<Location> locations = new ArrayList<>();
-
-                                                        for (int k = localChains.get(i).getLocations().size(); k < updatedChains.get(i).getLocations().size(); k++) {
-                                                            locations.add(updatedChains.get(i).getLocations().get(k));
-                                                        }
-
-                                                        Chain chain = new ChainImpl(localChains.get(i).getName(), localChains.get(i).getColor(), localChains.get(i).getId(), locations);
-                                                        newChains.add(chain);
-                                                        localChains.set(i, updatedChains.get(i));
-                                                    }
-                                                } else {
-                                                    tasks.add(new AddTask(updatedChains.get(i), text, 1));
-                                                    localChains.add(updatedChains.get(i));
-                                                }
-                                            }
-                                            tasks.add(new AddTask(newChains, text, 1));
-                                        }
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        serverStore.putActions(document.getActions(), text, 1);
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
+
                                 }
                             });
 
                             Thread thread2 = new Thread(() -> {
                                 while (true) {
-                                    List<Chain> localChains = new ArrayList<>();
                                     try {
                                         String request = reader2.readLine();
-                                        if (request.startsWith("{1}") || request.startsWith("{2}") || request.startsWith("{3}")) {
-                                            store.putAns(request, text, 2);
-                                        } else {
-                                            List<Chain> updatedChains = converter.unpack(request);
-                                            List<Chain> newChains = new ArrayList<>();
-                                            for (int i = 0; i < updatedChains.size(); i++) {
-                                                if (i < localChains.size()) {
-                                                    if (localChains.get(i).getLocations().size() < updatedChains.get(i).getLocations().size()) {
-                                                        List<Location> locations = new ArrayList<>();
-
-                                                        for (int k = localChains.get(i).getLocations().size(); k < updatedChains.get(i).getLocations().size(); k++) {
-                                                            locations.add(updatedChains.get(i).getLocations().get(k));
-                                                        }
-
-                                                        Chain chain = new ChainImpl(localChains.get(i).getName(), localChains.get(i).getColor(), localChains.get(i).getId(), locations);
-                                                        newChains.add(chain);
-                                                        localChains.set(i, updatedChains.get(i));
-                                                    }
-                                                } else {
-                                                    tasks.add(new AddTask(updatedChains.get(i), text, 2));
-                                                    localChains.add(updatedChains.get(i));
-                                                }
-                                            }
-                                            tasks.add(new AddTask(newChains, text, 2));
-                                        }
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        serverStore.putActions(document.getActions(), text, 2);
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
+
                                 }
                             });
 
@@ -385,44 +357,34 @@ public class ServerImpl implements Server {
         }
     };
 
-    Runnable storeRunnable = () -> {
-      store.get();
-    };
-
-    Runnable taskRunnable = () -> {
-        try {
-            while (true) {
-                if (!tasks.isEmpty()) {
-                    AddTask task = tasks.poll();
-                    if (task.taskType == 0) {
-                        if (!store.put(task.chain, task.textNum, task.taskType)) {
-                            tasks.add(task);
+    Runnable conflictInfoScheduler = () -> {
+        while (true) {
+            try {
+                if (!conflicts.isEmpty()) {
+                    ConflictInfo conflict = conflicts.poll();
+                    if (conflict.status.get() == 0) {
+                        boolean f = false;
+                        for (int j = 0; j < judges.size(); j++) {
+                            if (!judges.get(j).task.isMarked()) {
+                                judges.get(j).setTask(conflict);
+                                f = true;
+                                break;
+                            }
                         }
-                    } else {
-                        if (!store.update(task.chainList, task.textNum, task.taskType)) {
-                            tasks.add(task);
+                        if (!f) {
+                            conflicts.add(conflict);
                         }
+                    } else if (conflict.status.get() == 1) {
+                        conflicts.add(conflict);
                     }
                 } else {
                     Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     };
-
-    /*Runnable judgeScheduler = () -> {
-        try {
-            while (true) {
-                for (ConflictInfo conflictInfo: conflicts) {
-                    if (conflictInfo.status.get() == 0) {
-
-                    }
-                }
-            }
-        }
-    };*/
 
     class JudgeInfo {
         Socket socket;
@@ -447,58 +409,28 @@ public class ServerImpl implements Server {
             try {
                 while (true) {
                     if (task.getReference() != null) {
-                        task.getReference().apply();
-                        //process
+                        if (task.getReference().apply()) {
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                            PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+
+                            ConflictInfo conflict = task.getReference();
+
+                            List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
+                            List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
+                            List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
+
+                        }
                     } else {
                         Thread.sleep(1000);
                     }
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
             }
         };
 
     }
 
-    /**
-     * Consist data about conflict
-     */
-    class ConflictInfo {
-        Chain chain1;
-        Chain chain2;
-        AtomicInteger status;
-        Thread counter;
 
-        ConflictInfo(Chain chain1, Chain chain2) {
-            this.chain1 = chain1;
-            this.chain2 = chain2;
-            this.status = new AtomicInteger(0);
-        }
-
-        boolean complete() {
-            return status.compareAndSet(1, 2);
-        }
-
-        boolean apply() {
-            if (status.compareAndSet(0, 1)) {
-                counter = new Thread(() -> {
-                    while(status.get() != 2) {
-                        try {
-                            Thread.sleep(1000000);
-                            int localStatus = status.get();
-                            if(localStatus == 1) {
-                                status.compareAndSet(localStatus, 0);
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
 
 }

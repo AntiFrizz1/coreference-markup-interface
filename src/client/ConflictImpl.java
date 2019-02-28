@@ -53,4 +53,9 @@ public class ConflictImpl implements Conflict {
                 append(collisionTwo.pack());
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }
