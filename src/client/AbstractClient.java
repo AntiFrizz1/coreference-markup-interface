@@ -49,8 +49,11 @@ public abstract class AbstractClient implements Client {
      */
     protected PrintWriter writer;
 
-    public AbstractClient() {
+    public AbstractClient(int id, int port, String serviceAddress) {
         try {
+            this.id = id;
+            this.port = port;
+            this.serviceAddress = serviceAddress;
             converter = new Converter();
             socket = new Socket(serviceAddress, port);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -79,38 +82,11 @@ public abstract class AbstractClient implements Client {
         }
     }
 
-    /*@Override
-    public void sendInfo(List<Action> actions) {
-        UpdateDocument document = new UpdateDocument(actions);
-        writer.println(document.pack());
-        writer.flush();
-    }*/
-
-    @Override
-    public void sendInfo(List<Chain> document) {
-        writer.println(converter.pack(document));
-        writer.flush();
-    }
-
-    @Override
-    public List<Chain> getInfo() {
-        try {
-            return converter.unpack(reader.readLine());
-        } catch (IOException e) {
-            System.err.println("Can't get information from server");
-        }
-        return null;
-    }
-
-    @Override
-    public void close(List<Action> actions) {
-        UpdateDocument document = new UpdateDocument(actions);
-        writer.println(document.pack());
-        writer.flush();
+    public void close() {
         try {
             socket.close();
         } catch (IOException e) {
-            System.err.println("Can't close socket");
+            e.printStackTrace();
         }
     }
 

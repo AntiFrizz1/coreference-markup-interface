@@ -27,7 +27,7 @@ public class ConflictInfo {
         this.status = new AtomicInteger(0);
     }
 
-    boolean complete() {
+    public boolean complete() {
 
         return status.compareAndSet(1, 2);
     }

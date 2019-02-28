@@ -13,6 +13,8 @@ public class Action implements Packable {
 
     private Location location;
 
+    private boolean empty = false;
+
     public Action(int ac, int id, Location loc) {
         action = ac;
         chainId = id;
@@ -30,6 +32,10 @@ public class Action implements Packable {
         }
     }
 
+    public Action() {
+        empty = true;
+    }
+
     public int getAction() {
         return action;
     }
@@ -40,6 +46,10 @@ public class Action implements Packable {
 
     public Location getLocation() {
         return location;
+    }
+
+    public boolean isEmpty() {
+        return empty;
     }
 
     @Override
