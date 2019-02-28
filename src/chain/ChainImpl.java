@@ -149,4 +149,9 @@ public class ChainImpl implements Chain {
         sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\t")));
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return sb.toString();
+    }
 }

@@ -49,4 +49,9 @@ public class Action implements Packable {
         sb.append(location.pack());
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }
