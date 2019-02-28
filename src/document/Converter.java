@@ -56,7 +56,7 @@ public class Converter {
     public String pack(List<Chain> chains) {
         StringBuilder sb = new StringBuilder();
         sb.append(chains.size()).append('\n');
-        chains.forEach(chain -> chain.pack(sb));
+        chains.forEach(chain -> chain.packSB(sb));
         return sb.toString();
     }
 }

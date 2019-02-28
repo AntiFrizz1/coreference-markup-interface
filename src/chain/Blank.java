@@ -62,4 +62,9 @@ public class Blank implements Location {
         sb.append("Blank: ").append(position);
         return sb.toString();
     }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
+    }
 }
