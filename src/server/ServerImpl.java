@@ -2,9 +2,11 @@ package server;
 
 import chain.Action;
 import chain.Chain;
+import client.Conflict;
 import document.ConflictData;
 import document.ConflictInfo;
 import document.Converter;
+import document.UpdateDocument;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -76,15 +78,18 @@ public class ServerImpl implements Server {
     /**
      * List of conflicts
      */
-    static List<ConflictInfo> conflicts;
+    static Queue<ConflictInfo> conflicts;
 
     private Queue<AddTask> tasks;
 
-    private ServerStore store;
+    private ServerStore serverStore;
+    private JudgeStore judgeStore;
 
     private Converter converter;
 
     Map<Integer, Socket> idToSocket;
+
+    Map<Socket, Integer> socketToId;
 
     public ServerImpl() {
         try {
@@ -103,11 +108,14 @@ public class ServerImpl implements Server {
 
         judgesId = new ConcurrentSkipListSet<>();
 
-        store = new ServerStore();
+        serverStore = new ServerStore();
+        judgeStore = new JudgeStore();
 
         converter = new Converter();
 
         idToSocket = new HashMap<>();
+
+        conflicts = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -120,18 +128,21 @@ public class ServerImpl implements Server {
         Thread userSchedulerThread = new Thread(userScheduler);
         Thread onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
         Thread offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
+        Thread serverStoreWorkerThred = new Thread(serverStore.worker);
 
         listenerThread.start();
         schedulerThread.start();
         userSchedulerThread.start();
         onlineUsersSchedulerThread.start();
         offlineUsersSchedulerThread.start();
+        serverStoreWorkerThred.start();
 
         listenerThread.join();
         schedulerThread.join();
         userSchedulerThread.join();
         onlineUsersSchedulerThread.join();
         offlineUsersSchedulerThread.join();
+        serverStoreWorkerThred.join();
     }
 
     /**
@@ -165,6 +176,10 @@ public class ServerImpl implements Server {
                         System.out.println("scheduler :=: request from " + client.toString() + " = " + request);
 
                         int id = Integer.parseInt(request);
+
+                        idToSocket.put(id, client);
+                        socketToId.put(client, id);
+
                         if (judgesId.contains(id)) {
                             judges.add(new JudgeInfo(client));
                         } else {
@@ -250,14 +265,33 @@ public class ServerImpl implements Server {
                             writer1.flush();
                             writer2.flush();
 
-                            AtomicInteger mutex = new AtomicInteger(0);
+                            serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
+                            judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
 
                             Thread thread1 = new Thread(() -> {
+                                while (true) {
+                                    try {
+                                        String request = reader1.readLine();
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        serverStore.putActions(document.getActions(), text, 1);
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
 
+                                }
                             });
 
                             Thread thread2 = new Thread(() -> {
+                                while (true) {
+                                    try {
+                                        String request = reader2.readLine();
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        serverStore.putActions(document.getActions(), text, 2);
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
 
+                                }
                             });
 
                             thread1.start();
@@ -323,17 +357,34 @@ public class ServerImpl implements Server {
         }
     };
 
-    /*Runnable judgeScheduler = () -> {
-        try {
-            while (true) {
-                for (ConflictInfo conflictInfo: conflicts) {
-                    if (conflictInfo.status.get() == 0) {
-
+    Runnable conflictInfoScheduler = () -> {
+        while (true) {
+            try {
+                if (!conflicts.isEmpty()) {
+                    ConflictInfo conflict = conflicts.poll();
+                    if (conflict.status.get() == 0) {
+                        boolean f = false;
+                        for (int j = 0; j < judges.size(); j++) {
+                            if (!judges.get(j).task.isMarked()) {
+                                judges.get(j).setTask(conflict);
+                                f = true;
+                                break;
+                            }
+                        }
+                        if (!f) {
+                            conflicts.add(conflict);
+                        }
+                    } else if (conflict.status.get() == 1) {
+                        conflicts.add(conflict);
                     }
+                } else {
+                    Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
-    };*/
+    };
 
     class JudgeInfo {
         Socket socket;
@@ -361,6 +412,12 @@ public class ServerImpl implements Server {
                         if (task.getReference().apply()) {
                             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                             PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+
+                            ConflictInfo conflict = task.getReference();
+
+                            List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
+                            List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
+                            List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
 
                         }
                     } else {

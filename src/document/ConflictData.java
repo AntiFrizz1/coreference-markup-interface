@@ -21,14 +21,20 @@ public class ConflictData {
     }
 
     public ConflictData(String string) {
-
+        String[] strings = string.split("|");
+        this.action1 = new Action(strings[0]);
+        this.action2 = new Action(strings[1]);
+        this.textId = Integer.parseInt(strings[2]);
+        this.teamOneId = Integer.parseInt(strings[3]);
+        this.teamTwoId = Integer.parseInt(strings[4]);
     }
 
-    /*@Override
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(action1.pack()).append("|")
-        return action1.pack() + "|"
-    }*/
+        sb.append(action1.pack()).append("|").append(action2.pack()).append("|").append(textId).append("|")
+                .append(teamOneId).append("|").append(teamTwoId);
+        return sb.toString();
+    }
 
 }

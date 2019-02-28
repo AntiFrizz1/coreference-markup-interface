@@ -28,6 +28,10 @@ public class UpdateDocument implements Document {
         }
     }
 
+    public List<Action> getActions() {
+        return actions;
+    }
+
     @Override
     public String pack() {
         return actions.stream().map(Action::pack).collect(Collectors.joining("\n"));
