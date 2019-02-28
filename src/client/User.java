@@ -24,7 +24,7 @@ public class User extends AbstractClient {
         try {
             StringBuilder text = new StringBuilder(reader.readLine());
             while (reader.ready()) {
-                text.append(reader.readLine());
+                text.append(reader.readLine() + "\n");
             }
             return text.toString();
         } catch (IOException e) {
