@@ -25,7 +25,7 @@ public class JudgeInterface {
     private List<String> decisions = Arrays.asList("Принять решение первого", "Принять решение второго", "Принять решения обоих", "Не принимать ничье решение");
 
 
-    public void start(Stage primaryStage) throws InterruptedException {
+    public void start(Stage primaryStage) {
         primaryStage.setTitle("Ожидание чуда");
         primaryStage.setMinWidth(MIN_APP_WIDTH);
         primaryStage.setMinHeight(MIN_APP_HEIGHT);
@@ -74,25 +74,25 @@ public class JudgeInterface {
         Button b1 = new Button(decisions.get(0));
         b1.setOnAction(event -> {
             controller.setDecision(0);
-            confirmDecision(primaryStage);
+            confirmDecision(stage);
         });
 
         Button b2 = new Button(decisions.get(1));
         b2.setOnAction(event -> {
             controller.setDecision(1);
-            confirmDecision(primaryStage);
+            confirmDecision(stage);
         });
 
         Button b3 = new Button(decisions.get(2));
         b3.setOnAction(event -> {
             controller.setDecision(2);
-            confirmDecision(primaryStage);
+            confirmDecision(stage);
         });
 
         Button b4 = new Button(decisions.get(3));
         b4.setOnAction(event -> {
             controller.setDecision(3);
-            confirmDecision(primaryStage);
+            confirmDecision(stage);
         });
 
         box.getChildren().addAll(b1, b2, b3, b4);
@@ -104,15 +104,15 @@ public class JudgeInterface {
         stage.setMinWidth(MIN_APP_WIDTH);
         stage.setMinWidth(MIN_APP_HEIGHT);
         stage.initModality(Modality.WINDOW_MODAL);
+        stage.setScene(sc);
         stage.showAndWait();
     }
 
-    private void generateText(String text, FlowPane textPane, Set<Integer> where) {
+    private void generateText(List<String> words, FlowPane textPane, Set<Integer> where) {
         textPane.getChildren().clear();
         // TODO: should probably remove punctuation from buttons into separate TextAreas
-        String[] words = text.split(" ");
-        for (int i = 0; i < words.length; i++) {
-            Button word = new Button(words[i]);
+        for (int i = 0; i < words.size(); i++) {
+            Button word = new Button(words.get(i));
             word.getStyleClass().add("word");
             word.getStyleClass().add("search");
             word.setStyle("-fx-background-color: rgba(0,0,0,0);");
@@ -151,6 +151,7 @@ public class JudgeInterface {
         Button ok = new Button("OK");
         ok.setOnAction(event -> {
             stage.getScene().getWindow().hide();
+            primaryStage.getScene().getWindow().hide();
             //TODO disable buttons or make empty Scene
             controller.sendDecision();
         });
