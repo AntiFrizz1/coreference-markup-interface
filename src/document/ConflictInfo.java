@@ -25,6 +25,7 @@ public class ConflictInfo {
         this.teamTwoId = data.teamTwoId;
         this.textId = data.textId;
         this.status = new AtomicInteger(0);
+        System.out.println(textId);
     }
 
     public boolean complete() {
@@ -37,7 +38,7 @@ public class ConflictInfo {
             counter = new Thread(() -> {
                 while(status.get() != 2) {
                     try {
-                        Thread.sleep(100000);
+                        Thread.sleep(10000);
                         int localStatus = status.get();
                         if(localStatus == 1) {
                             status.compareAndSet(localStatus, 0);

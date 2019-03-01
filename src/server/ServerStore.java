@@ -8,6 +8,7 @@ import document.ConflictData;
 import document.ConflictInfo;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
 import static server.ServerImpl.conflicts;
@@ -32,42 +33,40 @@ public class ServerStore {
     AtomicIntegerArray mutexArray;
 
     ServerStore() {
-        games = new ArrayList<>(0);
+        games = new CopyOnWriteArrayList<>();
         mutexArray = new AtomicIntegerArray(100);
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamNum) {
-        if (mutexArray.compareAndSet(textNum, 0, 1)) {
             Game curGame = games.get(textNum);
             if (teamNum == 1) {
                 curGame.teamOneList.addAll(actions);
             } else {
                 curGame.teamTwoList.addAll(actions);
             }
+            mutexArray.compareAndSet(textNum, 1, 0);
             return true;
-        } else {
-            return false;
-        }
     }
 
     Runnable worker = () -> {
         while (true) {
             for (int i = 0; i < games.size(); i++) {
-                if (mutexArray.compareAndSet(i, 0, 1)) {
                     Game curGame = games.get(i);
                     if (!curGame.teamOneList.isEmpty() && !curGame.teamTwoList.isEmpty()) {
                         Action actionFromTeamOne = curGame.teamOneList.get(0);
                         Action actionFromTeamTwo = curGame.teamTwoList.get(0);
                         if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
                             conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
+                            curGame.teamOneList.remove(0);
                         } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
                             conflicts.add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                            curGame.teamTwoList.remove(0);
                         } else {
                             conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                            curGame.teamOneList.remove(0);
+                            curGame.teamTwoList.remove(0);
                         }
                     }
-                    mutexArray.compareAndSet(i, 1, 0);
-                }
             }
         }
     };

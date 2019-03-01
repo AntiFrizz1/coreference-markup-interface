@@ -121,7 +121,7 @@ public class ServerImpl implements Server {
     }
 
     public void loadTexts(List<String> filenames) {
-        for (String filename: filenames) {
+        for (String filename : filenames) {
             try {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filename))));
 
@@ -219,8 +219,9 @@ public class ServerImpl implements Server {
      * Split clients on clients or judges
      */
     private Runnable scheduler = () -> {
-        try {
-            while (work.get()) {
+        while (work.get()) {
+            try {
+
                 if (!clients.isEmpty()) {
                     Socket client = clients.poll();
                     try {
@@ -249,9 +250,10 @@ public class ServerImpl implements Server {
                 } else {
                     Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                System.err.println("scheduler :=: scheduler interrupted: " + e.getMessage());
             }
-        } catch (InterruptedException e) {
-            System.err.println("scheduler :=: scheduler interrupted: " + e.getMessage());
+
         }
     };
 
@@ -259,8 +261,9 @@ public class ServerImpl implements Server {
      * Split users on online or offline users
      */
     private Runnable userScheduler = () -> {
-        try {
-            while (work.get()) {
+        while (work.get()) {
+            try {
+
                 if (!users.isEmpty()) {
                     Socket client = users.poll();
                     try {
@@ -285,9 +288,9 @@ public class ServerImpl implements Server {
                 } else {
                     Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                System.err.println("userScheduler :=: userScheduler interrupted: " + e.getMessage());
             }
-        } catch (InterruptedException e) {
-            System.err.println("userScheduler :=: userScheduler interrupted: " + e.getMessage());
         }
     };
 
@@ -296,8 +299,9 @@ public class ServerImpl implements Server {
      */
     private Runnable onlineUsersScheduler = () -> {
         AtomicInteger textNumber = new AtomicInteger();
-        try {
-            while (work.get()) {
+        while (work.get()) {
+            try {
+
                 if (onlineUsers.size() >= 2) {
                     Socket client1 = onlineUsers.poll();
                     Socket client2 = onlineUsers.poll();
@@ -327,6 +331,9 @@ public class ServerImpl implements Server {
                                 while (!client1.isClosed() || reader1.ready()) {
                                     try {
                                         String request = reader1.readLine();
+                                        if (request == null) {
+                                            break;
+                                        }
                                         UpdateDocument document = new UpdateDocument(request);
                                         /*serverStore.putActions(document.getActions(), text, 1);*/
                                         tasks.add(new AddTask(document.getActions(), text, 1));
@@ -345,6 +352,9 @@ public class ServerImpl implements Server {
                                 while (!client2.isClosed() || reader2.ready()) {
                                     try {
                                         String request = reader2.readLine();
+                                        if (request == null) {
+                                            break;
+                                        }
                                         UpdateDocument document = new UpdateDocument(request);
                                         /*serverStore.putActions(document.getActions(), text, 1);*/
                                         tasks.add(new AddTask(document.getActions(), text, 2));
@@ -369,9 +379,9 @@ public class ServerImpl implements Server {
                 } else {
                     Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                System.out.println("onlineUsersScheduler :=: onlineUsersScheduler interrupted : " + e.getMessage());
             }
-        } catch (InterruptedException e) {
-            System.out.println("onlineUsersScheduler :=: onlineUsersScheduler interrupted : " + e.getMessage());
         }
     };
 
@@ -380,8 +390,9 @@ public class ServerImpl implements Server {
      */
     private Runnable offlineUsersScheduler = () -> {
         int texNumber = 0;
-        try {
-            while (work.get()) {
+        while (work.get()) {
+            try {
+
                 if (!offlineUsers.isEmpty()) {
                     Socket client = offlineUsers.poll();
                     System.out.println("offlineUsersScheduler :=: " + client.toString());
@@ -413,9 +424,9 @@ public class ServerImpl implements Server {
                 } else {
                     Thread.sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                System.out.println("offlineUsersScheduler :=: offlineUsersScheduler interrupted : " + e.getMessage());
             }
-        } catch (InterruptedException e) {
-            System.out.println("offlineUsersScheduler :=: offlineUsersScheduler interrupted : " + e.getMessage());
         }
     };
 
@@ -442,6 +453,7 @@ public class ServerImpl implements Server {
                 if (!conflicts.isEmpty()) {
                     ConflictInfo conflict = conflicts.poll();
                     if (conflict.status.get() == 0) {
+                        System.out.println();
                         boolean f = false;
                         for (int j = 0; j < judges.size(); j++) {
                             if (!judges.get(j).task.isMarked()) {
@@ -450,9 +462,7 @@ public class ServerImpl implements Server {
                                 break;
                             }
                         }
-                        if (!f) {
-                            conflicts.add(conflict);
-                        }
+                        conflicts.add(conflict);
                     } else if (conflict.status.get() == 1) {
                         conflicts.add(conflict);
                     }
@@ -535,6 +545,9 @@ public class ServerImpl implements Server {
                             writer.flush();
 
                             String request = reader.readLine();
+                            if (request == null) {
+                                break;
+                            }
                             int decision = Integer.parseInt(request);
                             judgeStore.putOneAction(action1, action2, conflict.textId, decision);
 
@@ -552,7 +565,6 @@ public class ServerImpl implements Server {
         };
 
     }
-
 
 
 }

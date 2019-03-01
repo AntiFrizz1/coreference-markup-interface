@@ -34,18 +34,9 @@ public class User extends AbstractClient {
     }
 
     public void sendUpdates(List<Action> actions) {
-        // probably need to cut last 15-20 actions
-        //while (true) {
-            try {
-                UpdateDocument document = new UpdateDocument(actions);
-                writer.println(document.pack());
-                writer.flush();
-                Thread.sleep(30000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return;
-            }
-        //}
+        UpdateDocument document = new UpdateDocument(actions);
+        writer.println(document.pack());
+        writer.flush();
     }
 
     @Override

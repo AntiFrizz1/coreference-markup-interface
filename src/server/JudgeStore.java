@@ -12,6 +12,7 @@ public class JudgeStore {
     class Game {
         int teamOneId;
         int teamTwoId;
+        int textNum;
 
         List<Action> teamOneApproved;
         List<Action> teamTwoApproved;
@@ -19,7 +20,7 @@ public class JudgeStore {
 
         PrintWriter writer;
 
-        Game(int teamOneId, int teamTwoId) {
+        Game(int teamOneId, int teamTwoId, int textNum) {
             this.teamOneId = teamOneId;
             this.teamTwoId = teamTwoId;
 
@@ -27,11 +28,13 @@ public class JudgeStore {
             teamTwoApproved = new ArrayList<>(0);
             decisions = new ArrayList<>(0);
 
-           /* try {
-                writer = new PrintWriter("data/" + teamOneId + "vs" + teamTwoId);
+            this.textNum = textNum;
+
+            try {
+                writer = new PrintWriter(teamOneId + "vs" + teamTwoId + "text=" + textNum);
             } catch (FileNotFoundException e) {
-                System.err.println("Can't find file: " + "data/" + teamOneId + "vs" + teamTwoId);
-            }*/
+                System.err.println("Can't find file: " + teamOneId + "vs" + teamTwoId + "text=" + textNum);
+            }
         }
     }
 
@@ -43,41 +46,16 @@ public class JudgeStore {
         atomicIntegerArray = new AtomicIntegerArray(100);
     }
 
-    public boolean putActions(List<Action> teamOne, List<Action> teamTwo, int textNum, List<Integer> decisions) {
-        if (atomicIntegerArray.compareAndSet(textNum, 0, 1)) {
-            games.get(textNum).teamOneApproved.addAll(teamOne);
-            games.get(textNum).teamTwoApproved.addAll(teamTwo);
-            games.get(textNum).decisions.addAll(decisions);
+    public void putOneAction(Action teamOne, Action teamTwo, int textNum, int decision) {
+        System.out.println(textNum + " " + decision);
+        games.get(textNum).teamOneApproved.add(teamOne);
+        games.get(textNum).teamTwoApproved.add(teamTwo);
+        games.get(textNum).writer.println(teamOne);
+        games.get(textNum).decisions.add(decision);
 
-            PrintWriter writer = games.get(textNum).writer;
-            for (int i = 0; i < teamOne.size(); i++) {
-                writer.println(teamOne.get(i).pack() + "$" + teamTwo.get(i).pack() + "$" + decisions.get(i));
-                writer.flush();
-            }
-
-            atomicIntegerArray.compareAndSet(textNum, 1, 0);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean putOneAction(Action teamOne, Action teamTwo, int textNum, int decision) {
-        if (atomicIntegerArray.compareAndSet(textNum, 0, 1)) {
-            games.get(textNum).teamOneApproved.add(teamOne);
-            games.get(textNum).teamTwoApproved.add(teamTwo);
-            games.get(textNum).writer.println(teamOne);
-            games.get(textNum).decisions.add(decision);
-
-            PrintWriter writer = games.get(textNum).writer;
-            writer.println(teamOne.pack() + "$" + teamTwo.pack() + "$" + decision);
-            writer.flush();
-
-            atomicIntegerArray.compareAndSet(textNum, 1, 0);
-            return true;
-        } else {
-            return false;
-        }
+        PrintWriter writer = games.get(textNum).writer;
+        writer.println(teamOne.pack() + "$" + teamTwo.pack() + "$" + decision);
+        writer.flush();
     }
 
     public List<Action> getTeamList(int textNum, int teamNum) {
@@ -93,7 +71,7 @@ public class JudgeStore {
     }
 
     public void addNewGame(int teamOneId, int teamTwoId) {
-        Game tmp = new Game(teamOneId, teamTwoId);
+        Game tmp = new Game(teamOneId, teamTwoId, games.size());
         games.add(tmp);
     }
 }
