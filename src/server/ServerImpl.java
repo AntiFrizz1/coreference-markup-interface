@@ -728,5 +728,54 @@ public class ServerImpl implements Server {
 
     }
 
+    class JudgeStoreFile {
+        int id1;
+        int id2;
+        int textId;
+
+        JudgeStoreFile(int id1, int id2, int textId) {
+            this.id1 = id1;
+            this.id2 = id2;
+            this.textId = textId;
+        }
+    }
+
+    public void judgeRecover() {
+        BufferedReader gameReader;
+        try {
+            gameReader = new BufferedReader(new InputStreamReader(new FileInputStream("judgeStoreGames"), "UTF-8"));
+            String fileName = gameReader.readLine();
+            List<JudgeStoreFile> judgeStoreFiles = new ArrayList<>(0);
+            while (fileName != null) {
+                List<String> ids = Arrays.asList(fileName.split(".*vs.*text=.*"));
+                JudgeStoreFile tmp = new JudgeStoreFile(Integer.parseInt(ids.get(0)), Integer.parseInt(ids.get(1)), Integer.parseInt(ids.get(2)));
+                judgeStoreFiles.add(tmp);
+                fileName = gameReader.readLine();
+            }
+            judgeStoreFiles.sort(this::judgeStoreCompare);
+            for (JudgeStoreFile judgeStoreFile : judgeStoreFiles) {
+                String file = judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
+                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+                String line = reader.readLine();
+                List<Action> teamOneActions = new CopyOnWriteArrayList<>();
+                List<Action> teamTwoActions = new CopyOnWriteArrayList<>();
+                List<Integer> decisions = new CopyOnWriteArrayList<>();
+                while (line != null) {
+                    List<String> list = Arrays.asList(line.split("$"));
+                    teamOneActions.add(new Action(list.get(0)));
+                    teamTwoActions.add(new Action(list.get(1)));
+                    decisions.add(Integer.parseInt(list.get(2)));
+                    line = reader.readLine();
+                }
+                judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, fileName);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public int judgeStoreCompare(JudgeStoreFile tmp1, JudgeStoreFile tmp2) {
+        return Integer.compare(tmp1.textId, tmp2.textId);
+    }
 
 }

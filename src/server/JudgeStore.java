@@ -33,25 +33,44 @@ public class JudgeStore {
 
             try {
                 writer = new PrintWriter(teamOneId + "vs" + teamTwoId + "text=" + textNum);
+                dumpWriter.println(teamOneId + "vs" + teamTwoId + "text=" + textNum);
+                dumpWriter.flush();
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file: " + teamOneId + "vs" + teamTwoId + "text=" + textNum);
+            }
+        }
+
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, String fileName) {
+            this.teamOneId = teamOneId;
+            this.teamTwoId = teamTwoId;
+            this.textNum = textNum;
+            this.teamOneApproved = teamOneApproved;
+            this.teamTwoApproved = teamTwoApproved;
+            this.decisions = decisions;
+            try {
+                writer = new PrintWriter(fileName);
+            } catch (FileNotFoundException e) {
+                System.err.println("Can't find file: " + fileName);
             }
         }
     }
 
     List<Game> games;
-    AtomicIntegerArray atomicIntegerArray;
+    PrintWriter dumpWriter;
 
     JudgeStore() {
         games = new CopyOnWriteArrayList<>();
-        atomicIntegerArray = new AtomicIntegerArray(100);
+        try {
+            dumpWriter = new PrintWriter("judgeStoreGames");
+        } catch (FileNotFoundException e) {
+            System.err.println("Can't find file judgeStoreGames");
+        }
     }
 
     public void putOneAction(Action teamOne, Action teamTwo, int textNum, int decision) {
         //System.out.println(textNum + " " + decision);
         games.get(textNum).teamOneApproved.add(teamOne);
         games.get(textNum).teamTwoApproved.add(teamTwo);
-        games.get(textNum).writer.println(teamOne);
         games.get(textNum).decisions.add(decision);
 
         PrintWriter writer = games.get(textNum).writer;
@@ -73,6 +92,11 @@ public class JudgeStore {
 
     public void addNewGame(int teamOneId, int teamTwoId, int textNum) {
         Game tmp = new Game(teamOneId, teamTwoId, textNum);
+        games.add(tmp);
+    }
+
+    public void addNewRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, String fileName) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneApproved, teamTwoApproved, decisions, fileName);
         games.add(tmp);
     }
 }
