@@ -330,8 +330,8 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
 
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
-                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
+                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
+                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
                             try {
