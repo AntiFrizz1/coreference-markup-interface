@@ -48,33 +48,46 @@ public class User extends AbstractClient {
     }
 
     @Override
-    public boolean joinOnline() {
-        if (sendConnectionInfo(String.valueOf(id))) {
-            if (sendConnectionInfo("0")) {
+    public int joinOnline() {
+        int out = sendConnectionInfo(String.valueOf(id));
+        if (out == 0) {
+            out = sendConnectionInfo("0");
+            if (out == 0) {
                 System.out.println("Successful connect to server in online mode with id = " + id);
-                return true;
+                return 0;
             } else {
                 System.err.println("Can't connect to server in online mode with id = " + id);
-                return false;
+                return -1;
             }
+        } else if (out == 1) {
+            out = sendConnectionInfo("0");
+            if (out == 0) {
+                System.out.println("Successful reconnect to server in online mode with id = " + id);
+                return 1;
+            } else {
+                System.err.println("Can't reconnect to server in online mode with id = " + id);
+                return -1;
+            }
+        } else if (out == 2) {
+            return 2;
         } else {
-            System.err.println("Can't connect to server in online mode with id = " + id);
-            return false;
+            return -1;
         }
     }
 
-    public boolean joinOffline() {
-        if (sendConnectionInfo(String.valueOf(id))) {
-            if (sendConnectionInfo("0")) {
+    public int joinOffline() {
+        int out = sendConnectionInfo(String.valueOf(id));
+        if (out == 0) {
+            out = sendConnectionInfo("1");
+            if (out == 0) {
                 System.out.println("Successful connect to server in offline mode with id = " + id);
-                return true;
+                return 0;
             } else {
                 System.err.println("Can't connect to server in offline mode with id = " + id);
-                return false;
+                return -1;
             }
         } else {
-            System.err.println("Can't connect to server in offline mode with id = " + id);
-            return false;
+            return -1;
         }
     }
 

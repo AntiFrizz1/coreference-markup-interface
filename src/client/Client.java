@@ -17,7 +17,7 @@ public interface Client {
     /**
      * Connect to server as User or as Judge for work online.
      */
-    boolean joinOnline();
+    int joinOnline();
 
     void close();
 }
