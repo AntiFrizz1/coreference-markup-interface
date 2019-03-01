@@ -2,7 +2,6 @@ package client;
 
 import chain.Action;
 import chain.Chain;
-import document.Converter;
 import document.UpdateDocument;
 
 import java.io.*;
@@ -17,7 +16,6 @@ import java.util.List;
  */
 public abstract class AbstractClient implements Client {
 
-    protected Converter converter;
 
     /**
      * An internal endpoint for sending or receiving data.
@@ -54,7 +52,6 @@ public abstract class AbstractClient implements Client {
             this.id = id;
             this.port = port;
             this.serviceAddress = serviceAddress;
-            converter = new Converter();
             socket = new Socket(serviceAddress, port);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -68,18 +65,20 @@ public abstract class AbstractClient implements Client {
      *
      * @param info information for sending
      */
-    protected void sendConnectionInfo(String info) {
+    protected boolean sendConnectionInfo(String info) {
         try {
             writer.println(info);
             writer.flush();
             String request = reader.readLine();
             if (!request.equals("OK")) {
                 System.err.println("Can't connect to server");
-                return;
+                return false;
             }
-        } catch (IOException e) {
-            System.err.println("Can't read answer from server");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Can't read answer from server: " + e.getMessage());
         }
+        return false;
     }
 
     public void close() {

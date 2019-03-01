@@ -3,7 +3,11 @@ package client;
 import chain.Action;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.util.List;
+
+import static test.SimpleJudge.fileWriter;
+import static test.SimpleJudge.judge;
 
 /**
  * This class describes interaction protocol of Judge
@@ -19,9 +23,14 @@ public class Judge extends AbstractClient {
     //private Listener listener;
 
     @Override
-    public void joinOnline() {
-        sendConnectionInfo(String.valueOf(id));
-        System.out.println("Successful connect to server as judge with id = " + id);
+    public boolean joinOnline() {
+        if (sendConnectionInfo(String.valueOf(id))) {
+            System.out.println("Successful connect to server as judge with id = " + id);
+            return true;
+        } else {
+            System.err.println("Can't connect to server as judge with id = " + id);
+            return false;
+        }
     }
 
     public void sendDecision(int decision) {
