@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class SimpleUser {
     public static void main(String[] args) throws InterruptedException {
-        User user = new User(Integer.parseInt(args[0]), 3333, "localhost");
+        User user = new User(77, 3333, "localhost");
         int status = user.joinOnline();
         Thread.sleep(1000);
         if (status == 0) {
@@ -18,7 +18,7 @@ public class SimpleUser {
             Data data = user.getData();
             System.out.println(data.getText());
         }
-        for (int i = 0; i < 40; i += 8) {
+       /* for (int i = 0; i < 40; i += 8) {
             user.sendUpdates(Arrays.asList(
                     new Action(0, 0, new Phrase("a", i + 1)),
                     new Action(1, 0, new Phrase("b", i + 2)),
@@ -29,8 +29,8 @@ public class SimpleUser {
                     new Action(1, 0, new Phrase("g", i + 7)),
                     new Action(1, 0, new Phrase("h", i + 8))
             ));
-            Thread.sleep(2000);
-        }
+            Thread.sleep(10000);
+        }*/
 
 
         user.close();
