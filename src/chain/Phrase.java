@@ -20,8 +20,10 @@ public class Phrase implements Location {
 
     private String stringRepresentation;
 
-    public Phrase(String stringRepresentation, Integer... positions) {
-        this.positions = new HashSet<>(Arrays.asList(positions));
+    public Phrase(String stringRepresentation, int first, Integer... positions) {
+        this.positions = new HashSet<>();
+        this.positions.add(first);
+        this.positions.addAll(Arrays.asList(positions));
         this.stringRepresentation = stringRepresentation;
     }
 
@@ -30,7 +32,7 @@ public class Phrase implements Location {
         this.stringRepresentation = stringRepresentation;
     }
 
-    Phrase(String info) {
+    public Phrase(String info) {
         String suff = info.substring(8);
         stringRepresentation = suff.split(" :: ")[0];
         positions = Arrays.stream(suff.split(" :: ")[1].split(" ")).
@@ -75,5 +77,10 @@ public class Phrase implements Location {
         sb.append("Phrase: ").append(stringRepresentation).append(" :: ");
         sb.append(positions.stream().map(Objects::toString).collect(Collectors.joining(" ")));
         return sb.toString();
+    }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
     }
 }

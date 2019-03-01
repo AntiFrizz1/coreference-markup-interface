@@ -1,6 +1,5 @@
 package document;
 
-
 import chain.Action;
 
 import java.util.ArrayList;
@@ -22,14 +21,23 @@ public class UpdateDocument implements Document {
 
     public UpdateDocument(String info) {
         actions = new ArrayList<>();
-        List<String> list = Arrays.asList(info.split("\n"));
+        List<String> list = Arrays.asList(info.split("\t"));
         for (int i = 0; i < list.size(); i += 2) {
-            actions.add(new Action(list.get(i).concat("\n").concat(list.get(i + 1))));
+            actions.add(new Action(list.get(i).concat("\t").concat(list.get(i + 1))));
         }
+    }
+
+    public List<Action> getActions() {
+        return actions;
     }
 
     @Override
     public String pack() {
-        return actions.stream().map(Action::pack).collect(Collectors.joining("\n"));
+        return actions.stream().map(Action::pack).collect(Collectors.joining("\t"));
+    }
+
+    @Override
+    public String packSB(StringBuilder sb) {
+        return null;
     }
 }
