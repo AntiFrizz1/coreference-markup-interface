@@ -40,12 +40,12 @@ public class ServerStore {
 
             try {
                 writerOne = new PrintWriter(prefixOld + "\\" + teamOne + "text=" + textNum);
-            } catch(FileNotFoundException e) {
+            } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamOne + "text=" + textNum);
             }
             try {
                 writerTwo = new PrintWriter(prefixOld + "\\" + teamTwo + "text=" + textNum);
-            } catch(FileNotFoundException e) {
+            } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
             }
             teamOneList = new CopyOnWriteArrayList<>();
@@ -75,13 +75,13 @@ public class ServerStore {
         if (teamNum == 1) {
             curGame.teamOneList.addAll(actions);
             PrintWriter writer = curGame.writerOne;
-            for(Action action : actions) {
+            for (Action action : actions) {
                 writer.println(action.pack());
             }
         } else {
             curGame.teamTwoList.addAll(actions);
             PrintWriter writer = curGame.writerTwo;
-            for(Action action : actions) {
+            for (Action action : actions) {
                 writer.println(action.pack());
             }
         }
@@ -99,7 +99,7 @@ public class ServerStore {
                     if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
                         conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
                         curGame.teamOneList.remove(0);
-                    } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
+                    } else if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
                         conflicts.add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
                         curGame.teamTwoList.remove(0);
                     } else {
@@ -113,9 +113,10 @@ public class ServerStore {
     };
 
     synchronized void addNewGame(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList) {
-        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList,teamTwoList);
+        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList, teamTwoList);
         games.add(newGame);
     }
+
     synchronized void addNewGame(int teamOne, int teamTwo, int textNum, String prefixOld) {
         Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld);
         games.add(newGame);
@@ -127,10 +128,10 @@ public class ServerStore {
                 Blank blank = (Blank) o1;
                 Phrase phrase = (Phrase) o2;
                 int ar = phrase.getPositions().stream().min(Comparator.naturalOrder()).get();
-                if (ar < blank.getPosition()) {
-                    return 1;
-                } else {
+                if (ar > blank.getPosition()) {
                     return -1;
+                } else {
+                    return 1;
                 }
             } else {
                 int id1 = ((Blank) o1).getPosition();
@@ -149,28 +150,29 @@ public class ServerStore {
                 Phrase phrase2 = (Phrase) o2;
                 int[] ar1 = phrase1.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
                 int[] ar2 = phrase2.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
-                for (int i = 0; i < Math.min(ar1.length, ar2.length); i++) {
-                    if (ar1[i] < ar2[i]) {
-                        return -1;
-                    } else if (ar1[i] > ar2[i]) {
-                        return 1;
+                int result;
+                for(int i = 0; i < ar1.length;i++) {
+                    for(int j = 0; j < ar2.length;j++) {
+                        if(ar1[i] == ar2[j]) {
+                            return 0;
+                        }
                     }
                 }
-                if (ar1.length == ar2.length) {
-                    return 0;
-                } else if (ar1.length < ar2.length) {
-                    return -1;
-                } else {
+                int res1 = phrase1.getPositions().stream().min(Integer::compareTo).get();
+                int res2 = phrase2.getPositions().stream().min(Integer::compareTo).get();
+                if(res1 > res2) {
                     return 1;
+                } else {
+                    return -1;
                 }
             } else {
                 Blank blank = (Blank) o2;
                 Phrase phrase = (Phrase) o1;
                 int ar = phrase.getPositions().stream().min(Comparator.naturalOrder()).get();
-                if (ar < blank.getPosition()) {
-                    return -1;
-                } else {
+                if (ar > blank.getPosition()) {
                     return 1;
+                } else {
+                    return -1;
                 }
             }
         }
