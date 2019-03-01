@@ -15,11 +15,11 @@
 }
 
 .highlight {
-    -fx-text-fill: rgba(0,0,0,0.7);
+    -fx-text-fill: rgba(0, 0, 0, 0.7);
 }
 
 .highlight-selected {
-    -fx-text-fill: rgba(0,0,0,1);
+    -fx-text-fill: rgba(0, 0, 0, 1);
 }
 
 .search {
@@ -28,6 +28,11 @@
 .search-selected {
     -fx-text-fill: yellow;
 }
+
+.chain-selected-judge {
+    -fx-text-fill: blue;
+}
+
 
 .chain {
     -fx-padding: 0, 0, 0, 0;

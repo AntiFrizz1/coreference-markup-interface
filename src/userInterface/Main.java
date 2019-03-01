@@ -1,11 +1,6 @@
 package userInterface;
 
-import chain.Action;
-import chain.Blank;
-import chain.Chain;
-import chain.ChainImpl;
-import chain.Location;
-import chain.Phrase;
+import chain.*;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.geometry.HPos;
@@ -14,20 +9,12 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -57,11 +44,13 @@ public class Main extends Application {
      * must contain the whole string).
      */
     private String chainFilter = "";
-    private String judgePassword = "azaza";
+    private String judgePassword = "password";
     private Set<Integer> userIds;
 
+    private JudgeInterface judgeInterface = new JudgeInterface();
+
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws InterruptedException {
         controller = new ControllerImpl(primaryStage);
         // TODO: ask the server to send judge's password and set of users
         userIds = new HashSet<>();
@@ -70,12 +59,20 @@ public class Main extends Application {
         loginUser();
 
         // TODO: display either the main window if it's a user or a judge window if it's a judge
-        primaryStage.setTitle("Разметка кореференсов");
-        Scene sc = genScene(primaryStage);
-        primaryStage.setMinWidth(MIN_APP_WIDTH);
-        primaryStage.setMinHeight(MIN_APP_HEIGHT);
-        primaryStage.setScene(sc);
-        primaryStage.show();
+
+
+        if (controller.isJudge()) {
+            judgeInterface.start(primaryStage);
+        } else {
+            primaryStage.setTitle("Разметка кореференсов");
+            Scene sc = genScene(primaryStage);
+            primaryStage.setMinWidth(MIN_APP_WIDTH);
+            primaryStage.setMinHeight(MIN_APP_HEIGHT);
+            primaryStage.setScene(sc);
+            primaryStage.show();
+        }
+
+
 //        Chain first = new ChainImpl("kek", new Color(255, 0, 0), 0, new Phrase("Приехав", 0), new Phrase("Москву,", 5));
 //        Chain second = new ChainImpl("mda", new Color(0, 255, 0), 0, new Phrase("Приехав", 0), new Phrase("поездом", 3));
 //        controller.showConflict(new ConflictImpl(first, second, new Phrase("Москву,", 5)));
@@ -638,6 +635,7 @@ public class Main extends Application {
 
     /**
      * Opens a new error window with a custom error message.
+     *
      * @param primaryStage a stage to bind the error window to
      * @param errorMessage a custom error message to display
      */

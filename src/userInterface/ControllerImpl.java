@@ -1,26 +1,7 @@
 package userInterface;
 
-import chain.Action;
-import chain.Blank;
-import chain.Chain;
-import chain.ChainImpl;
-import chain.Location;
-import chain.Phrase;
+import chain.*;
 import client.ConflictImpl;
-import javafx.event.Event;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 
@@ -29,14 +10,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ControllerImpl implements Controller {
@@ -156,6 +131,7 @@ public class ControllerImpl implements Controller {
     /**
      * Adds all of the selected words whose positions are contained in {@link ControllerImpl#selected} to a selected
      * chain in {@link ControllerImpl#curChain}. If no chain or no words are selected, does nothing.
+     *
      * @return an action describing this operation
      */
     @Override
@@ -178,6 +154,7 @@ public class ControllerImpl implements Controller {
     /**
      * Adds a new anaphora specified by {@link ControllerImpl#selectedBlank} to a selected chain in
      * {@link ControllerImpl#curChain}. If no chain or no blank is selected, does nothing.
+     *
      * @return an action describing this operation
      */
     @Override
@@ -197,6 +174,7 @@ public class ControllerImpl implements Controller {
 
     /**
      * Sets the chain name to be used when creating a new chain.
+     *
      * @param name the chain's name
      */
     void setNewChainName(String name) {
@@ -206,6 +184,7 @@ public class ControllerImpl implements Controller {
     /**
      * Adds all of the selected words whose positions are contained in {@link ControllerImpl#selected} to a newly
      * created chain. If no words are selected, does nothing.
+     *
      * @return an action describing this operation
      */
     @Override
@@ -228,7 +207,8 @@ public class ControllerImpl implements Controller {
 
     /**
      * Registers a text button press from the user and updates the logic accordingly.
-     * @param btn the text on the pressed button
+     *
+     * @param btn      the text on the pressed button
      * @param position the position of this button in the text
      * @return if the press was recorded or not
      */
@@ -237,8 +217,7 @@ public class ControllerImpl implements Controller {
             if (!selected.containsKey(position)) selected.put(position, btn);
             else selected.remove(position);
             return true;
-        }
-        else if (selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
+        } else if (selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
             if (selectedBlank == -1) selectedBlank = position;
             else selectedBlank = -1;
             return true;
@@ -248,6 +227,7 @@ public class ControllerImpl implements Controller {
 
     /**
      * Registers a chain button press from the user and updates the logic accordingly.
+     *
      * @param num the number of the selected chain
      * @return the number of the previous selected chain
      */
@@ -268,7 +248,7 @@ public class ControllerImpl implements Controller {
         try {
             BufferedWriter w = new BufferedWriter(new FileWriter(new File("dump.txt")));
             StringBuilder sb = new StringBuilder();
-            for (Chain c: chains) c.pack(sb);
+            for (Chain c : chains) sb.append(c.pack());
             w.write(sb.toString());
             w.flush();
             w.close();
@@ -280,6 +260,7 @@ public class ControllerImpl implements Controller {
     /**
      * Cancels the last action done by the user, if possible. Note that we probably won't support cancelling resolving
      * conflicts.
+     *
      * @return an Action describing the user's last action
      */
     @Override
@@ -308,150 +289,9 @@ public class ControllerImpl implements Controller {
     /**
      * Shows a new window prompting the user to resolve the conflict. The main window is paused until the conflict is
      * resolved
+     *
      * @param conflict a conflict to show
      */
-    @Override
-    public void showConflict(ConflictImpl conflict) {
-        Stage stage = new Stage();
-        stage.setTitle("Решение конфликта");
-        GridPane root = new GridPane();
-        root.setAlignment(Pos.CENTER);
-        Text header = new Text("Возник конфликт с другой командой!");
-        GridPane.setHalignment(header, HPos.CENTER);
-        header.setStyle("-fx-font-size: 25pt;");
-        root.add(header, 0, 0);
-
-        String[] words = text.split(" ");
-        int index = 0;
-        if (conflict.getCollision() instanceof Blank) {
-            index = ((Blank) conflict.getCollision()).getPosition();
-        }
-        else if (conflict.getCollision() instanceof Phrase) {
-            index = ((Phrase) conflict.getCollision()).getPositions().stream().min(Comparator.naturalOrder())
-                    .orElseGet(() -> 0);
-        }
-
-        javafx.scene.control.ScrollPane textWrapperOur = new ScrollPane();
-        textWrapperOur.setFitToWidth(true);
-        FlowPane textPaneOur = new FlowPane();
-        textWrapperOur.setContent(textPaneOur);
-        textPaneOur.setPadding(new Insets(5));
-        /*
-        Generate the panel with our chain.
-         */
-        for (int i = index - 20; i < index + 20; i++) {
-            if (i < 0 || i > words.length) continue;
-            Button word = new Button(words[i]);
-            word.getStyleClass().add("word");  // CSS class for styling words and their selection
-            word.setStyle("-fx-background-color: rgba(0,0,0,0);");
-            if (chainContainsWord(conflict.getFirstSolution(), i)) {
-                Color c = conflict.getFirstSolution().getColor();
-                word.setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
-                        c.getGreen() + "," + c.getBlue() + ",0.3)");
-            }
-            textPaneOur.getChildren().add(word);
-            Button space = new Button("   ");
-            space.getStyleClass().add("word");
-            space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            if (chainContainsBlank(conflict.getFirstSolution(), i)) {
-                Color c = conflict.getFirstSolution().getColor();
-                space.setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
-                        c.getGreen() + "," + c.getBlue() + ",0.3)");
-            }
-            textPaneOur.getChildren().add(space);
-        }
-
-        javafx.scene.control.ScrollPane textWrapperTheir = new ScrollPane();
-        textWrapperTheir.setFitToWidth(true);
-        FlowPane textPaneTheir = new FlowPane();
-        textWrapperTheir.setContent(textPaneTheir);
-        textPaneTheir.setPadding(new Insets(5));
-        /*
-        Generate the panel with their chain.
-         */
-        for (int i = index - 20; i < index + 20; i++) {
-            if (i < 0 || i > words.length) continue;
-            Button word = new Button(words[i]);
-            word.getStyleClass().add("word");  // CSS class for styling words and their selection
-            word.setStyle("-fx-background-color: rgba(0,0,0,0);");
-            if (chainContainsWord(conflict.getSecondSolution(), i)) {
-                Color c = conflict.getSecondSolution().getColor();
-                word.setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
-                        c.getGreen() + "," + c.getBlue() + ",0.3)");
-            }
-            textPaneTheir.getChildren().add(word);
-            Button space = new Button("   ");
-            space.getStyleClass().add("word");
-            space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            if (chainContainsBlank(conflict.getSecondSolution(), i)) {
-                Color c = conflict.getSecondSolution().getColor();
-                space.setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
-                        c.getGreen() + "," + c.getBlue() + ",0.3)");
-            }
-            textPaneTheir.getChildren().add(space);
-        }
-        GridPane texts = new GridPane();
-
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(50);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(50);
-        texts.getColumnConstraints().addAll(col1, col2);
-
-        GridPane our = new GridPane();
-        Text ourText = new Text("Ваша цепочка:\n" + conflict.getFirstSolution().toString());
-        GridPane.setHalignment(ourText, HPos.CENTER);
-        ourText.setTextAlignment(TextAlignment.CENTER);
-        our.add(ourText, 0, 0);
-        our.add(textPaneOur, 0, 1);
-        GridPane their = new GridPane();
-        Text theirText = new Text("Цепочка другой команды:\n" + conflict.getSecondSolution().toString());
-        GridPane.setHalignment(theirText, HPos.CENTER);
-        theirText.setTextAlignment(TextAlignment.CENTER);
-        their.add(theirText, 0, 0);
-        their.add(textPaneTheir, 0, 1);
-        texts.add(our, 0, 0);
-        texts.add(their, 1, 0);
-        texts.setGridLinesVisible(true);
-
-        root.add(texts, 0, 1);
-
-        Text confDesc = new Text("Конфликтующее слово: " + conflict.getCollision().toString());
-        confDesc.setStyle("-fx-font-size: 25pt;");
-        GridPane.setHalignment(confDesc, HPos.CENTER);
-        confDesc.setTextAlignment(TextAlignment.CENTER);
-        root.add(confDesc, 0, 2);
-
-        HBox buttons = new HBox();
-        buttons.setAlignment(Pos.CENTER);
-        Button reject = new Button("Оставить свою версию");
-        reject.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-            resolveConflict(conflict, 0);
-        });
-        Button undo = new Button("Убрать это слово из цепочки");
-        undo.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-            resolveConflict(conflict, 1);
-        });
-        Button accept = new Button("Принять версию другой команды");
-        accept.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-            resolveConflict(conflict, 2);
-        });
-        buttons.getChildren().addAll(reject, undo, accept);
-
-        root.add(buttons, 0, 3);
-
-        stage.setScene(new Scene(root, 800, 600));
-        stage.getScene().getStylesheets().add("styles.css");
-        stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
-        stage.initModality(Modality.WINDOW_MODAL);
-        stage.initOwner(primaryStage);
-        stage.showAndWait();
-    }
-
     @Override
     public void resolveConflict(ConflictImpl conflict, int decision) {
         // TODO: this method should send the information to the server and update the chains according to the decision
@@ -470,6 +310,7 @@ public class ControllerImpl implements Controller {
 
     /**
      * Generates a random color. It tries to not make too dark/bright ones.
+     *
      * @return a color
      */
     private Color generateRandomColor() {
@@ -485,7 +326,8 @@ public class ControllerImpl implements Controller {
     /**
      * Saves an action made by the user. It is necessary to call this function in every function that somehow changes
      * the structure of the chains (except for cancelling an action).
-     * @param a an Action describing the last action of the user
+     *
+     * @param a         an Action describing the last action of the user
      * @param prevIndex index of the modified chain in the current list; would be used if a user decides to cancel
      *                  the action to restore the order of the chains
      */
@@ -497,7 +339,8 @@ public class ControllerImpl implements Controller {
 
     /**
      * Checks whether a chain contains a word with a given position in the text.
-     * @param chain a chain
+     *
+     * @param chain  a chain
      * @param wordId the word's position in the whole text
      * @return true whether a chain contains this word in one of its locations, false otherwise
      */
@@ -508,7 +351,8 @@ public class ControllerImpl implements Controller {
 
     /**
      * Checks whether a chain contains a blank with a given position in the text.
-     * @param chain a chain
+     *
+     * @param chain   a chain
      * @param blankId the blank's position in the whole text
      * @return true whether a chain contains this blank in one of its locations, false otherwise
      */

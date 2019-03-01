@@ -14,7 +14,6 @@ public interface Controller {
     void deleteChain(Chain chain);
     void saveStateOffline();
     Action cancel();
-    void showConflict(ConflictImpl conflict);
     void resolveConflict(ConflictImpl conflict, int decision);
     void disableOption(int option);
     void enableOption(int option);
