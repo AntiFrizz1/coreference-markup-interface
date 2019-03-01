@@ -13,6 +13,7 @@ public class AddTask {
         this.actionList = actionList;
         this.textNum = textNum;
         this.teamNum = teamNum;
+        System.out.println("AddTask: " + textNum + " " + teamNum);
     }
 
     public int getTeamNum() {
