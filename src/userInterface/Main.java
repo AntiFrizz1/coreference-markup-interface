@@ -6,13 +6,15 @@ import chain.Chain;
 import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
-import client.ConflictImpl;
 import javafx.application.Application;
 import javafx.event.Event;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -23,15 +25,23 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Main extends Application {
 
@@ -47,19 +57,28 @@ public class Main extends Application {
      * must contain the whole string).
      */
     private String chainFilter = "";
+    private String judgePassword = "azaza";
+    private Set<Integer> userIds;
 
     @Override
     public void start(Stage primaryStage) {
         controller = new ControllerImpl(primaryStage);
+        // TODO: ask the server to send judge's password and set of users
+        userIds = new HashSet<>();
+        userIds.add(1);
+
+        loginUser();
+
+        // TODO: display either the main window if it's a user or a judge window if it's a judge
         primaryStage.setTitle("Разметка кореференсов");
         Scene sc = genScene(primaryStage);
         primaryStage.setMinWidth(MIN_APP_WIDTH);
         primaryStage.setMinHeight(MIN_APP_HEIGHT);
         primaryStage.setScene(sc);
         primaryStage.show();
-        Chain first = new ChainImpl("kek", new Color(255, 0, 0), 0, new Phrase("Приехав", 0), new Phrase("Москву,", 5));
-        Chain second = new ChainImpl("mda", new Color(0, 255, 0), 0, new Phrase("Приехав", 0), new Phrase("поездом", 3));
-        controller.showConflict(new ConflictImpl(first, second, new Phrase("Москву,", 5)));
+//        Chain first = new ChainImpl("kek", new Color(255, 0, 0), 0, new Phrase("Приехав", 0), new Phrase("Москву,", 5));
+//        Chain second = new ChainImpl("mda", new Color(0, 255, 0), 0, new Phrase("Приехав", 0), new Phrase("поездом", 3));
+//        controller.showConflict(new ConflictImpl(first, second, new Phrase("Москву,", 5)));
     }
 
 
@@ -67,6 +86,129 @@ public class Main extends Application {
         launch(args);
     }
 
+
+    /**
+     * Generates the UI for user login, which is shown before the application is started.
+     */
+    private void loginUser() {
+        Stage stage = new Stage();
+        stage.setTitle("Выберите роль");
+        GridPane root = new GridPane();
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        Button judge = new Button("Войти как судья");
+        Button user = new Button("Войти как пользователь");
+        judge.setPadding(new Insets(5));
+        user.setPadding(new Insets(5));
+        GridPane.setFillHeight(judge, true);
+        GridPane.setFillHeight(user, true);
+        judge.setOnAction(event -> {
+            judgeLoginScreen();
+            if (controller.isJudge() || controller.isLoggedUser()) stage.getScene().getWindow().hide();
+        });
+        user.setOnAction(event -> {
+            userLoginScreen();
+            if (controller.isJudge() || controller.isLoggedUser()) stage.getScene().getWindow().hide();
+        });
+        root.add(judge, 0, 0);
+        root.add(user, 1, 0);
+        stage.setScene(new Scene(root, 400, 200));
+        stage.setResizable(false);
+        stage.setOnCloseRequest(Event::consume);
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.showAndWait();
+    }
+
+    /**
+     * Generates the UI for judge login screen, which prompts the judge to enter the password.
+     */
+    private void judgeLoginScreen() {
+        Stage stage = new Stage();
+        stage.setTitle("Введите пароль");
+        GridPane root = new GridPane();
+        PasswordField password = new PasswordField();
+        password.setPromptText("Введите пароль судьи...");
+        GridPane.setValignment(password, VPos.CENTER);
+        GridPane.setHalignment(password, HPos.CENTER);
+        Button enter = new Button("Войти");
+        GridPane.setValignment(enter, VPos.CENTER);
+        GridPane.setHalignment(enter, HPos.CENTER);
+        Text error = new Text("");
+        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+        enter.setOnAction(event -> {
+            if (password.getText().equals(judgePassword)) {
+                stage.getScene().getWindow().hide();
+                controller.loginJudge();
+            } else {
+                error.setText("Неверный пароль!");
+            }
+        });
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                enter.fire();
+                event.consume();
+            }
+        });
+        Button back = new Button("Назад");
+        back.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+        root.add(back, 0, 0);
+        root.add(password, 0, 1);
+        root.add(enter, 0, 2);
+        root.add(error, 0, 3);
+        stage.setScene(new Scene(root, 400, 200));
+        stage.setResizable(false);
+        stage.setOnCloseRequest(Event::consume);
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.showAndWait();
+    }
+
+    /**
+     * Generates the UI for user login screen, which prompts the user to enter an ID.
+     */
+    private void userLoginScreen() {
+        Stage stage = new Stage();
+        stage.setTitle("Введите ID пользователя");
+        GridPane root = new GridPane();
+        TextField id = new TextField();
+        id.setPromptText("Введите ID пользователя...");
+        GridPane.setValignment(id, VPos.CENTER);
+        GridPane.setHalignment(id, HPos.CENTER);
+        Button enter = new Button("Войти");
+        GridPane.setValignment(enter, VPos.CENTER);
+        GridPane.setHalignment(enter, HPos.CENTER);
+        Text error = new Text("");
+        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+        enter.setOnAction(event -> {
+            if (!id.getText().isEmpty() && userIds.contains(Integer.valueOf(id.getText()))) {
+                // TODO: call to server to ensure that this user hasn't logged in yet
+                stage.getScene().getWindow().hide();
+                controller.loginUser(Integer.valueOf(id.getText()));
+            } else {
+                error.setText("Пользователя не существует!");
+            }
+        });
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                enter.fire();
+                event.consume();
+            }
+        });
+        Button back = new Button("Назад");
+        back.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+        root.add(back, 0, 0);
+        root.add(id, 0, 1);
+        root.add(enter, 0, 2);
+        root.add(error, 0, 3);
+        stage.setScene(new Scene(root, 400, 200));
+        stage.setResizable(false);
+        stage.setOnCloseRequest(Event::consume);
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.showAndWait();
+    }
 
     /**
      * Generates the main UI window for the app.
@@ -129,7 +271,7 @@ public class Main extends Application {
         /*
         A box that contains the buttons at the top.
          */
-        HBox box = new HBox(5);
+        HBox box = new HBox();
 
         Button b4 = new Button("Отменить");
         b4.setOnAction(event -> {
@@ -200,8 +342,7 @@ public class Main extends Application {
             }
             if (selectedBlank == -1) {
                 generateErrorScreen(primaryStage, "Не выбран ни один пробел!");
-            }
-            if (controller.getSelectedChain() == -1) {
+            } else if (controller.getSelectedChain() == -1) {
                 generateErrorScreen(primaryStage, "Не выбрана ни одна цепочка!");
             }
             Action ac = controller.addAnaphoraToChain();
@@ -216,7 +357,31 @@ public class Main extends Application {
             }
         });
 
-        box.getChildren().addAll(b1, b2, b3, b4);
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button fileSelect = new Button("Выбрать файл для разметки");
+        fileSelect.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));
+            System.out.println(fileChooser.getExtensionFilters());
+            File file = fileChooser.showOpenDialog(primaryStage);
+            if (file != null) {
+                try {
+                    String txt = new BufferedReader(new FileReader(file)).lines().collect(Collectors.joining(" "));
+                    controller.setText(txt);
+                    generateText(text);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        Button dump = new Button("Сохранить разметку в файл");
+        dump.setOnAction(event -> {
+            controller.saveStateOffline();
+        });
+
+        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
         leftSide.setTop(box);
 
         /*
@@ -312,7 +477,7 @@ public class Main extends Application {
      * @param textPane a pane to put the text buttons into
      */
     private void generateText(FlowPane textPane) {
-        String text = controller.getText(0);  // TODO: 0 is a placeholder id
+        String text = controller.getText();
         textPane.getChildren().clear();  // in case this method is called multiple times (which shouldn't really happen)
         // TODO: should probably remove punctuation from buttons into separate TextAreas
         String[] words = text.split(" ");

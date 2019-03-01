@@ -49,8 +49,9 @@ public class ControllerImpl implements Controller {
     private List<Chain> chains;
     private List<Pair<Action, Integer>> prevStates;
     private int textId;
-    private String text;
-    final private String TEXT_PLACEHOLDER = "Приехав с утренним поездом в Москву, Левин остановился у своего " +
+    private int userId;
+    private String text = "";
+    final private String TEXT_PLACEHOLDER = /*"Приехав с утренним поездом в Москву, Левин остановился у своего " +
             "старшего брата по матери Кознышева и, переодевшись, вошел к нему в кабинет, намереваясь тотчас же " +
             "рассказать ему, для чего он приехал, и просить его совета: но брат был не один. У него сидел известный " +
             "профессор философии, приехавший из Харькова, собственно, затем, чтобы разъяснить недоразумение, " +
@@ -58,13 +59,14 @@ public class ControllerImpl implements Controller {
             "материалистов, а Сергей Кознышев с интересом следил за этою полемикой и, прочтя последнюю статью " +
             "профессора, написал ему в письме свои возражения; он упрекал профессора за слишком большие уступки " +
             "материалистам. И профессор тотчас же приехал, чтобы столковаться. Речь шла о модном вопросе: есть ли " +
-            "граница между психическими и физиологическими явлениями в деятельности человека и где она?";
+            "граница между психическими и физиологическими явлениями в деятельности человека и где она?"*/ "";
     private Chain curChain;
     private Map<Integer, String> selected;
     private int selectedBlank = -1;
     private String newChainName;
     private List<Action> actions;  // TODO: send this to the server and then empty it after each send
     private Stage primaryStage;  // TODO: this will be used to show the conflict window
+    private boolean isLoggedUser = false, isJudge = false;
 
     ControllerImpl(Stage primaryStage) {
         chains = new ArrayList<>();
@@ -79,11 +81,36 @@ public class ControllerImpl implements Controller {
 
     }
 
-    public String getText(int id) {
-        textId = id;
-        // TODO: do a server call here or try to find the text locally; right now it only returns a placeholder.
-        text = TEXT_PLACEHOLDER;
+    public String getText() {
         return text;
+    }
+
+    public void setText(String txt) {
+        text = txt;
+    }
+
+    public void setText(int id) {
+        textId = id;
+        // TODO: do a server call here, get the text and save it
+        // text = getText(id);
+    }
+
+    public boolean isJudge() {
+        return isJudge;
+    }
+
+    public boolean isLoggedUser() {
+        return isLoggedUser;
+    }
+
+    public void loginJudge() {
+        isJudge = true;
+    }
+
+    public void loginUser(int id) {
+        userId = id;
+        // TODO: call to server to mark that a user has logged in
+        isLoggedUser = true;
     }
 
     @Override

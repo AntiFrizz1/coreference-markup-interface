@@ -1,8 +1,12 @@
 package chain;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.*;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -28,7 +32,7 @@ public class ChainImpl implements Chain {
     private List<Location> locations;
 
     /**
-     * Unique identificator of this chain.
+     * Unique identifier of this chain.
      */
     private int id;
 
