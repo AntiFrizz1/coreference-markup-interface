@@ -9,12 +9,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.stream.Collectors;
 
 /**
  * This class describes interaction protocol of Server
@@ -66,7 +65,7 @@ public class ServerImpl implements Server {
     /**
      * Pool of judges.
      */
-    private List<JudgeInfo> judges;
+    private Set<JudgeInfo> judges;
 
     /**
      * List of workers
@@ -90,6 +89,8 @@ public class ServerImpl implements Server {
 
     AtomicBoolean work;
 
+    PrintWriter logWriter;
+
     public ServerImpl(int port) {
         this.port = port;
         try {
@@ -98,10 +99,10 @@ public class ServerImpl implements Server {
             e.printStackTrace();
         }
         work = new AtomicBoolean(true);
-        texts = new ArrayList<>();
+        texts = new CopyOnWriteArrayList<>();
 
         users = new ConcurrentLinkedQueue<>();
-        judges = new CopyOnWriteArrayList<>();
+        judges = new CopyOnWriteArraySet<>();
         clients = new ConcurrentLinkedQueue<>();
         offlineUsers = new ConcurrentLinkedQueue<>();
         onlineUsers = new ConcurrentLinkedQueue<>();
@@ -114,10 +115,16 @@ public class ServerImpl implements Server {
         judgeStore = new JudgeStore();
 
 
-        idToSocket = new HashMap<>();
-        socketToId = new HashMap<>();
+        idToSocket = new ConcurrentHashMap<>();
+        socketToId = new ConcurrentHashMap<>();
 
         conflicts = new ConcurrentLinkedQueue<>();
+
+        try {
+            logWriter = new PrintWriter("server.log");
+        } catch (FileNotFoundException e) {
+            System.err.println("file server.log not found");
+        }
     }
 
     public void loadTexts(List<String> filenames) {
@@ -237,14 +244,14 @@ public class ServerImpl implements Server {
                         socketToId.put(client, id);
 
                         if (id > 100) {
-                            judges.add(new JudgeInfo(client));
+                            judges.add(new JudgeInfo(client, judges.size()));
                         } else {
                             users.offer(client);
                         }
 
                         writer.println("OK");
                         writer.flush();
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         System.err.println("scheduler :=: Error: " + e.getMessage());
                     }
                 } else {
@@ -282,7 +289,7 @@ public class ServerImpl implements Server {
 
                         writer.println("OK");
                         writer.flush();
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         System.err.println("userScheduler :=: Error: " + e.getMessage());
                     }
                 } else {
@@ -453,17 +460,27 @@ public class ServerImpl implements Server {
                 if (!conflicts.isEmpty()) {
                     ConflictInfo conflict = conflicts.poll();
                     if (conflict.status.get() == 0) {
-                        System.out.println();
                         boolean f = false;
-                        for (int j = 0; j < judges.size(); j++) {
-                            if (!judges.get(j).task.isMarked()) {
-                                judges.get(j).setTask(conflict);
-                                f = true;
-                                break;
+                        List<JudgeInfo> judgeInfoList;
+                        synchronized (judges) {
+                             judgeInfoList = new ArrayList<>(judges);
+                        }
+                        /*logWriter.println(judgeInfoList.stream().map(judgeInfo -> socket.toString()).collect(Collectors.joining("----")));
+                        logWriter.flush();*/
+                        for (JudgeInfo judgeInfo: judgeInfoList) {
+                            if (!judgeInfo.task.isMarked()) {
+                                if (judgeInfo.setTask(conflict)) {
+                                    /*logWriter.println("get task" + judges.get(j).socket + " " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
+                                    logWriter.flush();*/
+                                    f = true;
+                                    break;
+                                }
                             }
                         }
+                        //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                         conflicts.add(conflict);
                     } else if (conflict.status.get() == 1) {
+                        //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                         conflicts.add(conflict);
                     }
                 } else {
@@ -475,15 +492,20 @@ public class ServerImpl implements Server {
         }
     };
 
+    AtomicBoolean down = new AtomicBoolean(false);
+    Random random = new Random();
+
     class JudgeInfo {
         Socket socket;
+        int index;
         /**
          * reference has mark set false if judge is free otherwise true
          */
         AtomicMarkableReference<ConflictInfo> task;
         Thread worker;
 
-        JudgeInfo(Socket socket) {
+        JudgeInfo(Socket socket, int index) {
+            this.index = index;
             this.socket = socket;
             task = new AtomicMarkableReference<>(null, false);
             worker = new Thread(judgeWorker);
@@ -496,70 +518,110 @@ public class ServerImpl implements Server {
 
         Runnable judgeWorker = () -> {
             try {
-                while (!socket.isClosed()) {
-                    if (task.isMarked()) {
-                        if (task.getReference().apply()) {
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                            PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                while (true) {
+                    try {
+                        if (task.isMarked()) {
+                            if (task.getReference().apply()) {
+                                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                                PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
 
-                            ConflictInfo conflict = task.getReference();
+                                ConflictInfo conflict = task.getReference();
 
-                            List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
-                            List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
-                            List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
+                                List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
+                                List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
+                                List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
 
-                            Action action1 = conflict.action1;
-                            Action action2 = conflict.action2;
+                                Action action1 = conflict.action1;
+                                Action action2 = conflict.action2;
 
-                            List<Action> toJudgeAboutTeamOne = new ArrayList<>(0);
-                            List<Action> toJudgeAboutTeamTwo = new ArrayList<>(0);
+                                List<Action> toJudgeAboutTeamOne = new CopyOnWriteArrayList<>();
+                                List<Action> toJudgeAboutTeamTwo = new CopyOnWriteArrayList<>();
 
-                            toJudgeAboutTeamOne.add(action1);
-                            toJudgeAboutTeamTwo.add(action2);
+                                toJudgeAboutTeamOne.add(action1);
+                                toJudgeAboutTeamTwo.add(action2);
 
-                            if (!action1.isEmpty()) {
-                                for (int i = teamOneActions.size() - 1; i >= 0 && i >= teamOneActions.size() - 100 &&
-                                        toJudgeAboutTeamOne.size() < 8; i--) {
-                                    if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
-                                        toJudgeAboutTeamOne.add(0, teamOneActions.get(i));
+                                if (!action1.isEmpty()) {
+                                    for (int i = teamOneActions.size() - 1; i >= 0 && i >= teamOneActions.size() - 100 &&
+                                            toJudgeAboutTeamOne.size() < 8; i--) {
+                                        if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
+                                            toJudgeAboutTeamOne.add(0, teamOneActions.get(i));
+                                        }
                                     }
                                 }
-                            }
 
-                            if (!action2.isEmpty()) {
-                                for (int i = teamTwoActions.size() - 1; i >= 0 && i >= teamTwoActions.size() - 100 &&
-                                        toJudgeAboutTeamTwo.size() < 8; i--) {
-                                    if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 || decisions.get(i) == 3)) {
-                                        toJudgeAboutTeamTwo.add(0, teamTwoActions.get(i));
+                                if (!action2.isEmpty()) {
+                                    for (int i = teamTwoActions.size() - 1; i >= 0 && i >= teamTwoActions.size() - 100 &&
+                                            toJudgeAboutTeamTwo.size() < 8; i--) {
+                                        if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 || decisions.get(i) == 3)) {
+                                            toJudgeAboutTeamTwo.add(0, teamTwoActions.get(i));
+                                        }
                                     }
                                 }
+
+                                /*if ((random.nextInt() % 3 == 0) && down.compareAndSet(false, true)) {
+                                    System.out.println(socket.toString() + "down");
+                                    socket.close();
+                                }*/
+
+                                /*logWriter.println("send task " + socket.toString());
+                                logWriter.flush();*/
+
+                                UpdateDocument teamOne = new UpdateDocument(toJudgeAboutTeamOne);
+                                UpdateDocument teamTwo = new UpdateDocument(toJudgeAboutTeamTwo);
+
+                                if (teamOne.pack() == null) {
+                                    logWriter.println("null1" + socket.toString());
+                                    logWriter.flush();
+                                }
+
+                                writer.println(teamOne.pack());
+                                writer.flush();
+                                /*Thread.sleep(1000);*/
+                                if (teamTwo.pack() == null) {
+                                    logWriter.println("null2" + socket.toString());
+                                    logWriter.flush();
+                                }
+
+                                writer.println(teamTwo.pack());
+                                writer.flush();
+
+                                String request = reader.readLine();
+                                if (request == null) {
+                                    logWriter.println("done judge" + socket.toString());
+                                    logWriter.flush();
+                                    synchronized (judges) {
+                                        socket.close();
+                                        judges.remove(this);
+                                    }
+                                    break;
+                                }
+                            /*logWriter.println("get decision from judge" + socket.toString());
+                            logWriter.flush();*/
+                                int decision = Integer.parseInt(request);
+                                judgeStore.putOneAction(action1, action2, conflict.textId, decision);
+
+                                if (conflict.complete()) {
+                                    logWriter.println("judge" + socket.toString() + " complete task");
+                                    logWriter.flush();
+                                }
+
+                                task.compareAndSet(conflict, null, true, false);
                             }
-
-                            UpdateDocument teamOne = new UpdateDocument(toJudgeAboutTeamOne);
-                            UpdateDocument teamTwo = new UpdateDocument(toJudgeAboutTeamTwo);
-
-                            writer.println(teamOne.pack());
-                            writer.flush();
-
-                            writer.println(teamTwo.pack());
-                            writer.flush();
-
-                            String request = reader.readLine();
-                            if (request == null) {
-                                break;
-                            }
-                            int decision = Integer.parseInt(request);
-                            judgeStore.putOneAction(action1, action2, conflict.textId, decision);
-
-                            conflict.complete();
-
-                            task.compareAndSet(conflict, null, true, false);
+                        } else {
+                            Thread.sleep(1000);
                         }
-                    } else {
-                        Thread.sleep(1000);
+                    } catch (IOException e) {
+                        logWriter.println("done judge" + socket.toString());
+                        logWriter.flush();
+                        synchronized (judges) {
+                            judges.remove(this);
+
+                        }
+                        System.err.println("judgeWorker :=: Error: " + e.getMessage());
+                        break;
                     }
                 }
-            } catch (InterruptedException | IOException e) {
+            } catch (InterruptedException e) {
                 System.err.println("judgeWorker" + socket.toString() + " :=: Error: " + e.getMessage());
             }
         };

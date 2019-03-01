@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class JudgeStore {
@@ -24,9 +25,9 @@ public class JudgeStore {
             this.teamOneId = teamOneId;
             this.teamTwoId = teamTwoId;
 
-            teamOneApproved = new ArrayList<>(0);
-            teamTwoApproved = new ArrayList<>(0);
-            decisions = new ArrayList<>(0);
+            teamOneApproved = new CopyOnWriteArrayList<>();
+            teamTwoApproved = new CopyOnWriteArrayList<>();
+            decisions = new CopyOnWriteArrayList<>();
 
             this.textNum = textNum;
 
@@ -42,12 +43,12 @@ public class JudgeStore {
     AtomicIntegerArray atomicIntegerArray;
 
     JudgeStore() {
-        games = new ArrayList<>(0);
+        games = new CopyOnWriteArrayList<>();
         atomicIntegerArray = new AtomicIntegerArray(100);
     }
 
     public void putOneAction(Action teamOne, Action teamTwo, int textNum, int decision) {
-        System.out.println(textNum + " " + decision);
+        //System.out.println(textNum + " " + decision);
         games.get(textNum).teamOneApproved.add(teamOne);
         games.get(textNum).teamTwoApproved.add(teamTwo);
         games.get(textNum).writer.println(teamOne);

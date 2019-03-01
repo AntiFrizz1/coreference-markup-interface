@@ -30,9 +30,6 @@ public class ServerStore {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
             this.textNum = textNum;
-
-            teamOneList = new ArrayList<>(0);
-            teamTwoList = new ArrayList<>(0);
             try {
                 writerOne = new PrintWriter(teamOne + "text=" + textNum);
             } catch(FileNotFoundException e) {
@@ -43,6 +40,8 @@ public class ServerStore {
             } catch(FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
             }
+            teamOneList = new CopyOnWriteArrayList<>();
+            teamTwoList = new CopyOnWriteArrayList<>();
         }
     }
 
