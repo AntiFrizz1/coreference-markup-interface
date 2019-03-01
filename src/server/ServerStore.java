@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import static server.ServerImpl.conflicts;
 
 public class ServerStore {
-    class Game {
+    public static class Game {
         int teamOne;
         int teamTwo;
         int textNum;
@@ -26,22 +26,39 @@ public class ServerStore {
         PrintWriter writerOne;
         PrintWriter writerTwo;
 
-        Game(int teamOne, int teamTwo, int textNum) {
+        Game(int teamOne, int teamTwo, int textNum, String prefixOld) {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
             this.textNum = textNum;
             try {
-                writerOne = new PrintWriter(teamOne + "text=" + textNum);
+                PrintWriter writer = new PrintWriter("gamesServer.txt");
+                writer.println(teamOne + "text=" + textNum);
+                writer.println(teamTwo + "text=" + textNum);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                writerOne = new PrintWriter(prefixOld + "\\" + teamOne + "text=" + textNum);
             } catch(FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamOne + "text=" + textNum);
             }
             try {
-                writerTwo = new PrintWriter(teamTwo + "text=" + textNum);
+                writerTwo = new PrintWriter(prefixOld + "\\" + teamTwo + "text=" + textNum);
             } catch(FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
             }
             teamOneList = new CopyOnWriteArrayList<>();
             teamTwoList = new CopyOnWriteArrayList<>();
+        }
+
+        public Game(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList) {
+            this.teamOne = teamOne;
+            this.teamTwo = teamTwo;
+            this.textNum = textNum;
+
+            this.teamOneList = new CopyOnWriteArrayList<>(teamOneList);
+            this.teamTwoList = new CopyOnWriteArrayList<>(teamTwoList);
         }
     }
 
@@ -54,50 +71,53 @@ public class ServerStore {
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamNum) {
-            Game curGame = games.get(textNum);
-            if (teamNum == 1) {
-                curGame.teamOneList.addAll(actions);
-                PrintWriter writer = curGame.writerOne;
-                for(Action action : actions) {
-                    writer.println(action.pack());
-                    writer.flush();
-                }
-            } else {
-                curGame.teamTwoList.addAll(actions);
-                PrintWriter writer = curGame.writerTwo;
-                for(Action action : actions) {
-                    writer.println(action.pack());
-                    writer.flush();
-                }
+        Game curGame = games.get(textNum);
+        if (teamNum == 1) {
+            curGame.teamOneList.addAll(actions);
+            PrintWriter writer = curGame.writerOne;
+            for(Action action : actions) {
+                writer.println(action.pack());
             }
-            return true;
+        } else {
+            curGame.teamTwoList.addAll(actions);
+            PrintWriter writer = curGame.writerTwo;
+            for(Action action : actions) {
+                writer.println(action.pack());
+            }
+        }
+        mutexArray.compareAndSet(textNum, 1, 0);
+        return true;
     }
 
     Runnable worker = () -> {
         while (true) {
             for (int i = 0; i < games.size(); i++) {
-                    Game curGame = games.get(i);
-                    if (!curGame.teamOneList.isEmpty() && !curGame.teamTwoList.isEmpty()) {
-                        Action actionFromTeamOne = curGame.teamOneList.get(0);
-                        Action actionFromTeamTwo = curGame.teamTwoList.get(0);
-                        if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
-                            conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                        } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
-                            conflicts.add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamTwoList.remove(0);
-                        } else {
-                            conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                            curGame.teamTwoList.remove(0);
-                        }
+                Game curGame = games.get(i);
+                if (!curGame.teamOneList.isEmpty() && !curGame.teamTwoList.isEmpty()) {
+                    Action actionFromTeamOne = curGame.teamOneList.get(0);
+                    Action actionFromTeamTwo = curGame.teamTwoList.get(0);
+                    if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
+                        conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
+                        curGame.teamOneList.remove(0);
+                    } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
+                        conflicts.add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                        curGame.teamTwoList.remove(0);
+                    } else {
+                        conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                        curGame.teamOneList.remove(0);
+                        curGame.teamTwoList.remove(0);
                     }
+                }
             }
         }
     };
 
-    synchronized void addNewGame(int teamOne, int teamTwo, int textNum) {
-        Game newGame = new Game(teamOne, teamTwo, textNum);
+    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList) {
+        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList,teamTwoList);
+        games.add(newGame);
+    }
+    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, String prefixOld) {
+        Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld);
         games.add(newGame);
     }
 

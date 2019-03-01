@@ -407,7 +407,7 @@ public class ServerImpl implements Server {
 
                         writer1.flush();
                         writer2.flush();
-
+                        //@TODO add prefixOld to function call
                         serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
@@ -776,6 +776,83 @@ public class ServerImpl implements Server {
 
     public int judgeStoreCompare(JudgeStoreFile tmp1, JudgeStoreFile tmp2) {
         return Integer.compare(tmp1.textId, tmp2.textId);
+    }
+
+
+    class ServerStoreFile {
+        int idOne;
+        int idTwo;
+        int textId;
+        ServerStoreFile(int idOne, int idTwo, int textId) {
+            this.idOne = idOne;
+            this.idTwo = idTwo;
+            this.textId = textId;
+        }
+    }
+
+    public int compareSS(ServerStoreFile o1, ServerStoreFile o2) {
+        if(o1.textId < o2.textId) {
+            return -1;
+        } else if(o1.textId == o2.textId) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+    public boolean serverRecover(ServerStore ss, String prefixOld, String prefixNew) {
+        try(BufferedReader readerG = new BufferedReader(new FileReader("gamesServer.txt"))) {
+            String firstFile, secondFile;
+            ArrayList<ServerStoreFile> files = new ArrayList<>();
+            while((firstFile = readerG.readLine()) != null) {
+                secondFile = readerG.readLine();
+                String[] splittedFirst = firstFile.split(".*text=.*");
+                String[] splittedSecond = secondFile.split(".*text=.*");
+                files.add(new ServerStoreFile(Integer.valueOf(splittedFirst[0]), Integer.valueOf(splittedSecond[0]), Integer.valueOf(splittedFirst[1])));
+            }
+            files.sort(this::compareSS);
+            for(int i = 0; i < files.size();i++) {
+                ServerStoreFile ssf = files.get(i);
+                try(BufferedReader readerFirst = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idOne + "text=" + ssf.textId));
+                    BufferedReader readerSecond = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idTwo + "text=" + ssf.textId));
+                    BufferedWriter writerFirst = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId));
+                    BufferedWriter writerSecond = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId))) {
+                    ArrayList<Action> listFirst = new ArrayList<>();
+                    ArrayList<Action> listSecond = new ArrayList<>();
+                    String input;
+                    while((input = readerFirst.readLine()) != null) {
+                        listFirst.add(new Action(input));
+                        writerFirst.write(input);
+                    }
+                    while((input = readerSecond.readLine()) != null) {
+                        listSecond.add(new Action(input));
+                        writerSecond.write(input);
+                    }
+                    List<Action> toDeleteFirst = new ArrayList<>();
+                    List<Action> toDeleteSecond = new ArrayList<>();
+                    for(int j = 0; j < judgeStore.games.size();j++) {
+                        if(judgeStore.games.get(j).teamOneId == ssf.idOne && judgeStore.games.get(j).teamTwoId == ssf.idTwo) {
+                            toDeleteFirst = judgeStore.games.get(j).teamOneApproved;
+                            toDeleteSecond = judgeStore.games.get(j).teamTwoApproved;
+                            break;
+                        } else if(judgeStore.games.get(j).teamOneId == ssf.idTwo && judgeStore.games.get(j).teamTwoId == ssf.idOne) {
+                            toDeleteFirst = judgeStore.games.get(j).teamTwoApproved;
+                            toDeleteSecond = judgeStore.games.get(j).teamOneApproved;
+                            break;
+                        }
+                    }
+                    listFirst.removeAll(toDeleteFirst);
+                    listSecond.removeAll(toDeleteSecond);
+                    ss.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, listFirst, listSecond);
+                } catch (IOException e2) {
+                    e2.printStackTrace();
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 }
