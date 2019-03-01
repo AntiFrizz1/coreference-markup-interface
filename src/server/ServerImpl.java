@@ -334,44 +334,36 @@ public class ServerImpl implements Server {
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
-                            try {
-                                while (!client1.isClosed() || reader1.ready()) {
-                                    try {
-                                        String request = reader1.readLine();
-                                        if (request == null) {
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-                                        tasks.add(new AddTask(document.getActions(), text, 1));
-                                    } catch (IOException e) {
-                                        System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
+                            while (true) {
+                                try {
+                                    String request = reader1.readLine();
+                                    if (request == null) {
+                                        break;
                                     }
-
+                                    UpdateDocument document = new UpdateDocument(request);
+                                    /*serverStore.putActions(document.getActions(), text, 1);*/
+                                    tasks.add(new AddTask(document.getActions(), text, 1));
+                                } catch (IOException e) {
+                                    System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
                                 }
-                            } catch (IOException e) {
-                                System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
+
                             }
                         });
 
                         Thread thread2 = new Thread(() -> {
-                            try {
-                                while (!client2.isClosed() || reader2.ready()) {
-                                    try {
-                                        String request = reader2.readLine();
-                                        if (request == null) {
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-                                        tasks.add(new AddTask(document.getActions(), text, 2));
-                                    } catch (IOException e) {
-                                        System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
+                            while (true) {
+                                try {
+                                    String request = reader2.readLine();
+                                    if (request == null) {
+                                        break;
                                     }
-
+                                    UpdateDocument document = new UpdateDocument(request);
+                                    /*serverStore.putActions(document.getActions(), text, 1);*/
+                                    tasks.add(new AddTask(document.getActions(), text, 2));
+                                } catch (IOException e) {
+                                    System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
                                 }
-                            } catch (IOException e) {
-                                System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
+
                             }
                         });
 
