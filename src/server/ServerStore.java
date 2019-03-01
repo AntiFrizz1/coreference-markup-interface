@@ -7,6 +7,8 @@ import chain.Phrase;
 import document.ConflictData;
 import document.ConflictInfo;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -17,13 +19,27 @@ public class ServerStore {
     class Game {
         int teamOne;
         int teamTwo;
+        int textNum;
         List<Action> teamOneList;
         List<Action> teamTwoList;
 
-        Game(int teamOne, int teamTwo) {
+        PrintWriter writerOne;
+        PrintWriter writerTwo;
+
+        Game(int teamOne, int teamTwo, int textNum) {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
-
+            this.textNum = textNum;
+            try {
+                writerOne = new PrintWriter(teamOne + "text=" + textNum);
+            } catch(FileNotFoundException e) {
+                System.err.println("Can't find file : " + teamOne + "text=" + textNum);
+            }
+            try {
+                writerTwo = new PrintWriter(teamTwo + "text=" + textNum);
+            } catch(FileNotFoundException e) {
+                System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
+            }
             teamOneList = new CopyOnWriteArrayList<>();
             teamTwoList = new CopyOnWriteArrayList<>();
         }
@@ -41,8 +57,16 @@ public class ServerStore {
             Game curGame = games.get(textNum);
             if (teamNum == 1) {
                 curGame.teamOneList.addAll(actions);
+                PrintWriter writer = curGame.writerOne;
+                for(Action action : actions) {
+                    writer.println(action.pack());
+                }
             } else {
                 curGame.teamTwoList.addAll(actions);
+                PrintWriter writer = curGame.writerTwo;
+                for(Action action : actions) {
+                    writer.println(action.pack());
+                }
             }
             mutexArray.compareAndSet(textNum, 1, 0);
             return true;
@@ -71,8 +95,8 @@ public class ServerStore {
         }
     };
 
-    synchronized void addNewGame(int teamOne, int teamTwo) {
-        Game newGame = new Game(teamOne, teamTwo);
+    synchronized void addNewGame(int teamOne, int teamTwo, int textNum) {
+        Game newGame = new Game(teamOne, teamTwo, textNum);
         games.add(newGame);
     }
 
