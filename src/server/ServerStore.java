@@ -24,8 +24,8 @@ public class ServerStore {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
 
-            teamOneList = new ArrayList<>(0);
-            teamTwoList = new ArrayList<>(0);
+            teamOneList = new CopyOnWriteArrayList<>();
+            teamTwoList = new CopyOnWriteArrayList<>();
         }
     }
 
