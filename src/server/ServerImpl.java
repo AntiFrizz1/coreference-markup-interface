@@ -330,8 +330,8 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
 
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
-                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
+                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
+                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
                             try {
@@ -396,7 +396,7 @@ public class ServerImpl implements Server {
      * Give task for offline users
      */
     private Runnable offlineUsersScheduler = () -> {
-        int texNumber = 0;
+        int textNumber = 0;
         while (work.get()) {
             try {
 
@@ -406,9 +406,13 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
-                        int text = texNumber;
+                        int text = textNumber;
 
-                        texNumber++;
+                        textNumber++;
+
+                        if (textNumber > texts.size()) {
+                            textNumber = 0;
+                        }
 
                         writer.println(texts.get(text));
                         writer.flush();
@@ -583,6 +587,10 @@ public class ServerImpl implements Server {
                                 }
 
                                 writer.println(teamTwo.pack());
+                                writer.flush();
+
+
+                                writer.println(conflict.textId);
                                 writer.flush();
 
                                 String request = reader.readLine();
