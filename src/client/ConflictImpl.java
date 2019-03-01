@@ -3,6 +3,7 @@ package client;
 import chain.*;
 import document.UpdateDocument;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ConflictImpl implements Conflict {
