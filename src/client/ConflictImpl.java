@@ -4,6 +4,7 @@ import chain.*;
 import document.UpdateDocument;
 import org.omg.CORBA.MARSHAL;
 
+import java.lang.ref.PhantomReference;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -11,17 +12,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ConflictImpl implements Conflict {
-    List<Action> first, second;
-    int textId;
-    String text;
+    public List<Action> first, second;
+    public int textId;
+    public String text;
 
-    List<String> wordList;
+    public List<String> wordList;
 
-    Set<Integer> firstWordsLocation;
-    Set<Integer> firstBlanksLocation;
+    public Set<Integer> firstWordsLocation;
+    public Set<Integer> firstBlanksLocation;
 
-    Set<Integer> secondWordsLocation;
-    Set<Integer> secondBlanksLocation;
+    public Set<Integer> secondWordsLocation;
+    public Set<Integer> secondBlanksLocation;
+
+    public Set<Integer> firstLast;
+    public Set<Integer> secondLast;
+
 
     public ConflictImpl(String list1, String list2, String text) {
         UpdateDocument doc1 = new UpdateDocument(list1);
@@ -47,8 +52,7 @@ public class ConflictImpl implements Conflict {
             Location loc = action.getLocation();
             if (loc instanceof Phrase) {
                 firstWordsLocation.addAll(((Phrase) loc).getPositions());
-            }
-            if (loc instanceof Blank) {
+            } else if (loc instanceof Blank) {
                 firstBlanksLocation.add(((Blank) loc).getPosition());
             }
         }
@@ -57,8 +61,7 @@ public class ConflictImpl implements Conflict {
             Location loc = action.getLocation();
             if (loc instanceof Phrase) {
                 secondWordsLocation.addAll(((Phrase) loc).getPositions());
-            }
-            if (loc instanceof Blank) {
+            }if (loc instanceof Blank) {
                 secondBlanksLocation.add(((Blank) loc).getPosition());
             }
         }
@@ -68,14 +71,14 @@ public class ConflictImpl implements Conflict {
         List<String> words = Arrays.asList(text.split("\\s+"));
         int left = 0;
         int right = 0;
-        boolean first = false;
+        boolean f = false;
         for (int i = 0; i < words.size(); i++) {
             if (firstWordsLocation.contains(i) || firstBlanksLocation.contains(i) || secondWordsLocation.contains(i)
                     || secondBlanksLocation.contains(i)) {
-                if (!first) {
+                if (!f) {
                     left = i;
                 }
-                first = true;
+                f = true;
                 right = i;
             }
         }
@@ -87,8 +90,25 @@ public class ConflictImpl implements Conflict {
         int finalLeft = left;
         firstWordsLocation = firstWordsLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
         secondWordsLocation = secondWordsLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
-        firstWordsLocation = firstBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
+        firstBlanksLocation = firstBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
         secondBlanksLocation = secondBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
+
+        Location firstTmp = first.get(first.size() - 1).getLocation();
+        Location secondTmp = second.get(second.size() - 1).getLocation();
+
+        if (firstTmp instanceof Phrase) {
+            firstLast = ((Phrase) firstTmp).getPositions();
+        } else if (firstTmp instanceof Blank) {
+            firstLast = new HashSet<>();
+            firstLast.add(((Blank) firstTmp).getPosition());
+        }
+
+        if (secondTmp instanceof Phrase) {
+            secondLast = ((Phrase) secondTmp).getPositions();
+        } else if (firstTmp instanceof Blank) {
+            secondLast = new HashSet<>();
+            secondLast.add(((Blank) secondTmp).getPosition());
+        }
     }
 
     @Override

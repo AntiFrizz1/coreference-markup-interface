@@ -75,7 +75,7 @@ public class ServerImpl implements Server {
     /**
      * List of conflicts
      */
-    static Queue<ConflictInfo> conflicts;
+    static List<Queue<ConflictInfo>> conflicts;
 
     private Queue<AddTask> tasks;
     
@@ -127,7 +127,7 @@ public class ServerImpl implements Server {
         idToSocket = new ConcurrentHashMap<>();
         socketToId = new ConcurrentHashMap<>();
 
-        conflicts = new ConcurrentLinkedQueue<>();
+        conflicts = new CopyOnWriteArrayList<>();
         
         reconnectMap = new ConcurrentHashMap<>();
         
@@ -136,6 +136,7 @@ public class ServerImpl implements Server {
         idToTextId = new ConcurrentHashMap<>();
 
         nullSocket = new Socket();
+
         try {
             logWriter = new PrintWriter("server.log");
         } catch (FileNotFoundException e) {
@@ -170,7 +171,6 @@ public class ServerImpl implements Server {
     Thread onlineUsersSchedulerThread;
     Thread offlineUsersSchedulerThread;
     Thread serverStoreWorkerThread;
-    Thread addTaskWorkerThread;
     Thread conflictInfoSchedulerThread;
     Thread reconnectWorkerThread;
 
@@ -184,7 +184,6 @@ public class ServerImpl implements Server {
         onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
         offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
-        /*addTaskWorkerThread = new Thread(addTaskWorker);*/
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         reconnectWorkerThread = new Thread(reconnectWorker);
 
@@ -194,7 +193,6 @@ public class ServerImpl implements Server {
         onlineUsersSchedulerThread.start();
         offlineUsersSchedulerThread.start();
         serverStoreWorkerThread.start();
-        //addTaskWorkerThread.start();
         conflictInfoSchedulerThread.start();
         reconnectWorkerThread.start();
         try {
@@ -214,7 +212,6 @@ public class ServerImpl implements Server {
             onlineUsersSchedulerThread.join();
             offlineUsersSchedulerThread.join();
             serverStoreWorkerThread.join();
-            /*addTaskWorkerThread.join();*/
             conflictInfoSchedulerThread.join();
         } catch (InterruptedException e) {
             System.err.println("close :=: Error: " + e.getMessage());
@@ -420,6 +417,7 @@ public class ServerImpl implements Server {
 
                         serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
+                        conflicts.add(new ConcurrentLinkedQueue<>());
 
                         Thread thread1 = new Thread(() -> {
                             int localText = text;
@@ -571,30 +569,35 @@ public class ServerImpl implements Server {
         while (!conflicts.isEmpty() || work.get()) {
             try {
                 if (!conflicts.isEmpty()) {
-                    ConflictInfo conflict = conflicts.poll();
-                    if (conflict.status.get() == 0) {
-                        boolean f = false;
-                        List<JudgeInfo> judgeInfoList;
-                        synchronized (judges) {
-                             judgeInfoList = new ArrayList<>(judges);
-                        }
+                    for (int i = 0; i < conflicts.size(); i++) {
+                        Queue<ConflictInfo> conflictInfoQueue = conflicts.get(i);
+                        if (!conflictInfoQueue.isEmpty()) {
+                            ConflictInfo conflict = conflictInfoQueue.peek();
+                            if (conflict.status.get() == 0) {
+                                boolean f = false;
+                                List<JudgeInfo> judgeInfoList;
+                                synchronized (judges) {
+                                    judgeInfoList = new ArrayList<>(judges);
+                                }
                         /*logWriter.println(judgeInfoList.stream().map(judgeInfo -> socket.toString()).collect(Collectors.joining("----")));
                         logWriter.flush();*/
-                        for (JudgeInfo judgeInfo: judgeInfoList) {
-                            if (!judgeInfo.task.isMarked()) {
-                                if (judgeInfo.setTask(conflict)) {
+                                for (JudgeInfo judgeInfo : judgeInfoList) {
+                                    if (!judgeInfo.task.isMarked()) {
+                                        if (judgeInfo.setTask(conflict)) {
                                     /*logWriter.println("get task" + judges.get(j).socket + " " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                                     logWriter.flush();*/
-                                    f = true;
-                                    break;
+                                            f = true;
+                                            break;
+                                        }
+                                    }
                                 }
+                                //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
+                            } else if (conflict.status.get() == 1) {
+                                //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
+                            } else {
+                                conflictInfoQueue.poll();
                             }
                         }
-                        //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
-                        conflicts.add(conflict);
-                    } else if (conflict.status.get() == 1) {
-                        //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
-                        conflicts.add(conflict);
                     }
                 } else {
                     Thread.sleep(1000);
@@ -624,6 +627,8 @@ public class ServerImpl implements Server {
             worker = new Thread(judgeWorker);
             try {
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                writer.println(texts.size());
+                writer.flush();
                 for (String string: texts) {
                     writer.println(string);
                     writer.flush();

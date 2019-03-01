@@ -8,7 +8,7 @@ import java.util.Set;
 public class JudgeController {
     private int decision;
     private List<String> judgeText;
-    private Set<Integer> firstHighlights = new HashSet<>(Arrays.asList(1, 2, 3, 4)), secondHighlights = new HashSet<>(Arrays.asList(5, 6, 7, 8));
+    private Set<Integer> firstHighlights, secondHighlights, firstWhite, secondWhite, firstSingle, secondSingle;
 
     public void setDecision(int decision) {
         this.decision = decision;
@@ -42,11 +42,27 @@ public class JudgeController {
         return secondHighlights;
     }
 
-    public void sendDecision() {
-
+    public Set<Integer> getFirstWhite() {
+        return firstWhite;
     }
 
-    public void getInfo(List<String> judgeText, Set<Integer> firstHighlights, Set<Integer> secondHighlights) {
+    public Set<Integer> getSecondWhite() {
+        return secondWhite;
+    }
+
+    public Set<Integer> getFirstSingle() {
+        return firstSingle;
+    }
+
+    public Set<Integer> getSecondSingle() {
+        return secondSingle;
+    }
+
+    public void getInfo(List<String> judgeText, Set<Integer> firstHighlights, Set<Integer> secondHighlights, Set<Integer> firstWhite, Set<Integer> secondWhite, Set<Integer> firstSingle, Set<Integer> secondSingle) {
+        this.firstSingle = firstSingle;
+        this.secondSingle = secondSingle;
+        this.firstWhite = firstWhite;
+        this.secondWhite = secondWhite;
         this.judgeText = judgeText;
         this.firstHighlights = firstHighlights;
         this.secondHighlights = secondHighlights;

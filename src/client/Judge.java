@@ -1,6 +1,7 @@
 package client;
 
 import chain.Action;
+import userInterface.JudgeController;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -18,8 +19,11 @@ public class Judge extends AbstractClient {
 
     List<String> texts;
 
-    public Judge(int id, int port, String serviceAddress) {
+    private JudgeController controller;
+
+    public Judge(int id, int port, String serviceAddress, JudgeController controller) {
         super(id, port, serviceAddress);
+        this.controller = controller;
         texts = new ArrayList<>();
     }
     //private Listener listener;
@@ -56,7 +60,8 @@ public class Judge extends AbstractClient {
 
     private void readAllTextes() {
         try {
-            while (reader.ready()) {
+            int size = Integer.parseInt(reader.readLine());
+            for (int i = 0; i < size; i++) {
                 texts.add(reader.readLine());
             }
         } catch (IOException e) {

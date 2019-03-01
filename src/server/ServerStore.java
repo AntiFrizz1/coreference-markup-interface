@@ -81,13 +81,13 @@ public class ServerStore {
                         Action actionFromTeamOne = curGame.teamOneList.get(0);
                         Action actionFromTeamTwo = curGame.teamTwoList.get(0);
                         if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
-                            conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
+                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
                             curGame.teamOneList.remove(0);
                         } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
-                            conflicts.add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                            conflicts.get(i).add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
                             curGame.teamTwoList.remove(0);
                         } else {
-                            conflicts.add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
                             curGame.teamOneList.remove(0);
                             curGame.teamTwoList.remove(0);
                         }
@@ -101,7 +101,7 @@ public class ServerStore {
         games.add(newGame);
     }
 
-    public int compare(Location o1, Location o2) {
+    public static int compare(Location o1, Location o2) {
         if (o1 instanceof Blank) {
             if (o2 instanceof Phrase) {
                 Blank blank = (Blank) o1;

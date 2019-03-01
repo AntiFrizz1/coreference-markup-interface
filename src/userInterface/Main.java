@@ -1,6 +1,7 @@
 package userInterface;
 
 import chain.*;
+import client.Judge;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.geometry.HPos;
@@ -136,6 +137,11 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
+                Judge judge = new Judge(1337, 3333, "localhost", judgeInterface.getController());
+                judgeInterface.setJudge(judge);
+                if (judge.joinOnline() != 0) {
+                    error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
+                }
             } else {
                 error.setText("Неверный пароль!");
             }
