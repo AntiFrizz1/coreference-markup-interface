@@ -3,7 +3,6 @@ package server;
 import chain.Action;
 import chain.Chain;
 import document.ConflictInfo;
-import document.Converter;
 import document.UpdateDocument;
 
 import java.io.*;
@@ -83,7 +82,6 @@ public class ServerImpl implements Server {
     private ServerStore serverStore;
     private JudgeStore judgeStore;
 
-    private Converter converter;
 
     Map<Integer, Socket> idToSocket;
 
@@ -116,7 +114,6 @@ public class ServerImpl implements Server {
         serverStore = new ServerStore();
         judgeStore = new JudgeStore();
 
-        converter = new Converter();
 
         idToSocket = new ConcurrentHashMap<>();
         socketToId = new ConcurrentHashMap<>();
@@ -418,7 +415,8 @@ public class ServerImpl implements Server {
                         Thread worker = new Thread(() -> {
                             try {
                                 String doc = reader.readLine();
-                                List<Chain> answer = converter.unpack(doc);
+                                UpdateDocument document = new UpdateDocument(doc);
+                                List<Action> answer = document.getActions();
                                 //save data
 
                             } catch (IOException e) {
