@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 
-import static test.SimpleJudge.fileWriter;
-import static test.SimpleJudge.judge;
 
 /**
  * This class describes interaction protocol of Judge
@@ -42,7 +40,8 @@ public class Judge extends AbstractClient {
         try {
             String first = reader.readLine();
             String second = reader.readLine();
-            return new ConflictImpl(first, second);
+            String third = reader.readLine();
+            return new ConflictImpl(first, second, third);
         } catch (IOException e) {
             System.err.println("Can't get information from server");
         }

@@ -14,12 +14,8 @@ public class Data {
     public Data(String info) {
         String[] array = info.split("@");
         text = array[0];
-        if(array[1].isEmpty()) {
-            actions = null;
-        } else {
-            UpdateDocument upd = new UpdateDocument(array[1]);
-            actions = upd.getActions();
-        }
+        UpdateDocument upd = new UpdateDocument(array[1]);
+        actions = upd.getActions();
     }
 
     public List<Action> getActions() {
