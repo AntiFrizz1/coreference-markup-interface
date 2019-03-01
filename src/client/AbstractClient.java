@@ -2,7 +2,6 @@ package client;
 
 import chain.Action;
 import chain.Chain;
-import document.Converter;
 import document.UpdateDocument;
 
 import java.io.*;
@@ -17,7 +16,6 @@ import java.util.List;
  */
 public abstract class AbstractClient implements Client {
 
-    protected Converter converter;
 
     /**
      * An internal endpoint for sending or receiving data.
@@ -49,9 +47,11 @@ public abstract class AbstractClient implements Client {
      */
     protected PrintWriter writer;
 
-    public AbstractClient() {
+    public AbstractClient(int id, int port, String serviceAddress) {
         try {
-            converter = new Converter();
+            this.id = id;
+            this.port = port;
+            this.serviceAddress = serviceAddress;
             socket = new Socket(serviceAddress, port);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -65,52 +65,27 @@ public abstract class AbstractClient implements Client {
      *
      * @param info information for sending
      */
-    protected void sendConnectionInfo(String info) {
+    protected boolean sendConnectionInfo(String info) {
         try {
             writer.println(info);
             writer.flush();
             String request = reader.readLine();
             if (!request.equals("OK")) {
                 System.err.println("Can't connect to server");
-                return;
+                return false;
             }
-        } catch (IOException e) {
-            System.err.println("Can't read answer from server");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Can't read answer from server: " + e.getMessage());
         }
+        return false;
     }
 
-    /*@Override
-    public void sendInfo(List<Action> actions) {
-        UpdateDocument document = new UpdateDocument(actions);
-        writer.println(document.pack());
-        writer.flush();
-    }*/
-
-    @Override
-    public void sendInfo(List<Chain> document) {
-        writer.println(converter.pack(document));
-        writer.flush();
-    }
-
-    @Override
-    public List<Chain> getInfo() {
-        try {
-            return converter.unpack(reader.readLine());
-        } catch (IOException e) {
-            System.err.println("Can't get information from server");
-        }
-        return null;
-    }
-
-    @Override
-    public void close(List<Action> actions) {
-        UpdateDocument document = new UpdateDocument(actions);
-        writer.println(document.pack());
-        writer.flush();
+    public void close() {
         try {
             socket.close();
         } catch (IOException e) {
-            System.err.println("Can't close socket");
+            e.printStackTrace();
         }
     }
 

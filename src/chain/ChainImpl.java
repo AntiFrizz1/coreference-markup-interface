@@ -32,6 +32,12 @@ public class ChainImpl implements Chain {
      */
     private int id;
 
+    public ChainImpl(List<Action> actions, Color color, int userNumber) {
+        this.color = color;
+        locations = actions.stream().map(Action::getLocation).collect(Collectors.toList());
+        name = "User " + userNumber + " solution";
+    }
+
     public ChainImpl(String name, Color color, int id, Location... locations) {
         this.color = color;
         this.name = name;
@@ -62,7 +68,7 @@ public class ChainImpl implements Chain {
     }
 
     public ChainImpl(String info) {
-        List<String> list = Arrays.asList(info.split("\n"));
+        List<String> list = Arrays.asList(info.split("\t"));
         List<String> nameColor = Arrays.asList(list.get(0).split(" "));
         name = nameColor.get(0);
         id = Integer.valueOf(nameColor.get(1));
@@ -139,8 +145,8 @@ public class ChainImpl implements Chain {
         sb.append(name).append(' ').append(id)
                 .append(' ').append(color.getRed())
                 .append(' ').append(color.getGreen())
-                .append(' ').append(color.getBlue()).append('\n');
-        sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\n")));
+                .append(' ').append(color.getBlue()).append('\t');
+        sb.append(locations.stream().map(Location::pack).collect(Collectors.joining("\t")));
         return sb.toString();
     }
 
