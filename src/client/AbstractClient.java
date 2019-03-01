@@ -65,20 +65,24 @@ public abstract class AbstractClient implements Client {
      *
      * @param info information for sending
      */
-    protected boolean sendConnectionInfo(String info) {
+    protected int sendConnectionInfo(String info) {
         try {
             writer.println(info);
             writer.flush();
             String request = reader.readLine();
-            if (!request.equals("OK")) {
-                System.err.println("Can't connect to server");
-                return false;
+            if (request.equals("OK")) {
+                return 0;
+            } else if (request.equals("R")) {
+                return 1;
+            } else if (request.equals("E")) {
+                return 2;
+            } else {
+                return 3;
             }
-            return true;
         } catch (Exception e) {
             System.err.println("Can't read answer from server: " + e.getMessage());
         }
-        return false;
+        return 3;
     }
 
     public void close() {

@@ -60,15 +60,16 @@ public class ServerStore {
                 PrintWriter writer = curGame.writerOne;
                 for(Action action : actions) {
                     writer.println(action.pack());
+                    writer.flush();
                 }
             } else {
                 curGame.teamTwoList.addAll(actions);
                 PrintWriter writer = curGame.writerTwo;
                 for(Action action : actions) {
                     writer.println(action.pack());
+                    writer.flush();
                 }
             }
-            mutexArray.compareAndSet(textNum, 1, 0);
             return true;
     }
 

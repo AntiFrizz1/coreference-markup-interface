@@ -21,13 +21,13 @@ public class Judge extends AbstractClient {
     //private Listener listener;
 
     @Override
-    public boolean joinOnline() {
-        if (sendConnectionInfo(String.valueOf(id))) {
+    public int joinOnline() {
+        if (sendConnectionInfo(String.valueOf(id)) == 0) {
             System.out.println("Successful connect to server as judge with id = " + id);
-            return true;
+            return 0;
         } else {
             System.err.println("Can't connect to server as judge with id = " + id);
-            return false;
+            return -1;
         }
     }
 

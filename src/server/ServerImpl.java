@@ -1,19 +1,19 @@
 package server;
 
 import chain.Action;
-import chain.Chain;
 import document.ConflictInfo;
+import document.Data;
 import document.UpdateDocument;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
-import java.util.stream.Collectors;
 
 /**
  * This class describes interaction protocol of Server
@@ -78,18 +78,25 @@ public class ServerImpl implements Server {
     static Queue<ConflictInfo> conflicts;
 
     private Queue<AddTask> tasks;
-
-    private ServerStore serverStore;
-    private JudgeStore judgeStore;
+    
+    
+    private volatile ServerStore serverStore;
+    private volatile JudgeStore judgeStore;
 
 
     Map<Integer, Socket> idToSocket;
 
     Map<Socket, Integer> socketToId;
+    
+    Map<Socket, Integer> reconnectMap;
 
+    Map<Integer, Integer> idToTextId;
+    
+    private Queue<Socket> reconnectQueue;
+    
     AtomicBoolean work;
 
-    PrintWriter logWriter;
+    volatile PrintWriter logWriter;
 
     public ServerImpl(int port) {
         this.port = port;
@@ -119,6 +126,12 @@ public class ServerImpl implements Server {
         socketToId = new ConcurrentHashMap<>();
 
         conflicts = new ConcurrentLinkedQueue<>();
+        
+        reconnectMap = new ConcurrentHashMap<>();
+        
+        reconnectQueue = new ConcurrentLinkedQueue<>();
+
+        idToTextId = new ConcurrentHashMap<>();
 
         try {
             logWriter = new PrintWriter("server.log");
@@ -167,7 +180,7 @@ public class ServerImpl implements Server {
         onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
         offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
-        addTaskWorkerThread = new Thread(addTaskWorker);
+        /*addTaskWorkerThread = new Thread(addTaskWorker);*/
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
 
         listenerThread.start();
@@ -195,7 +208,7 @@ public class ServerImpl implements Server {
             onlineUsersSchedulerThread.join();
             offlineUsersSchedulerThread.join();
             serverStoreWorkerThread.join();
-            addTaskWorkerThread.join();
+            /*addTaskWorkerThread.join();*/
             conflictInfoSchedulerThread.join();
         } catch (InterruptedException e) {
             System.err.println("close :=: Error: " + e.getMessage());
@@ -210,7 +223,7 @@ public class ServerImpl implements Server {
             try {
                 Socket client = socket.accept();
                 System.out.println("listener :=: connected: " + client.toString());
-                clients.offer(client);
+                clients.add(client);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -234,23 +247,36 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
-
+                        
                         String request = reader.readLine();
                         System.out.println("scheduler :=: Request from " + client.toString() + " = " + request);
-
+                        
                         int id = Integer.parseInt(request);
-
-                        idToSocket.put(id, client);
-                        socketToId.put(client, id);
 
                         if (id > 100) {
                             judges.add(new JudgeInfo(client, judges.size()));
                         } else {
-                            users.offer(client);
+                            if (idToSocket.containsKey(id)) {
+                                if (idToSocket.get(id) == null) {
+                                    /*idToSocket.put(id, client);
+                                    socketToId.put(client, id);*/
+                                    reconnectMap.put(client, id);
+                                    users.add(client);
+                                    writer.println("R");
+                                    writer.flush();
+                                } else {
+                                    writer.println("E");
+                                    writer.flush();
+                                }
+                            } else {
+                                idToSocket.put(id, client);
+                                socketToId.put(client, id);
+                                users.add(client);
+                                writer.println("OK");
+                                writer.flush();
+                            }
                         }
-
-                        writer.println("OK");
-                        writer.flush();
+                        
                     } catch (Exception e) {
                         System.err.println("scheduler :=: Error: " + e.getMessage());
                     }
@@ -281,14 +307,23 @@ public class ServerImpl implements Server {
                         System.out.println("userScheduler :=: request from " + client.toString() + " = " + request);
 
                         int id = Integer.parseInt(request);
+                        
                         if (id == 0) {
-                            onlineUsers.offer(client);
+                            if (reconnectMap.containsKey(client)) {
+                                writer.println("OK");
+                                writer.flush();
+                                reconnectQueue.add(client);
+                            }
+                            writer.println("OK");
+                            writer.flush();
+                            onlineUsers.add(client);
                         } else {
-                            offlineUsers.offer(client);
+                            writer.println("OK");
+                            writer.flush();
+                            offlineUsers.add(client);
                         }
 
-                        writer.println("OK");
-                        writer.flush();
+
                     } catch (Exception e) {
                         System.err.println("userScheduler :=: Error: " + e.getMessage());
                     }
@@ -301,6 +336,47 @@ public class ServerImpl implements Server {
         }
     };
 
+    private Runnable reconnectWorker = () -> {
+        while (work.get()) {
+            try {
+                if (!reconnectQueue.isEmpty()) {
+                    Socket client = reconnectQueue.poll();
+                    int id = reconnectMap.get(client);
+                    reconnectMap.remove(client);
+                    int textId = idToTextId.get(id);
+
+                    BufferedReader localReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
+
+                    String fileName = id + "text=" + textId;
+
+                    BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), StandardCharsets.UTF_8));
+
+                    List<Action> actionList = new ArrayList<>();
+
+                    while (fileReader.ready()) {
+                        actionList.add(new Action(fileReader.readLine()));
+                    }
+
+                    Data data = new Data(texts.get(textId), actionList);
+
+                    localWriter.println(data.toString());
+                    localWriter.flush();
+
+                    idToSocket.put(id, client);
+                    socketToId.put(client, id);
+
+                } else {
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                System.err.println("reconnectWorker :=: reconnectWorker interrupted: " + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("reconnectWorker :=: Error: " + e.getMessage());
+            }
+        }
+    };
+    
     /**
      * Give task for online users
      */
@@ -318,12 +394,14 @@ public class ServerImpl implements Server {
 
                         textNumber.getAndIncrement();
 
+                        idToTextId.put(socketToId.get(client1), text);
+                        idToTextId.put(socketToId.get(client2), text);
+
                         BufferedReader reader1 = new BufferedReader(new InputStreamReader(client1.getInputStream()));
                         BufferedReader reader2 = new BufferedReader(new InputStreamReader(client2.getInputStream()));
 
                         PrintWriter writer1 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client1.getOutputStream())));
                         PrintWriter writer2 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client2.getOutputStream())));
-
                         writer1.println(texts.get(text));
                         writer2.println(texts.get(text));
 
@@ -334,36 +412,58 @@ public class ServerImpl implements Server {
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
+                            int localText = text;
+                            int id = socketToId.get(client1);
                             while (true) {
                                 try {
-                                    String request = reader1.readLine();
-                                    if (request == null) {
-                                        break;
+                                    if (idToSocket.get(id) != null) {
+                                        BufferedReader localReader = new BufferedReader(new InputStreamReader(idToSocket.get(id).getInputStream()));
+                                        PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(idToSocket.get(id).getOutputStream())));
+                                        String request = localReader.readLine();
+                                        if (request == null) {
+                                            idToSocket.put(id, null);
+                                            socketToId.remove(client1);
+                                        } else if (request.equals("EXIT")) {
+                                            idToTextId.remove(id);
+                                            socketToId.remove(client1);
+                                            idToSocket.remove(id);
+                                            break;
+                                        }
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        /*serverStore.putActions(document.getActions(), text, 1);*/
+                                        serverStore.putActions(document.getActions(), localText, 1);
                                     }
-                                    UpdateDocument document = new UpdateDocument(request);
-                                    /*serverStore.putActions(document.getActions(), text, 1);*/
-                                    tasks.add(new AddTask(document.getActions(), text, 1));
                                 } catch (IOException e) {
                                     System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
                                 }
-
                             }
                         });
 
                         Thread thread2 = new Thread(() -> {
+                            int localText = text;
+                            int id = socketToId.get(client2);
                             while (true) {
                                 try {
-                                    String request = reader2.readLine();
-                                    if (request == null) {
-                                        break;
+                                    if (idToSocket.get(id) != null) {
+                                        BufferedReader localReader = new BufferedReader(new InputStreamReader(idToSocket.get(id).getInputStream()));
+                                        PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(idToSocket.get(id).getOutputStream())));
+                                        String request = localReader.readLine();
+                                        if (request == null) {
+                                            idToSocket.put(id, null);
+                                            socketToId.remove(client2);
+                                        } else if (request.equals("EXIT")) {
+                                            idToTextId.remove(id);
+                                            socketToId.remove(client2);
+                                            idToSocket.remove(id);
+                                            break;
+                                        }
+                                        UpdateDocument document = new UpdateDocument(request);
+                                        /*serverStore.putActions(document.getActions(), text, 1);*/
+                                        serverStore.putActions(document.getActions(), localText, 2);
                                     }
-                                    UpdateDocument document = new UpdateDocument(request);
-                                    /*serverStore.putActions(document.getActions(), text, 1);*/
-                                    tasks.add(new AddTask(document.getActions(), text, 2));
                                 } catch (IOException e) {
-                                    System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
+                                    System.err.println("onlineUsersScheduler[client2, id = " + id + "] :=: Error: " + e.getMessage());
                                 }
-
                             }
                         });
 
@@ -433,7 +533,7 @@ public class ServerImpl implements Server {
         }
     };
 
-    private Runnable addTaskWorker = () -> {
+    /*private Runnable addTaskWorker = () -> {
         while (work.get() || !tasks.isEmpty()) {
             try {
                 if (!tasks.isEmpty()) {
@@ -448,7 +548,7 @@ public class ServerImpl implements Server {
                 System.out.println("addTaskWorker :=: addTaskWorker interrupted : " + e.getMessage());
             }
         }
-    };
+    };*/
 
     private Runnable conflictInfoScheduler = () -> {
         while (!conflicts.isEmpty() || work.get()) {
