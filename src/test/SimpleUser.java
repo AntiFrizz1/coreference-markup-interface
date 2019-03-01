@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class SimpleUser {
     public static void main(String[] args) throws InterruptedException {
-        User user = new User(Integer.parseInt(args[0]), 3333, "localhost");
+        User user = new User(Integer.parseInt(args[0]), 3333, "192.168.43.126");
         int status = user.joinOnline();
         Thread.sleep(1000);
         if (status == 0) {

@@ -78,8 +78,8 @@ public class ServerImpl implements Server {
     static Queue<ConflictInfo> conflicts;
 
     private Queue<AddTask> tasks;
-    
-    
+
+
     private volatile ServerStore serverStore;
     private volatile JudgeStore judgeStore;
 
@@ -87,13 +87,13 @@ public class ServerImpl implements Server {
     Map<Integer, Socket> idToSocket;
 
     Map<Socket, Integer> socketToId;
-    
+
     Map<Socket, Integer> reconnectMap;
 
     Map<Integer, Integer> idToTextId;
-    
+
     private Queue<Socket> reconnectQueue;
-    
+
     AtomicBoolean work;
 
     volatile PrintWriter logWriter;
@@ -126,9 +126,9 @@ public class ServerImpl implements Server {
         socketToId = new ConcurrentHashMap<>();
 
         conflicts = new ConcurrentLinkedQueue<>();
-        
+
         reconnectMap = new ConcurrentHashMap<>();
-        
+
         reconnectQueue = new ConcurrentLinkedQueue<>();
 
         idToTextId = new ConcurrentHashMap<>();
@@ -247,10 +247,10 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
-                        
+
                         String request = reader.readLine();
                         System.out.println("scheduler :=: Request from " + client.toString() + " = " + request);
-                        
+
                         int id = Integer.parseInt(request);
 
                         if (id > 100) {
@@ -276,7 +276,7 @@ public class ServerImpl implements Server {
                                 writer.flush();
                             }
                         }
-                        
+
                     } catch (Exception e) {
                         System.err.println("scheduler :=: Error: " + e.getMessage());
                     }
@@ -307,7 +307,7 @@ public class ServerImpl implements Server {
                         System.out.println("userScheduler :=: request from " + client.toString() + " = " + request);
 
                         int id = Integer.parseInt(request);
-                        
+
                         if (id == 0) {
                             if (reconnectMap.containsKey(client)) {
                                 writer.println("OK");
@@ -376,7 +376,7 @@ public class ServerImpl implements Server {
             }
         }
     };
-    
+
     /**
      * Give task for online users
      */
@@ -408,7 +408,7 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
                         //@TODO add prefixOld to function call
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
+                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, "prefix");
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
@@ -559,11 +559,11 @@ public class ServerImpl implements Server {
                         boolean f = false;
                         List<JudgeInfo> judgeInfoList;
                         synchronized (judges) {
-                             judgeInfoList = new ArrayList<>(judges);
+                            judgeInfoList = new ArrayList<>(judges);
                         }
                         /*logWriter.println(judgeInfoList.stream().map(judgeInfo -> socket.toString()).collect(Collectors.joining("----")));
                         logWriter.flush();*/
-                        for (JudgeInfo judgeInfo: judgeInfoList) {
+                        for (JudgeInfo judgeInfo : judgeInfoList) {
                             if (!judgeInfo.task.isMarked()) {
                                 if (judgeInfo.setTask(conflict)) {
                                     /*logWriter.println("get task" + judges.get(j).socket + " " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
@@ -740,7 +740,7 @@ public class ServerImpl implements Server {
         }
     }
 
-    public void judgeRecover() {
+    public boolean judgeRecover(String prefixOld, String prefixNew) {
         BufferedReader gameReader;
         try {
             gameReader = new BufferedReader(new InputStreamReader(new FileInputStream("judgeStoreGames"), "UTF-8"));
@@ -754,7 +754,7 @@ public class ServerImpl implements Server {
             }
             judgeStoreFiles.sort(this::judgeStoreCompare);
             for (JudgeStoreFile judgeStoreFile : judgeStoreFiles) {
-                String file = judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
+                String file = prefixOld + "\\" + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
                 BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
                 String line = reader.readLine();
                 List<Action> teamOneActions = new CopyOnWriteArrayList<>();
@@ -767,10 +767,12 @@ public class ServerImpl implements Server {
                     decisions.add(Integer.parseInt(list.get(2)));
                     line = reader.readLine();
                 }
-                judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, fileName);
+                judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, prefixNew + "\\" + fileName);
             }
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -778,11 +780,11 @@ public class ServerImpl implements Server {
         return Integer.compare(tmp1.textId, tmp2.textId);
     }
 
-
     class ServerStoreFile {
         int idOne;
         int idTwo;
         int textId;
+
         ServerStoreFile(int idOne, int idTwo, int textId) {
             this.idOne = idOne;
             this.idTwo = idTwo;
@@ -791,51 +793,44 @@ public class ServerImpl implements Server {
     }
 
     public int compareSS(ServerStoreFile o1, ServerStoreFile o2) {
-        if(o1.textId < o2.textId) {
-            return -1;
-        } else if(o1.textId == o2.textId) {
-            return 0;
-        } else {
-            return 1;
-        }
+        return Integer.compare(o1.textId, o2.textId);
     }
 
-    public boolean serverRecover(ServerStore ss, String prefixOld, String prefixNew) {
-        try(BufferedReader readerG = new BufferedReader(new FileReader("gamesServer.txt"))) {
+    public boolean serverRecover(String prefixOld, String prefixNew) {
+        try (BufferedReader readerG = new BufferedReader(new FileReader("gamesServer.txt"))) {
             String firstFile, secondFile;
             ArrayList<ServerStoreFile> files = new ArrayList<>();
-            while((firstFile = readerG.readLine()) != null) {
+            while ((firstFile = readerG.readLine()) != null) {
                 secondFile = readerG.readLine();
                 String[] splittedFirst = firstFile.split(".*text=.*");
                 String[] splittedSecond = secondFile.split(".*text=.*");
                 files.add(new ServerStoreFile(Integer.valueOf(splittedFirst[0]), Integer.valueOf(splittedSecond[0]), Integer.valueOf(splittedFirst[1])));
             }
             files.sort(this::compareSS);
-            for(int i = 0; i < files.size();i++) {
-                ServerStoreFile ssf = files.get(i);
-                try(BufferedReader readerFirst = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idOne + "text=" + ssf.textId));
-                    BufferedReader readerSecond = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idTwo + "text=" + ssf.textId));
-                    BufferedWriter writerFirst = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId));
-                    BufferedWriter writerSecond = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId))) {
+            for (ServerStoreFile ssf : files) {
+                try (BufferedReader readerFirst = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idOne + "text=" + ssf.textId));
+                     BufferedReader readerSecond = new BufferedReader(new FileReader(prefixOld + "\\" + ssf.idTwo + "text=" + ssf.textId));
+                     BufferedWriter writerFirst = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId));
+                     BufferedWriter writerSecond = new BufferedWriter(new FileWriter(prefixNew + "\\" + ssf.idOne + "text=" + ssf.textId))) {
                     ArrayList<Action> listFirst = new ArrayList<>();
                     ArrayList<Action> listSecond = new ArrayList<>();
                     String input;
-                    while((input = readerFirst.readLine()) != null) {
+                    while ((input = readerFirst.readLine()) != null) {
                         listFirst.add(new Action(input));
                         writerFirst.write(input);
                     }
-                    while((input = readerSecond.readLine()) != null) {
+                    while ((input = readerSecond.readLine()) != null) {
                         listSecond.add(new Action(input));
                         writerSecond.write(input);
                     }
                     List<Action> toDeleteFirst = new ArrayList<>();
                     List<Action> toDeleteSecond = new ArrayList<>();
-                    for(int j = 0; j < judgeStore.games.size();j++) {
-                        if(judgeStore.games.get(j).teamOneId == ssf.idOne && judgeStore.games.get(j).teamTwoId == ssf.idTwo) {
+                    for (int j = 0; j < judgeStore.games.size(); j++) {
+                        if (judgeStore.games.get(j).teamOneId == ssf.idOne && judgeStore.games.get(j).teamTwoId == ssf.idTwo) {
                             toDeleteFirst = judgeStore.games.get(j).teamOneApproved;
                             toDeleteSecond = judgeStore.games.get(j).teamTwoApproved;
                             break;
-                        } else if(judgeStore.games.get(j).teamOneId == ssf.idTwo && judgeStore.games.get(j).teamTwoId == ssf.idOne) {
+                        } else if (judgeStore.games.get(j).teamOneId == ssf.idTwo && judgeStore.games.get(j).teamTwoId == ssf.idOne) {
                             toDeleteFirst = judgeStore.games.get(j).teamTwoApproved;
                             toDeleteSecond = judgeStore.games.get(j).teamOneApproved;
                             break;
@@ -843,7 +838,7 @@ public class ServerImpl implements Server {
                     }
                     listFirst.removeAll(toDeleteFirst);
                     listSecond.removeAll(toDeleteSecond);
-                    ss.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, listFirst, listSecond);
+                    serverStore.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, listFirst, listSecond);
                 } catch (IOException e2) {
                     e2.printStackTrace();
                 }

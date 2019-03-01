@@ -5,14 +5,16 @@ import client.Judge;
 
 public class SimpleJudge {
     public static void main(String[] args) throws InterruptedException {
-        Judge judge = new Judge(228, 3333, "localhost");
+        Judge judge = new Judge(Integer.parseInt(args[0]), 3333, "192.168.43.126");
         if (judge.joinOnline() == 0) {
-            Conflict conflict = judge.getInfo();
+            while (true) {
+                Conflict conflict = judge.getInfo();
+                Thread.sleep(5000);
+                judge.sendDecision(3);
+            }
+            /*conflict = judge.getInfo();
             Thread.sleep(5000);
-            judge.sendDecision(3);
-            conflict = judge.getInfo();
-            Thread.sleep(5000);
-            judge.sendDecision(3);
+            judge.sendDecision(3);*/
         }
     }
 }
