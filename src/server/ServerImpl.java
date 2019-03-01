@@ -82,13 +82,13 @@ public class ServerImpl implements Server {
     private volatile ServerStore serverStore;
     private volatile JudgeStore judgeStore;
 
-
+    //TODO:Need to initialize by idToTextId
     Map<Integer, Socket> idToSocket;
 
     Map<Socket, Integer> socketToId;
 
     Map<Socket, Integer> reconnectMap;
-
+    //TODO:Need to save
     Map<Integer, Integer> idToTextId;
 
     private Queue<Socket> reconnectQueue;
@@ -97,7 +97,11 @@ public class ServerImpl implements Server {
 
     volatile PrintWriter logWriter;
 
-    Socket nullSocket;
+    Socket nullSocket = new Socket();
+
+    String backupName;
+
+    AtomicInteger textNumber = new AtomicInteger(0);
 
     public ServerImpl(int port, String prefixOld, String prefixNew) {
         this.port = port;
@@ -133,7 +137,10 @@ public class ServerImpl implements Server {
 
         idToTextId = new ConcurrentHashMap<>();
 
-        nullSocket = new Socket();
+
+        File path = new File(prefixNew);
+        path.mkdir();
+        backupName = prefixNew;
         try {
             logWriter = new PrintWriter(prefixNew + DELIMETER + "server.log");
         } catch (FileNotFoundException e) {
@@ -185,7 +192,9 @@ public class ServerImpl implements Server {
 
         idToTextId = new ConcurrentHashMap<>();
 
-        nullSocket = new Socket();
+        File path = new File("prefix");
+        path.mkdir();
+        backupName = "prefix";
         try {
             logWriter = new PrintWriter("prefix" + DELIMETER + "server.log");
         } catch (FileNotFoundException e) {
@@ -225,6 +234,7 @@ public class ServerImpl implements Server {
     Thread addTaskWorkerThread;
     Thread conflictInfoSchedulerThread;
     Thread reconnectWorkerThread;
+    Thread backupThread;
 
     /**
      * Start server
@@ -239,6 +249,7 @@ public class ServerImpl implements Server {
         /*addTaskWorkerThread = new Thread(addTaskWorker);*/
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         reconnectWorkerThread = new Thread(reconnectWorker);
+        backupThread = new Thread(backupWorker);
 
         listenerThread.start();
         schedulerThread.start();
@@ -249,6 +260,7 @@ public class ServerImpl implements Server {
         //addTaskWorkerThread.start();
         conflictInfoSchedulerThread.start();
         reconnectWorkerThread.start();
+        backupThread.start();
         try {
             listenerThread.join();
         } catch (InterruptedException e) {
@@ -410,7 +422,7 @@ public class ServerImpl implements Server {
                     BufferedReader localReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                     PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
 
-                    String fileName = id + "text=" + textId;
+                    String fileName = backupName + DELIMETER + id + "text=" + textId;
 
                     BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), StandardCharsets.UTF_8));
 
@@ -442,8 +454,8 @@ public class ServerImpl implements Server {
     /**
      * Give task for online users
      */
+
     private Runnable onlineUsersScheduler = () -> {
-        AtomicInteger textNumber = new AtomicInteger();
         while (work.get()) {
             try {
 
@@ -470,8 +482,8 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
 
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, "prefix");
-                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, "prefix");
+                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
+                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
 
                         Thread thread1 = new Thread(() -> {
                             int localText = text;
@@ -557,7 +569,6 @@ public class ServerImpl implements Server {
      * Give task for offline users
      */
     private Runnable offlineUsersScheduler = () -> {
-        int textNumber = 0;
         while (work.get()) {
             try {
 
@@ -567,13 +578,9 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
-                        int text = textNumber;
+                        int text = textNumber.get();
 
-                        textNumber++;
-
-                        if (textNumber > texts.size()) {
-                            textNumber = 0;
-                        }
+                        textNumber.getAndIncrement();
 
                         writer.println(texts.get(text));
                         writer.flush();
@@ -808,6 +815,39 @@ public class ServerImpl implements Server {
         };
 
     }
+
+    void backupInfo() {
+        PrintWriter backupWriter;
+        try {
+            backupWriter = new PrintWriter(backupName + DELIMETER + "backupInfo");
+            Set<Integer> set = idToSocket.keySet();
+            backupWriter.println(set.size());
+            backupWriter.flush();
+            set.stream().forEach(a -> {
+                backupWriter.print(a + " ");
+                backupWriter.flush();
+            });
+            backupWriter.println();
+            backupWriter.flush();
+            backupWriter.println(idToTextId.size());
+            backupWriter.flush();
+            idToTextId.forEach((k, v) -> {
+                backupWriter.println(k + " " + v);
+                backupWriter.flush();
+            });
+        } catch (FileNotFoundException e) {
+            System.err.println("Can't find file " + backupName + DELIMETER + "backupInfo");
+        }
+    }
+
+    private Runnable backupWorker = () -> {
+        backupInfo();
+        try {
+            Thread.sleep(30000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    };
 
     class JudgeStoreFile {
         int id1;
