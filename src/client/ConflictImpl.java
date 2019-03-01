@@ -8,13 +8,14 @@ import java.util.List;
 
 public class ConflictImpl implements Conflict {
     List<Action> first, second;
+    int textId;
 
-    public ConflictImpl(String list1, String list2) {
+    public ConflictImpl(String list1, String list2, String id) {
         UpdateDocument doc1 = new UpdateDocument(list1);
         UpdateDocument doc2 = new UpdateDocument(list2);
-
         first = doc1.getActions();
         second = doc2.getActions();
+        textId = Integer.parseInt(id);
     }
 
     @Override
@@ -27,6 +28,10 @@ public class ConflictImpl implements Conflict {
         return second;
     }
 
+    @Override
+    public int getTextId() {
+        return textId;
+    }
 
     @Override
     public String pack() {

@@ -2,6 +2,7 @@ package client;
 
 import chain.Action;
 import chain.Chain;
+import document.Data;
 import document.UpdateDocument;
 
 import java.io.IOException;
@@ -20,16 +21,23 @@ public class User extends AbstractClient {
         super(id, port, serviceAddress);
     }
 
-    public String getText() {
+    public Data getData() {
+        String input = null;
         try {
-            StringBuilder text = new StringBuilder(reader.readLine());
-            while (reader.ready()) {
-                text.append(reader.readLine() + "\n");
-            }
-            return text.toString();
+            input = reader.readLine();
+            return new Data(input);
         } catch (IOException e) {
             e.printStackTrace();
-            return "";
+            return null;
+        }
+    }
+
+    public String getText() {
+        try {
+            return reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 

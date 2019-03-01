@@ -330,48 +330,40 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
 
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
-                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2));
+                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
+                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text);
 
                         Thread thread1 = new Thread(() -> {
-                            try {
-                                while (!client1.isClosed() || reader1.ready()) {
-                                    try {
-                                        String request = reader1.readLine();
-                                        if (request == null) {
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-                                        tasks.add(new AddTask(document.getActions(), text, 1));
-                                    } catch (IOException e) {
-                                        System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
+                            while (true) {
+                                try {
+                                    String request = reader1.readLine();
+                                    if (request == null) {
+                                        break;
                                     }
-
+                                    UpdateDocument document = new UpdateDocument(request);
+                                    /*serverStore.putActions(document.getActions(), text, 1);*/
+                                    tasks.add(new AddTask(document.getActions(), text, 1));
+                                } catch (IOException e) {
+                                    System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
                                 }
-                            } catch (IOException e) {
-                                System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
+
                             }
                         });
 
                         Thread thread2 = new Thread(() -> {
-                            try {
-                                while (!client2.isClosed() || reader2.ready()) {
-                                    try {
-                                        String request = reader2.readLine();
-                                        if (request == null) {
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-                                        tasks.add(new AddTask(document.getActions(), text, 2));
-                                    } catch (IOException e) {
-                                        System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
+                            while (true) {
+                                try {
+                                    String request = reader2.readLine();
+                                    if (request == null) {
+                                        break;
                                     }
-
+                                    UpdateDocument document = new UpdateDocument(request);
+                                    /*serverStore.putActions(document.getActions(), text, 1);*/
+                                    tasks.add(new AddTask(document.getActions(), text, 2));
+                                } catch (IOException e) {
+                                    System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
                                 }
-                            } catch (IOException e) {
-                                System.err.println("onlineUsersScheduler[client2, id = " + socketToId.get(client2) + "] :=: Error: " + e.getMessage());
+
                             }
                         });
 
@@ -396,7 +388,7 @@ public class ServerImpl implements Server {
      * Give task for offline users
      */
     private Runnable offlineUsersScheduler = () -> {
-        int texNumber = 0;
+        int textNumber = 0;
         while (work.get()) {
             try {
 
@@ -406,9 +398,13 @@ public class ServerImpl implements Server {
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream())));
-                        int text = texNumber;
+                        int text = textNumber;
 
-                        texNumber++;
+                        textNumber++;
+
+                        if (textNumber > texts.size()) {
+                            textNumber = 0;
+                        }
 
                         writer.println(texts.get(text));
                         writer.flush();
@@ -583,6 +579,10 @@ public class ServerImpl implements Server {
                                 }
 
                                 writer.println(teamTwo.pack());
+                                writer.flush();
+
+
+                                writer.println(conflict.textId);
                                 writer.flush();
 
                                 String request = reader.readLine();

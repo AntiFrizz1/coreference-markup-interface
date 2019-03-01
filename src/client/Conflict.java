@@ -14,4 +14,6 @@ public interface Conflict extends Packable {
     List<Action> getFirst();
 
     List<Action> getSecond();
+
+    int getTextId();
 }

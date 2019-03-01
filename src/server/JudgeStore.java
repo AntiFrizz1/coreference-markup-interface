@@ -71,8 +71,8 @@ public class JudgeStore {
         return games.get(textNum).decisions;
     }
 
-    public void addNewGame(int teamOneId, int teamTwoId) {
-        Game tmp = new Game(teamOneId, teamTwoId, games.size());
+    public void addNewGame(int teamOneId, int teamTwoId, int textNum) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum);
         games.add(tmp);
     }
 }
