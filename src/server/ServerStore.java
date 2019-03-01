@@ -26,25 +26,22 @@ public class ServerStore {
         PrintWriter writerOne;
         PrintWriter writerTwo;
 
-        Game(int teamOne, int teamTwo, int textNum, String prefixOld) {
+        Game(int teamOne, int teamTwo, int textNum, String prefixOld, PrintWriter writer) {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
             this.textNum = textNum;
-            try {
-                PrintWriter writer = new PrintWriter("gamesServer.txt");
-                writer.println(teamOne + "text=" + textNum);
-                writer.println(teamTwo + "text=" + textNum);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+            writer.println(teamOne + "text=" + textNum);
+            writer.flush();
+            writer.println(teamTwo + "text=" + textNum);
+            writer.flush();
 
             try {
-                writerOne = new PrintWriter(prefixOld + "\\" + teamOne + "text=" + textNum);
+                writerOne = new PrintWriter(prefixOld + ServerImpl.DELIMETER + teamOne + "text=" + textNum);
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamOne + "text=" + textNum);
             }
             try {
-                writerTwo = new PrintWriter(prefixOld + "\\" + teamTwo + "text=" + textNum);
+                writerTwo = new PrintWriter(prefixOld + ServerImpl.DELIMETER + teamTwo + "text=" + textNum);
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
             }
@@ -52,22 +49,33 @@ public class ServerStore {
             teamTwoList = new CopyOnWriteArrayList<>();
         }
 
-        public Game(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList) {
+        public Game(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList, PrintWriter writerOne, PrintWriter writerTwo) {
             this.teamOne = teamOne;
             this.teamTwo = teamTwo;
             this.textNum = textNum;
 
             this.teamOneList = new CopyOnWriteArrayList<>(teamOneList);
             this.teamTwoList = new CopyOnWriteArrayList<>(teamTwoList);
+            this.writerOne = writerOne;
+            this.writerTwo = writerTwo;
         }
     }
 
     List<Game> games;
     AtomicIntegerArray mutexArray;
+    PrintWriter writer;
 
     ServerStore() {
         games = new CopyOnWriteArrayList<>();
         mutexArray = new AtomicIntegerArray(100);
+    }
+
+    public void setServerWriter(String prefix) {
+        try {
+            writer = new PrintWriter(prefix + ServerImpl.DELIMETER + "gamesServer");
+        } catch (FileNotFoundException e) {
+            System.err.println("Can't find file " + prefix + ServerImpl.DELIMETER + "gamesServer");
+        }
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamNum) {
@@ -77,12 +85,14 @@ public class ServerStore {
             PrintWriter writer = curGame.writerOne;
             for (Action action : actions) {
                 writer.println(action.pack());
+                writer.flush();
             }
         } else {
             curGame.teamTwoList.addAll(actions);
             PrintWriter writer = curGame.writerTwo;
             for (Action action : actions) {
                 writer.println(action.pack());
+                writer.flush();
             }
         }
         mutexArray.compareAndSet(textNum, 1, 0);
@@ -112,13 +122,13 @@ public class ServerStore {
         }
     };
 
-    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList) {
-        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList, teamTwoList);
+    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList, PrintWriter writerOne, PrintWriter writerTwo) {
+        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList, teamTwoList, writerOne, writerTwo);
         games.add(newGame);
     }
 
     synchronized void addNewGame(int teamOne, int teamTwo, int textNum, String prefixOld) {
-        Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld);
+        Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld, writer);
         games.add(newGame);
     }
 
@@ -151,16 +161,16 @@ public class ServerStore {
                 int[] ar1 = phrase1.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
                 int[] ar2 = phrase2.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
                 int result;
-                for(int i = 0; i < ar1.length;i++) {
-                    for(int j = 0; j < ar2.length;j++) {
-                        if(ar1[i] == ar2[j]) {
+                for (int i = 0; i < ar1.length; i++) {
+                    for (int j = 0; j < ar2.length; j++) {
+                        if (ar1[i] == ar2[j]) {
                             return 0;
                         }
                     }
                 }
                 int res1 = phrase1.getPositions().stream().min(Integer::compareTo).get();
                 int res2 = phrase2.getPositions().stream().min(Integer::compareTo).get();
-                if(res1 > res2) {
+                if (res1 > res2) {
                     return 1;
                 } else {
                     return -1;
