@@ -83,13 +83,12 @@ public class ServerImpl implements Server {
     private volatile ServerStore serverStore;
     private volatile JudgeStore judgeStore;
 
-    //TODO:Need to initialize by idToTextId
     Map<Integer, Socket> idToSocket;
 
     Map<Socket, Integer> socketToId;
 
     Map<Socket, Integer> reconnectMap;
-    //TODO:Need to save
+
     Map<Integer, Integer> idToTextId;
 
     private Queue<Socket> reconnectQueue;
