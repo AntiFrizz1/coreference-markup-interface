@@ -21,7 +21,7 @@ public class JudgeStore {
 
         PrintWriter writer;
 
-        Game(int teamOneId, int teamTwoId, int textNum) {
+        Game(int teamOneId, int teamTwoId, int textNum, String prefix) {
             this.teamOneId = teamOneId;
             this.teamTwoId = teamTwoId;
 
@@ -32,7 +32,7 @@ public class JudgeStore {
             this.textNum = textNum;
 
             try {
-                writer = new PrintWriter(teamOneId + "vs" + teamTwoId + "text=" + textNum);
+                writer = new PrintWriter(prefix + ServerImpl.DELIMETER + teamOneId + "vs" + teamTwoId + "text=" + textNum);
                 dumpWriter.println(teamOneId + "vs" + teamTwoId + "text=" + textNum);
                 dumpWriter.flush();
             } catch (FileNotFoundException e) {
@@ -40,18 +40,14 @@ public class JudgeStore {
             }
         }
 
-        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, String fileName) {
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer) {
             this.teamOneId = teamOneId;
             this.teamTwoId = teamTwoId;
             this.textNum = textNum;
             this.teamOneApproved = teamOneApproved;
             this.teamTwoApproved = teamTwoApproved;
             this.decisions = decisions;
-            try {
-                writer = new PrintWriter(fileName);
-            } catch (FileNotFoundException e) {
-                System.err.println("Can't find file: " + fileName);
-            }
+            this.writer = writer;
         }
     }
 
@@ -60,10 +56,13 @@ public class JudgeStore {
 
     JudgeStore() {
         games = new CopyOnWriteArrayList<>();
+    }
+
+    public void setJudgeWriter(String prefix) {
         try {
-            dumpWriter = new PrintWriter("judgeStoreGames");
+            dumpWriter = new PrintWriter(prefix + ServerImpl.DELIMETER + "judgeStoreGames");
         } catch (FileNotFoundException e) {
-            System.err.println("Can't find file judgeStoreGames");
+            System.err.println("Can't find file " + prefix + ServerImpl.DELIMETER + "judgeStoreGames");
         }
     }
 
@@ -74,7 +73,7 @@ public class JudgeStore {
         games.get(textNum).decisions.add(decision);
 
         PrintWriter writer = games.get(textNum).writer;
-        writer.println(teamOne.pack() + "$" + teamTwo.pack() + "$" + decision);
+        writer.println(teamOne.pack() + "@" + teamTwo.pack() + "@" + decision);
         writer.flush();
     }
 
@@ -90,13 +89,13 @@ public class JudgeStore {
         return games.get(textNum).decisions;
     }
 
-    public void addNewGame(int teamOneId, int teamTwoId, int textNum) {
-        Game tmp = new Game(teamOneId, teamTwoId, textNum);
+    public void addNewGame(int teamOneId, int teamTwoId, int textNum, String prefix) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, prefix);
         games.add(tmp);
     }
 
-    public void addNewRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, String fileName) {
-        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneApproved, teamTwoApproved, decisions, fileName);
+    public void addNewRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneApproved, teamTwoApproved, decisions, writer);
         games.add(tmp);
     }
 }

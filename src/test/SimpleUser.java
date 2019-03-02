@@ -18,18 +18,19 @@ public class SimpleUser {
             Data data = user.getData();
             System.out.println(data.getText());
         }
-        int i = 0;
-        user.sendUpdates(Arrays.asList(
-                new Action(0, 0, new Phrase("a", i + 1)),
-                new Action(1, 0, new Phrase("b", i + 2)),
-                new Action(1, 0, new Phrase("c", i + 3)),
-                new Action(1, 0, new Phrase("d", i + 4)),
-                new Action(1, 0, new Phrase("e", i + 5)),
-                new Action(1, 0, new Phrase("f", i + 6)),
-                new Action(1, 0, new Phrase("g", i + 7)),
-                new Action(1, 0, new Phrase("h", i + 8))
-        ));
-        Thread.sleep(10000);
+        for (int i = 0; i < 40; i += 8) {
+            user.sendUpdates(Arrays.asList(
+                    new Action(0, 0, new Phrase("a", i + 1), "qq"),
+                    new Action(1, 0, new Phrase("b", i + 2), "qq"),
+                    new Action(1, 0, new Phrase("c", i + 3), "qq"),
+                    new Action(1, 0, new Phrase("d", i + 4), "qq"),
+                    new Action(1, 0, new Phrase("e", i + 5), "qq"),
+                    new Action(1, 0, new Phrase("f", i + 6), "qq"),
+                    new Action(1, 0, new Phrase("g", i + 7), "qq"),
+                    new Action(1, 0, new Phrase("h", i + 8), "qq")
+            ));
+            Thread.sleep(2000);
+        }
 
 
         user.close();
