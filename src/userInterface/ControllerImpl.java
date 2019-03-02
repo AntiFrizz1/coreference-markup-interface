@@ -324,7 +324,7 @@ public class ControllerImpl implements Controller {
     private void initDump() {
         if (w == null) {
             try {
-                w = new BufferedWriter(new FileWriter(new File("dump" + new Date().toString() + ".txt")));
+                w = new BufferedWriter(new FileWriter(new File("dump" + new Date().getTime() + ".txt")));
             } catch (IOException e) {
                 e.printStackTrace();
             }

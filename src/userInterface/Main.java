@@ -238,7 +238,7 @@ public class Main extends Application {
         root.add(user, 3, 1);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+//        stage.setOnCloseRequest(Event::consume);
         stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
@@ -460,7 +460,7 @@ public class Main extends Application {
 
         subRoot.add(enter, 1, 1);
         subRoot.add(back, 3, 1);
-//        subRoot.add(enterOffline, 5, 1);
+        subRoot.add(enterOffline, 5, 1);
         root.add(id, 1, 1);
         root.add(error, 0, 2);
         root.add(subRoot, 1, 3);
@@ -767,6 +767,7 @@ public class Main extends Application {
         textSizeInWords = words.length;
         displayedIndex = Math.max(0, selectedSentenceStart - 15);
         boolean sentence = true;
+        boolean toSetSentence = true;
         for (int i = displayedIndex; i < words.length; i++) {
             Button word = new Button(words[i]);
             word.getStyleClass().add("word");  // CSS class for styling words and their selection
@@ -786,7 +787,7 @@ public class Main extends Application {
                 if (selectedSentenceEnd != textSizeInWords - 1 && !isSentenceStart(words[i], words[i + 1])) {
                     selectedSentenceEnd++;
                 } else {
-                    sentence = false;
+                    toSetSentence = false;
                 }
                 word.getStyleClass().add("highlight-selected");
                 word.setOnAction(event -> {
@@ -813,7 +814,7 @@ public class Main extends Application {
                     break;
                 }
             }
-            if (i < selectedSentenceStart) {
+            if (i < selectedSentenceStart - 1) {
                 space.getStyleClass().add("highlight");  // CSS class for styling sentence selection
             } else if (sentence) {
                 space.getStyleClass().add("highlight-selected");
@@ -830,6 +831,7 @@ public class Main extends Application {
             pane.layout();
             if (flow.getBoundsInLocal().getHeight() > outer.getHeight() && !sentence) return;
             textPane.getChildren().add(space);
+            if (!toSetSentence) sentence = false;
         }
     }
 

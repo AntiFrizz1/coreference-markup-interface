@@ -2,7 +2,6 @@ package client;
 
 import chain.*;
 import document.UpdateDocument;
-import org.omg.CORBA.MARSHAL;
 
 import java.lang.ref.PhantomReference;
 import java.util.Arrays;
