@@ -2,15 +2,18 @@ package test;
 
 import server.ServerImpl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class SimpleServer {
     public static void main(String[] args) {
-        ServerImpl server = new ServerImpl(3333);
-
+        ServerImpl server;
+        if (args.length != 0) {
+            server = new ServerImpl(7777, args[0], args[1]);
+        } else {
+            server = new ServerImpl(7777);
+        }
         List<String> texts = Arrays.asList("texts/Рахманинов.txt", "texts/Серов.txt",
                 "texts/Рахманинов (3-я копия).txt",
                 "texts/Рахманинов (4-я копия).txt",

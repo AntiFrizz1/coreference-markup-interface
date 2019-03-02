@@ -130,8 +130,8 @@ public class ControllerImpl implements Controller {
     }
 
     public void callTextRefresh() {
-        System.out.println("Refresh");
-        System.out.println(text);
+        //System.out.println("Refresh");
+        //System.out.println(text);
         RefreshEvent event = new RefreshEvent();  // TODO: do smth so that the source is actually this
         primaryStage.fireEvent(event);
     }

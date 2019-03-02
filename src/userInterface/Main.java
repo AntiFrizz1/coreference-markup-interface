@@ -78,7 +78,7 @@ public class Main extends Application {
             primaryStage.setMinWidth(MIN_APP_WIDTH);
             primaryStage.setMinHeight(MIN_APP_HEIGHT);
             primaryStage.setScene(sc);
-            System.out.println("AAA");
+            //System.out.println("AAA");
             primaryStage.show();
         }
     }
@@ -134,7 +134,7 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "localhost", judgeInterface.getController());
+                Judge judge = new Judge(1337, 7777, "localhost", judgeInterface.getController());
                 judgeInterface.setJudge(judge);
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
@@ -181,7 +181,7 @@ public class Main extends Application {
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
-            user = new User(Integer.valueOf(id.getText()), 3333, "localhost");
+            user = new User(Integer.valueOf(id.getText()), 7777, "localhost");
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();
