@@ -51,6 +51,7 @@ public class ConflictInfo {
                     }
                 }
             });
+            counter.start();
             return true;
         } else {
             return false;

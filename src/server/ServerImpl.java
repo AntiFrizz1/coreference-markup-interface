@@ -4,6 +4,7 @@ import chain.Action;
 import document.ConflictInfo;
 import document.Data;
 import document.UpdateDocument;
+import javafx.util.Pair;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -76,7 +77,7 @@ public class ServerImpl implements Server {
     /**
      * List of conflicts
      */
-    static Queue<ConflictInfo> conflicts;
+    static List<Queue<ConflictInfo>> conflicts;
 
     static final char DELIMETER = '/';
 
@@ -130,7 +131,7 @@ public class ServerImpl implements Server {
         idToSocket = new ConcurrentHashMap<>();
         socketToId = new ConcurrentHashMap<>();
 
-        conflicts = new ConcurrentLinkedQueue<>();
+        conflicts = new CopyOnWriteArrayList<>();
 
         reconnectMap = new ConcurrentHashMap<>();
 
@@ -162,6 +163,9 @@ public class ServerImpl implements Server {
         }
     }
 
+    private Map<Integer, Integer> leaderBoard;
+    private Map<Integer, String> idToUsername;
+
     public ServerImpl(int port) {
         this.port = port;
         try {
@@ -188,7 +192,7 @@ public class ServerImpl implements Server {
         idToSocket = new ConcurrentHashMap<>();
         socketToId = new ConcurrentHashMap<>();
 
-        conflicts = new ConcurrentLinkedQueue<>();
+        conflicts = new CopyOnWriteArrayList<>();
 
         reconnectMap = new ConcurrentHashMap<>();
 
@@ -196,9 +200,15 @@ public class ServerImpl implements Server {
 
         idToTextId = new ConcurrentHashMap<>();
 
+        nullSocket = new Socket();
+
+        leaderBoard = new ConcurrentHashMap<>();
+        idToUsername = new ConcurrentHashMap<>();
+
         File path = new File("prefix");
         path.mkdir();
         backupName = "prefix";
+
         try {
             logWriter = new PrintWriter("prefix" + DELIMETER + "server.log");
         } catch (FileNotFoundException e) {
@@ -237,7 +247,6 @@ public class ServerImpl implements Server {
     Thread onlineUsersSchedulerThread;
     Thread offlineUsersSchedulerThread;
     Thread serverStoreWorkerThread;
-    Thread addTaskWorkerThread;
     Thread conflictInfoSchedulerThread;
     Thread reconnectWorkerThread;
     Thread backupThread;
@@ -252,7 +261,6 @@ public class ServerImpl implements Server {
         onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
         offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
-        /*addTaskWorkerThread = new Thread(addTaskWorker);*/
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         reconnectWorkerThread = new Thread(reconnectWorker);
         backupThread = new Thread(backupWorker);
@@ -263,7 +271,6 @@ public class ServerImpl implements Server {
         onlineUsersSchedulerThread.start();
         offlineUsersSchedulerThread.start();
         serverStoreWorkerThread.start();
-        //addTaskWorkerThread.start();
         conflictInfoSchedulerThread.start();
         reconnectWorkerThread.start();
         backupThread.start();
@@ -284,7 +291,6 @@ public class ServerImpl implements Server {
             onlineUsersSchedulerThread.join();
             offlineUsersSchedulerThread.join();
             serverStoreWorkerThread.join();
-            /*addTaskWorkerThread.join();*/
             conflictInfoSchedulerThread.join();
         } catch (InterruptedException e) {
             System.err.println("close :=: Error: " + e.getMessage());
@@ -492,8 +498,11 @@ public class ServerImpl implements Server {
                         writer1.flush();
                         writer2.flush();
 
+
                         serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
+
+                        conflicts.add(new ConcurrentLinkedQueue<>());
 
                         Thread thread1 = new Thread(() -> {
                             int localText = text;
@@ -644,30 +653,36 @@ public class ServerImpl implements Server {
         while (!conflicts.isEmpty() || work.get()) {
             try {
                 if (!conflicts.isEmpty()) {
-                    ConflictInfo conflict = conflicts.poll();
-                    if (conflict.status.get() == 0) {
-                        boolean f = false;
-                        List<JudgeInfo> judgeInfoList;
-                        synchronized (judges) {
-                            judgeInfoList = new ArrayList<>(judges);
-                        }
+                    for (int i = 0; i < conflicts.size(); i++) {
+                        Queue<ConflictInfo> conflictInfoQueue = conflicts.get(i);
+                        if (!conflictInfoQueue.isEmpty()) {
+                            ConflictInfo conflict = conflictInfoQueue.peek();
+                            if (conflict.status.get() == 0) {
+                                boolean f = false;
+                                List<JudgeInfo> judgeInfoList;
+                                synchronized (judges) {
+                                    judgeInfoList = new ArrayList<>(judges);
+                                }
                         /*logWriter.println(judgeInfoList.stream().map(judgeInfo -> socket.toString()).collect(Collectors.joining("----")));
                         logWriter.flush();*/
-                        for (JudgeInfo judgeInfo : judgeInfoList) {
-                            if (!judgeInfo.task.isMarked()) {
-                                if (judgeInfo.setTask(conflict)) {
+                                for (JudgeInfo judgeInfo : judgeInfoList) {
+                                    if (!judgeInfo.task.isMarked()) {
+                                        if (judgeInfo.setTask(conflict)) {
+
                                     /*logWriter.println("get task" + judges.get(j).socket + " " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                                     logWriter.flush();*/
-                                    f = true;
-                                    break;
+                                            f = true;
+                                            break;
+                                        }
+                                    }
                                 }
+                                //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
+                            } else if (conflict.status.get() == 1) {
+                                //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
+                            } else {
+                                conflictInfoQueue.poll();
                             }
                         }
-                        //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
-                        conflicts.add(conflict);
-                    } else if (conflict.status.get() == 1) {
-                        //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
-                        conflicts.add(conflict);
                     }
                 } else {
                     Thread.sleep(1000);
@@ -677,6 +692,68 @@ public class ServerImpl implements Server {
             }
         }
     };
+
+    private Runnable leaderBoardRunnable = () -> {
+        while (true) {
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<!DOCTYPE html>\n" +
+                    "<html lang=\"ru\">\n" +
+                    "<head>\n" +
+                    "   <meta charset=\"UTF-8\">\n" +
+                    "   <title>Таблица Лидеров</title>\n" +
+                    "   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+                    "   <link rel=\"stylesheet\" href=\"style.css\">" +
+                    "    " +
+                    "</head>\n" +
+                    "<body>" +
+                    "<div class=\"div-table\">\n" +
+                    "   <h1>Таблица лидеров</h1>" +
+                    "   <table class=\"table\">\n" +
+                    "       <thead>\n" +
+                    "           <tr>\n" +
+                    "               <th>Название команды</th>\n" +
+                    "               <th>Количество очков</th>\n" +
+                    "           </tr>\n" +
+                    "       </thead>\n" +
+                    "       <tbody id=\"table-body\">\n");
+            List<Pair<Integer, Integer>> local = leaderBoard.entrySet().stream()
+                    .map(k -> new Pair<>(k.getKey(), k.getValue())).sorted(this::comparePairs).collect(Collectors.toList());
+            Collections.reverse(local);
+            for (int i = 0; i < local.size(); i++) {
+                htmlBuilder.append(
+                        "       <tr>\n" +
+                                "           <td>").append(idToUsername.get(local.get(i).getKey())).append("</td>\n").append(
+                        "           <td>").append(local.get(i).getValue()).append("</td>\n").append(
+                        "       </tr>\n");
+            }
+
+            htmlBuilder.append(
+                    "       </tbody>\n" +
+                            "   </table>\n" +
+                            "</div>\n" +
+                            "</body>\n" +
+                            "</html>\n");
+            try {
+                PrintWriter writer = new PrintWriter("leaderboard.html");
+                writer.println(htmlBuilder.toString());
+                writer.flush();
+                writer.close();
+                Thread.sleep(2000);
+            } catch (InterruptedException | FileNotFoundException e) {
+                System.err.println("leaderBoardRunnable :=: Error :" + e.getMessage());
+                break;
+            }
+        }
+    };
+    private int comparePairs(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+        if(o1.getValue() > o2.getValue()) {
+            return 1;
+        } else if(o1.getValue() == o2.getValue()) {
+            return  0;
+        } else {
+            return -1;
+        }
+    }
 
     AtomicBoolean down = new AtomicBoolean(false);
     Random random = new Random();
@@ -699,7 +776,7 @@ public class ServerImpl implements Server {
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
                 writer.println(texts.size());
                 writer.flush();
-                for (String string : texts) {
+                for (String string: texts) {
                     writer.println(string);
                     writer.flush();
                 }

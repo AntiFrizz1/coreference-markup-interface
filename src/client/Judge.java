@@ -1,9 +1,11 @@
 package client;
 
 import chain.Action;
+import userInterface.JudgeController;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -15,8 +17,14 @@ import java.util.List;
  */
 public class Judge extends AbstractClient {
 
-    public Judge(int id, int port, String serviceAddress) {
+    List<String> texts;
+
+    private JudgeController controller;
+
+    public Judge(int id, int port, String serviceAddress, JudgeController controller) {
         super(id, port, serviceAddress);
+        this.controller = controller;
+        texts = new ArrayList<>();
     }
     //private Listener listener;
 
@@ -24,6 +32,7 @@ public class Judge extends AbstractClient {
     public int joinOnline() {
         if (sendConnectionInfo(String.valueOf(id)) == 0) {
             System.out.println("Successful connect to server as judge with id = " + id);
+            readAllTextes();
             return 0;
         } else {
             System.err.println("Can't connect to server as judge with id = " + id);
@@ -41,10 +50,23 @@ public class Judge extends AbstractClient {
             String first = reader.readLine();
             String second = reader.readLine();
             String third = reader.readLine();
-            return new ConflictImpl(first, second, third);
+            int id = Integer.parseInt(third);
+            return new ConflictImpl(first, second, texts.get(id));
         } catch (IOException e) {
             System.err.println("Can't get information from server");
         }
         return null;
+    }
+
+    private void readAllTextes() {
+        try {
+            int size = Integer.parseInt(reader.readLine());
+            for (int i = 0; i < size; i++) {
+                texts.add(reader.readLine());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }
