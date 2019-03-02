@@ -295,7 +295,6 @@ public class Main extends Application {
                     String txt = new BufferedReader(new FileReader(file)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     controller.setText(txt);
-                    generateText(text, textWrapper);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -431,7 +430,7 @@ public class Main extends Application {
             flow.getChildren().add(clone);
             pane.applyCss();
             pane.layout();
-            if (flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
+            if (!sentence && flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
             textPane.getChildren().add(word);
             Button space = new Button("   ");
             space.getStyleClass().add("word");
@@ -460,7 +459,7 @@ public class Main extends Application {
             flow.getChildren().add(spaceClone);
             pane.applyCss();
             pane.layout();
-            if (flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
+            if (!sentence && flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
             textPane.getChildren().add(space);
         }
     }

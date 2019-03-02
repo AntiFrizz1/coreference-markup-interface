@@ -74,6 +74,7 @@ public class ControllerImpl implements Controller {
 
     public void setText(String txt) {
         text = txt;
+        callTextRefresh();
     }
 
     public void setText(int id) {
