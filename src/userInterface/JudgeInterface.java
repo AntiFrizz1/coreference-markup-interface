@@ -97,25 +97,25 @@ public class JudgeInterface {
 
         HBox box = new HBox(5);
 
-        Button b1 = new Button(decisions.get(0));
+        Button b1 = new Button(decisions.get(1));
         b1.setOnAction(event -> {
             controller.setDecision(1);
             confirmDecision(stage);
         });
 
-        Button b2 = new Button(decisions.get(1));
+        Button b2 = new Button(decisions.get(2));
         b2.setOnAction(event -> {
             controller.setDecision(2);
             confirmDecision(stage);
         });
 
-        Button b3 = new Button(decisions.get(2));
+        Button b3 = new Button(decisions.get(3));
         b3.setOnAction(event -> {
             controller.setDecision(3);
             confirmDecision(stage);
         });
 
-        Button b4 = new Button(decisions.get(3));
+        Button b4 = new Button(decisions.get(0));
         b4.setOnAction(event -> {
             controller.setDecision(0);
             confirmDecision(stage);

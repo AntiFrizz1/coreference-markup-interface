@@ -1,6 +1,11 @@
 package userInterface;
 
-import chain.*;
+import chain.Action;
+import chain.Blank;
+import chain.Chain;
+import chain.ChainImpl;
+import chain.Location;
+import chain.Phrase;
 import client.ConflictImpl;
 import javafx.stage.Stage;
 import javafx.util.Pair;
@@ -10,8 +15,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ControllerImpl implements Controller {
@@ -38,10 +49,12 @@ public class ControllerImpl implements Controller {
     private Chain curChain;
     private Map<Integer, String> selected;
     private int selectedBlank = -1;
-    private String newChainName;
+    private String newChainName; //TODO НАССАТЬ НА ЕБАЛО ВЛАДА
     private List<Action> actions;  // TODO: send this to the server and then empty it after each send
     private Stage primaryStage;  // TODO: this will be used to show the conflict window
     private boolean isLoggedUser = false, isJudge = false;
+
+
 
     ControllerImpl(Stage primaryStage) {
         chains = new ArrayList<>();
@@ -49,6 +62,10 @@ public class ControllerImpl implements Controller {
         selected = new HashMap<>();
         actions = new ArrayList<>();
         this.primaryStage = primaryStage;
+    }
+
+    public List<Action> getActions() {
+        return actions;
     }
 
     @Override
@@ -84,8 +101,9 @@ public class ControllerImpl implements Controller {
 
     public void loginUser(int id) {
         userId = id;
+        if (userId > 100) isJudge = true;
         // TODO: call to server to mark that a user has logged in
-        isLoggedUser = true;
+        else isLoggedUser = true;
     }
 
     @Override
@@ -96,6 +114,10 @@ public class ControllerImpl implements Controller {
     @Override
     public void offlineMode() {
 
+    }
+
+    public void clearActions() {
+        actions.clear();
     }
 
     List<Chain> getChains() {
@@ -344,7 +366,7 @@ public class ControllerImpl implements Controller {
      * @param wordId the word's position in the whole text
      * @return true whether a chain contains this word in one of its locations, false otherwise
      */
-    private boolean chainContainsWord(Chain chain, int wordId) {
+    public boolean chainContainsWord(Chain chain, int wordId) {
         return chain.getLocations().stream().filter(l -> l instanceof Phrase).map(ph -> ((Phrase) ph).getPositions())
                 .anyMatch(s -> s.contains(wordId));
     }
@@ -356,7 +378,7 @@ public class ControllerImpl implements Controller {
      * @param blankId the blank's position in the whole text
      * @return true whether a chain contains this blank in one of its locations, false otherwise
      */
-    private boolean chainContainsBlank(Chain chain, int blankId) {
+    public boolean chainContainsBlank(Chain chain, int blankId) {
         return chain.getLocations().stream().filter(l -> l instanceof Blank).map(bl -> ((Blank) bl).getPosition())
                 .anyMatch(s -> s == blankId);
     }
