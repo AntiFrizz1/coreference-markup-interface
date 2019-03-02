@@ -14,6 +14,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.stream.Collectors;
 
 /**
  * This class describes interaction protocol of Server
@@ -102,6 +103,7 @@ public class ServerImpl implements Server {
     String backupName;
 
     AtomicInteger textNumber = new AtomicInteger(0);
+    AtomicBoolean needBackUp = new AtomicBoolean(false);
 
     public ServerImpl(int port, String prefixOld, String prefixNew) {
         this.port = port;
@@ -148,13 +150,16 @@ public class ServerImpl implements Server {
         }
         if (judgeRecover(prefixOld, prefixNew)) {
             if (serverRecover(prefixOld, prefixNew)) {
-                System.out.println("Successful reconnect server");
-
+                if (finalRecover(prefixOld)) {
+                    System.out.println("Successful reconnect server");
+                } else {
+                    System.err.println("Can't reconnect server: finalRecover error");
+                }
             } else {
-                System.err.println("Can't reconnect server");
+                System.err.println("Can't reconnect server: serverRecover error");
             }
         } else {
-            System.err.println("Can't reconnect server");
+            System.err.println("Can't reconnect server: judgeRecover error");
         }
     }
 
@@ -202,6 +207,8 @@ public class ServerImpl implements Server {
         }
         judgeStore.setJudgeWriter("prefix");
         serverStore.setServerWriter("prefix");
+        backupInfo();
+        System.out.println("Successful start server");
     }
 
     public void loadTexts(List<String> filenames) {
@@ -345,6 +352,7 @@ public class ServerImpl implements Server {
                                 writer.println("OK");
                                 writer.flush();
                                 idToSocket.put(id, client);
+                                needBackUp.compareAndSet(false, true);
                                 socketToId.put(client, id);
                                 users.add(client);
                             }
@@ -438,6 +446,7 @@ public class ServerImpl implements Server {
                     localWriter.flush();
 
                     idToSocket.put(id, client);
+                    needBackUp.compareAndSet(false, true);
                     socketToId.put(client, id);
 
                 } else {
@@ -471,6 +480,8 @@ public class ServerImpl implements Server {
                         idToTextId.put(socketToId.get(client1), text);
                         idToTextId.put(socketToId.get(client2), text);
 
+                        needBackUp.compareAndSet(false, true);
+
                         BufferedReader reader1 = new BufferedReader(new InputStreamReader(client1.getInputStream()));
                         BufferedReader reader2 = new BufferedReader(new InputStreamReader(client2.getInputStream()));
 
@@ -496,6 +507,7 @@ public class ServerImpl implements Server {
                                         String request = localReader.readLine();
                                         if (request == null) {
                                             idToSocket.put(id, nullSocket);
+                                            needBackUp.compareAndSet(false, true);
                                             socketToId.remove(client1);
                                             continue;
                                         } else if (request.equals("EXIT")) {
@@ -510,6 +522,7 @@ public class ServerImpl implements Server {
                                     }
                                 } catch (IOException e) {
                                     idToSocket.put(id, nullSocket);
+                                    needBackUp.compareAndSet(false, true);
                                     socketToId.remove(client1);
                                     System.err.println("onlineUsersScheduler[client1, id = " + socketToId.get(client1) + "] :=: Error: " + e.getMessage());
                                 }
@@ -527,6 +540,7 @@ public class ServerImpl implements Server {
                                         String request = localReader.readLine();
                                         if (request == null) {
                                             idToSocket.put(id, nullSocket);
+                                            needBackUp.compareAndSet(false, true);
                                             socketToId.remove(client2);
                                             continue;
                                         } else if (request.equals("EXIT")) {
@@ -541,6 +555,7 @@ public class ServerImpl implements Server {
                                     }
                                 } catch (IOException e) {
                                     idToSocket.put(id, nullSocket);
+                                    needBackUp.compareAndSet(false, true);
                                     socketToId.remove(client2);
                                     System.err.println("onlineUsersScheduler[client2, id = " + id + "] :=: Error: " + e.getMessage());
 
@@ -820,14 +835,10 @@ public class ServerImpl implements Server {
         PrintWriter backupWriter;
         try {
             backupWriter = new PrintWriter(backupName + DELIMETER + "backupInfo");
-            Set<Integer> set = idToSocket.keySet();
-            backupWriter.println(set.size());
+            backupWriter.println(textNumber);
             backupWriter.flush();
-            set.stream().forEach(a -> {
-                backupWriter.print(a + " ");
-                backupWriter.flush();
-            });
-            backupWriter.println();
+            Set<Integer> set = idToSocket.keySet();
+            backupWriter.println(set.stream().map(Objects::toString).collect(Collectors.joining(" ")));
             backupWriter.flush();
             backupWriter.println(idToTextId.size());
             backupWriter.flush();
@@ -841,13 +852,44 @@ public class ServerImpl implements Server {
     }
 
     private Runnable backupWorker = () -> {
-        backupInfo();
-        try {
-            Thread.sleep(30000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        while (work.get()) {
+            if (needBackUp.compareAndSet(true, false)) {
+                backupInfo();
+            } else {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     };
+
+    public boolean finalRecover(String prefixOld) {
+        BufferedReader backupReader;
+        try {
+            backupReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "backupInfo"), "UTF-8"));
+            String request = backupReader.readLine();
+            textNumber.set(Integer.parseInt(request));
+            request = backupReader.readLine();
+            String[] ids = request.split(" ");
+            for (String id : ids) {
+                idToSocket.put(Integer.parseInt(id), nullSocket);
+            }
+            request = backupReader.readLine();
+            int size = Integer.parseInt(request);
+            for (int i = 0; i < size; i++) {
+                request = backupReader.readLine();
+                String[] nums = request.split(" ");
+                idToTextId.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
+            }
+            backupInfo();
+            return true;
+        } catch (Exception e) {
+            System.err.println("Can't find file " + prefixOld + DELIMETER + "backupInfo");
+            return false;
+        }
+    }
 
     class JudgeStoreFile {
         int id1;
