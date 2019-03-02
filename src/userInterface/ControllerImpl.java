@@ -12,10 +12,7 @@ import javafx.stage.Stage;
 import javafx.util.Pair;
 
 import java.awt.*;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -323,11 +320,21 @@ public class ControllerImpl implements Controller {
     public void deleteChain(Chain chain) {
 
     }
+    BufferedWriter w = null;
+    private void initDump() {
+        if (w == null) {
+            try {
+                w = new BufferedWriter(new FileWriter(new File("dump" + new Date().toString() + ".txt")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Override
     public void saveStateOffline() {
         try {
-            BufferedWriter w = new BufferedWriter(new FileWriter(new File("dump.txt")));
+            initDump();
             StringBuilder sb = new StringBuilder();
             sb.append(Arrays.stream(text.split(" ")).limit(10).collect(Collectors.joining(" ")))
                     .append("\n");
@@ -335,7 +342,6 @@ public class ControllerImpl implements Controller {
             for (Chain c : chains) sb.append(c.pack()).append("\n");
             w.write(sb.toString());
             w.flush();
-            w.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

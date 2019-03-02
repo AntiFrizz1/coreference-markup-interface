@@ -417,9 +417,8 @@ public class Main extends Application {
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
             Integer ID = 0;
-            try {
-                ID = logins.indexOf(id.getText());
-            } catch (NumberFormatException e) {
+            ID = logins.indexOf(id.getText());
+            if (ID == -1) {
                 error.setText("Неправильный ID!");
                 return;
             }
@@ -660,7 +659,7 @@ public class Main extends Application {
         dump.setOnAction(event -> {
             controller.saveStateOffline();
         });
-
+        if (controller.isOnline()) fileSelect.setVisible(false);
         box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
         leftSide.setTop(box);
 
@@ -698,8 +697,9 @@ public class Main extends Application {
                 selectedSentenceStart = selectedSentenceEnd;
                 generateText(text, textWrapper);
                 if (!controller.getActions().isEmpty() && controller.isOnline())
-                    user.sendUpdates(controller.getActions());
-                controller.clearActions();
+                    if (user.sendUpdates(controller.getActions()) == 0) {
+                        controller.clearActions();
+                    }
                 b4.setDisable(true);
             } else {
                 if (controller.isOnline()) {

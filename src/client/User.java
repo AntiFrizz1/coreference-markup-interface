@@ -41,10 +41,15 @@ public class User extends AbstractClient {
         }
     }
 
-    public void sendUpdates(List<Action> actions) {
-        UpdateDocument document = new UpdateDocument(actions);
-        writer.println(document.pack());
-        writer.flush();
+    public int sendUpdates(List<Action> actions) {
+        try {
+            UpdateDocument document = new UpdateDocument(actions);
+            writer.println(document.pack());
+            writer.flush();
+            return 0;
+        } catch (Exception e) {
+            return 1;
+        }
     }
 
     @Override

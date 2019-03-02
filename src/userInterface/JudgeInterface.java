@@ -157,6 +157,7 @@ public class JudgeInterface {
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
             if (whereSingle.contains(i)) {
+                space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {
                 if (whereBlank.contains(i)) {
