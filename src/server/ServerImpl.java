@@ -217,6 +217,7 @@ public class ServerImpl implements Server {
         judgeStore.setJudgeWriter("prefix");
         serverStore.setServerWriter("prefix");
         backupInfo();
+        leaderBoardBackUp();
         System.out.println("Successful start server");
     }
 
@@ -745,11 +746,12 @@ public class ServerImpl implements Server {
             }
         }
     };
+
     private int comparePairs(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
-        if(o1.getValue() > o2.getValue()) {
+        if (o1.getValue() > o2.getValue()) {
             return 1;
-        } else if(o1.getValue() == o2.getValue()) {
-            return  0;
+        } else if (o1.getValue() == o2.getValue()) {
+            return 0;
         } else {
             return -1;
         }
@@ -776,7 +778,7 @@ public class ServerImpl implements Server {
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
                 writer.println(texts.size());
                 writer.flush();
-                for (String string: texts) {
+                for (String string : texts) {
                     writer.println(string);
                     writer.flush();
                 }
@@ -927,6 +929,21 @@ public class ServerImpl implements Server {
         }
     }
 
+    void leaderBoardBackUp() {
+        PrintWriter leaderboardWriter;
+        try {
+            leaderboardWriter = new PrintWriter(backupName + DELIMETER + "leaderboardInfo");
+            leaderboardWriter.println(leaderBoard.size());
+            leaderboardWriter.flush();
+            leaderBoard.forEach((k, v) -> {
+                leaderboardWriter.println(k + " " + v);
+                leaderboardWriter.flush();
+            });
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     private Runnable backupWorker = () -> {
         while (work.get()) {
             if (needBackUp.compareAndSet(true, false)) {
@@ -959,7 +976,16 @@ public class ServerImpl implements Server {
                 String[] nums = request.split(" ");
                 idToTextId.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
             }
+            BufferedReader leaderboardReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "leaderboardInfo"), "UTF-8"));
+            request = leaderboardReader.readLine();
+            size = Integer.parseInt(request);
+            for (int i = 0; i < size; i++) {
+                request = backupReader.readLine();
+                String[] nums = request.split(" ");
+                leaderBoard.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
+            }
             backupInfo();
+            leaderBoardBackUp();
             return true;
         } catch (Exception e) {
             System.err.println("Can't find file " + prefixOld + DELIMETER + "backupInfo");
