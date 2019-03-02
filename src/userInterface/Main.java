@@ -460,7 +460,7 @@ public class Main extends Application {
 
         subRoot.add(enter, 1, 1);
         subRoot.add(back, 3, 1);
-        subRoot.add(enterOffline, 5, 1);
+//        subRoot.add(enterOffline, 5, 1);
         root.add(id, 1, 1);
         root.add(error, 0, 2);
         root.add(subRoot, 1, 3);
