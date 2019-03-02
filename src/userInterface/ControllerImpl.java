@@ -6,7 +6,6 @@ import chain.Chain;
 import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
-import document.Document;
 import document.UpdateDocument;
 import javafx.event.Event;
 import javafx.event.EventType;
@@ -14,9 +13,23 @@ import javafx.stage.Stage;
 import javafx.util.Pair;
 
 import java.awt.*;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -26,7 +39,7 @@ public class ControllerImpl implements Controller {
     private final int ADDCHAIN = 1;
     private final int DELCHAIN = 2;
     private final int DELWORD = 3;
-    private final int POSSIBLE_CANCELS = 5;
+    private final int POSSIBLE_CANCELS = 15;
 
     private boolean online = false;
     private boolean offline = false;
@@ -215,6 +228,7 @@ public class ControllerImpl implements Controller {
 
     public void clearActions() {
         actions.clear();
+        prevStates.clear();
     }
 
     List<Chain> getChains() {
@@ -308,20 +322,33 @@ public class ControllerImpl implements Controller {
      */
     @Override
     public Action addNewChain() {
-        if (selected.isEmpty()) return null;
-        String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
-                .map(Map.Entry::getValue).collect(Collectors.joining(" "));
-        // TODO: maybe Utils.generateRandomColor()?
-        Phrase phrase = new Phrase(result, new HashSet<>(selected.keySet()));
-        ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
-                chains.size(), phrase);
-        Action ac = new Action(ADDCHAIN, newChain.getId(), phrase, newChain.getName());
-        saveState(ac, -1);
-        newChainName = "";
-        chains.add(0, newChain);
-        curChain = null;
-        selected.clear();
-        return ac;
+        if (selected.isEmpty() && selectedBlank == -1) return null;
+        if (!selected.isEmpty()) {
+            String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
+                    .map(Map.Entry::getValue).collect(Collectors.joining(" "));
+            // TODO: maybe Utils.generateRandomColor()?
+            Phrase phrase = new Phrase(result, new HashSet<>(selected.keySet()));
+            ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
+                    chains.size(), phrase);
+            Action ac = new Action(ADDCHAIN, newChain.getId(), phrase, newChain.getName());
+            saveState(ac, -1);
+            newChainName = "";
+            chains.add(0, newChain);
+            curChain = null;
+            selected.clear();
+            return ac;
+        } else {
+            Blank blank = new Blank(selectedBlank);
+            ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
+                    chains.size(), blank);
+            Action ac = new Action(ADDCHAIN, newChain.getId(), blank, newChain.getName());
+            saveState(ac, -1);
+            newChainName = "";
+            chains.add(0, newChain);
+            curChain = null;
+            selectedBlank = -1;
+            return ac;
+        }
     }
 
     /**
@@ -374,7 +401,7 @@ public class ControllerImpl implements Controller {
     private void initTimestamp() {
         if (w == null) {
             try {
-                w = new BufferedWriter(new FileWriter(new File("dump" + textPath), true));
+                w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("dump" + textPath, true), StandardCharsets.UTF_8));
             } catch (IOException e) {
                 e.printStackTrace();
             }

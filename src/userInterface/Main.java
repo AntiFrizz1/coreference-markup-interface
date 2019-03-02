@@ -38,12 +38,11 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.awt.*;
-import java.io.*;
-import java.lang.reflect.Array;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -594,23 +593,35 @@ public class Main extends Application {
         Button b2 = new Button("Новая цепочка");
         b2.setOnAction(event -> {
             Set<Integer> selected = controller.getSelected();
-            if (controller.isSelectedAlreadyBound()) {
-                generateErrorScreen(primaryStage, "Выбранные вами слова уже добавлены в другую цепочку!");
-                controller.clearSelected();
-                removeSelectionFromText(selected, text);
-                return;
-            }
-            if (!selected.isEmpty()) {
-                openChainNameDialogue(primaryStage);
+            int selectedBlank = controller.getSelectedBlank();
+            if (selected.isEmpty() && selectedBlank == -1) {
+                generateErrorScreen(primaryStage, "Не выбрано ни одно слово/пробел!");
             } else {
-                generateErrorScreen(primaryStage, "Не выбрано ни одно слово!");
+                if (!selected.isEmpty() && controller.isSelectedAlreadyBound()) {
+                    generateErrorScreen(primaryStage, "Выбранные вами слова уже добавлены в другую цепочку!");
+                    controller.clearSelected();
+                    removeSelectionFromText(selected, text);
+                    return;
+                }
+                if (selectedBlank != -1 && controller.isSelectedBlankAlreadyBound()) {
+                    generateErrorScreen(primaryStage, "Выбранные вами слова уже добавлены в другую цепочку!");
+                    controller.pressedButton(" ", selectedBlank);  // sets selectedBlank to -1
+                    toggleSelected((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1), "word");
+                    return;
+                }
+                openChainNameDialogue(primaryStage);
             }
             Action ac = controller.addNewChain();
             if (ac != null) {
                 List<Chain> chains = controller.getChains();
                 genChainsList(chainsList, text, chains);
                 updateColoring(ac, chains.get(0), text);
-                removeSelectionFromText(selected, text);
+                if (selected.isEmpty()) {
+                    ((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1)).setText("@");
+                    toggleSelected((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1), "word");
+                } else {
+                    removeSelectionFromText(selected, text);
+                }
                 b4.setDisable(false);
             }
         });
@@ -902,15 +913,20 @@ public class Main extends Application {
      */
     private void updateColoring(Location l, Chain c, FlowPane text) {
         if (l instanceof Blank) {
-            text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
-                    .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
-                            c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
+            if (2 * ((((Blank) l).getPosition() - displayedIndex)) >= 0
+                    && 2 * ((((Blank) l).getPosition() - displayedIndex)) < text.getChildren().size()) {
+                text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
+                        .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
+                                c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
+            }
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
             for (Integer i : pos) {
-                text.getChildren().get(2 * (i - displayedIndex))
-                        .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
-                                c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
+                if (2 * (i - displayedIndex) >= 0 && 2 * (i - displayedIndex) < text.getChildren().size()) {
+                    text.getChildren().get(2 * (i - displayedIndex))
+                            .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
+                                    c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
+                }
             }
         }
     }
@@ -932,6 +948,7 @@ public class Main extends Application {
         if (l instanceof Blank) {
             text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
                     .setStyle("-fx-background-color: rgba(0,0,0,0)");
+            ((Button)text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
             for (Integer i : pos) {
