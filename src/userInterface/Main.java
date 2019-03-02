@@ -309,7 +309,7 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
+                Judge judge = new Judge(1337, 3333, "192.168.43.126", judgeInterface.getController());
                 judgeInterface.setJudge(judge);
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
@@ -422,7 +422,7 @@ public class Main extends Application {
                 error.setText("Неправильный ID!");
                 return;
             }
-            user = new User(ID, 3333, "62.109.13.129");
+            user = new User(ID, 3333, "192.168.43.126");
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();
@@ -460,7 +460,7 @@ public class Main extends Application {
 
         subRoot.add(enter, 1, 1);
         subRoot.add(back, 3, 1);
-        subRoot.add(enterOffline, 5, 1);
+//        subRoot.add(enterOffline, 5, 1);
         root.add(id, 1, 1);
         root.add(error, 0, 2);
         root.add(subRoot, 1, 3);
