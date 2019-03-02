@@ -8,6 +8,7 @@ import chain.Location;
 import chain.Phrase;
 import client.Judge;
 import client.User;
+import client.User;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.geometry.HPos;
@@ -19,6 +20,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -201,14 +203,9 @@ public class Main extends Application {
                 event.consume();
             }
         });
-        Button back = new Button("Назад");
-        back.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-        });
-        root.add(back, 0, 0);
-        root.add(id, 0, 1);
-        root.add(enter, 0, 2);
-        root.add(error, 0, 3);
+        root.add(id, 0, 0);
+        root.add(enter, 0, 1);
+        root.add(error, 0, 2);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
         stage.setOnCloseRequest(Event::consume);
@@ -273,6 +270,14 @@ public class Main extends Application {
         text.setPadding(new Insets(5));
         generateText(text, textWrapper);
         leftSide.setCenter(textWrapper);
+
+        /*
+        The event handler used to generate the text when restoring the state of the program.
+         */
+        primaryStage.addEventHandler(ControllerImpl.RefreshEvent.REFRESH_TEXT, event -> {
+            generateText(text, textWrapper);
+            event.consume();
+        });
 
         /*
         A box that contains the buttons at the top.
@@ -496,8 +501,7 @@ public class Main extends Application {
             if (i < selectedSentenceStart) {
                 word.getStyleClass().add("highlight");  // CSS class for styling sentence selection
             } else if (sentence) {
-                if (selectedSentenceEnd != textSizeInWords - 1 &&
-                        (!isSentenceStart(words[i], words[i + 1]))) {  // this one allows to not detect stuff like И.О.Соколова
+                if (selectedSentenceEnd != textSizeInWords - 1 && !isSentenceStart(words[i], words[i + 1])) {
                     selectedSentenceEnd++;
                 } else {
                     sentence = false;
@@ -519,7 +523,7 @@ public class Main extends Application {
             Button space = new Button("   ");
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            for (Chain c : chains) {
+            for (Chain c: chains) {
                 if (controller.chainContainsBlank(c, i)) {
                     space.setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
                             c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
@@ -534,7 +538,8 @@ public class Main extends Application {
                 space.setOnAction(event -> {
                     if (controller.pressedButton("   ", iF)) toggleSelected(space, "word");
                 });
-            } else {
+            }
+            else {
                 space.getStyleClass().add("highlight");
             }
             Button spaceClone = new Button("   ");
@@ -658,7 +663,7 @@ public class Main extends Application {
      * @return true if cur is a start of a new sentence
      */
     private boolean isSentenceStart(String prev, String cur) {
-        return prev.length() > 2 && Character.isUpperCase(cur.charAt(0)) &&
+        return Character.isUpperCase(cur.charAt(0)) &&
                 (prev.endsWith(".") ||
                         prev.endsWith("?") ||
                         prev.endsWith("!"));
