@@ -8,16 +8,16 @@ import chain.Location;
 import chain.Phrase;
 import client.Judge;
 import client.User;
-import client.User;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -78,6 +78,7 @@ public class Main extends Application {
             primaryStage.setMinWidth(MIN_APP_WIDTH);
             primaryStage.setMinHeight(MIN_APP_HEIGHT);
             primaryStage.setScene(sc);
+            System.out.println("AAA");
             primaryStage.show();
         }
     }
@@ -184,8 +185,9 @@ public class Main extends Application {
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();
-                controller.setText(user.getText());
-                controller.callTextRefresh();
+                Platform.runLater(() -> {
+                    controller.setText(user.getText());
+                });
                 controller.loginUser(Integer.valueOf(id.getText()));
             } else if (out == 1) {
                 stage.getScene().getWindow().hide();
@@ -382,7 +384,6 @@ public class Main extends Application {
                     String txt = new BufferedReader(new FileReader(file)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     controller.setText(txt);
-                    generateText(text, textWrapper);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -664,7 +665,7 @@ public class Main extends Application {
      * @return true if cur is a start of a new sentence
      */
     private boolean isSentenceStart(String prev, String cur) {
-        return Character.isUpperCase(cur.charAt(0)) &&
+        return prev.length() > 3 && Character.isUpperCase(cur.charAt(0)) &&
                 (prev.endsWith(".") ||
                         prev.endsWith("?") ||
                         prev.endsWith("!"));

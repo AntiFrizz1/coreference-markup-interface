@@ -79,7 +79,9 @@ public class ControllerImpl implements Controller {
     }
 
     public void setText(String txt) {
+        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
         text = txt;
+        callTextRefresh();
     }
 
     public void setText(int id) {
