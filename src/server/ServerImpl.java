@@ -250,6 +250,7 @@ public class ServerImpl implements Server {
     Thread conflictInfoSchedulerThread;
     Thread reconnectWorkerThread;
     Thread backupThread;
+    Thread leaderBoardThread;
 
     /**
      * Start server
@@ -264,6 +265,7 @@ public class ServerImpl implements Server {
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         reconnectWorkerThread = new Thread(reconnectWorker);
         backupThread = new Thread(backupWorker);
+        leaderBoardThread = new Thread(leaderBoardRunnable);
 
         listenerThread.start();
         schedulerThread.start();
@@ -274,6 +276,8 @@ public class ServerImpl implements Server {
         conflictInfoSchedulerThread.start();
         reconnectWorkerThread.start();
         backupThread.start();
+        leaderBoardThread.start();
+
         try {
             listenerThread.join();
         } catch (InterruptedException e) {
@@ -484,6 +488,8 @@ public class ServerImpl implements Server {
 
                         idToTextId.put(socketToId.get(client1), text);
                         idToTextId.put(socketToId.get(client2), text);
+                        leaderBoard.put(socketToId.get(client1), 0);
+                        leaderBoard.put(socketToId.get(client2), 0);
 
                         needBackUp.compareAndSet(false, true);
 
@@ -815,6 +821,7 @@ public class ServerImpl implements Server {
                                 toJudgeAboutTeamOne.add(action1);
                                 toJudgeAboutTeamTwo.add(action2);
 
+
                                 if (!action1.isEmpty()) {
                                     for (int i = teamOneActions.size() - 1; i >= 0 && i >= teamOneActions.size() - 100 &&
                                             toJudgeAboutTeamOne.size() < 8; i--) {
@@ -833,13 +840,46 @@ public class ServerImpl implements Server {
                                     }
                                 }
 
-                                /*if ((random.nextInt() % 3 == 0) && down.compareAndSet(false, true)) {
-                                    System.out.println(socket.toString() + "down");
-                                    socket.close();
+                                /*if (toJudgeAboutTeamOne.size() == 1 && toJudgeAboutTeamTwo.size() == 1 && !f && !action1.isEmpty() && !action2.isEmpty()) {
+                                    for (int i = teamOneActions.size() - 100; i >= 0; i--) {
+                                        if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
+                                            toCheckAboutTeamOne.add(teamOneActions.get(i));
+                                            break;
+                                        }
+                                    }
+
+                                    for (int i = teamTwoActions.size() - 150; i >= 0; i--) {
+                                        if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
+                                            toCheckAboutTeamTwo.add(teamTwoActions.get(i));
+                                            break;
+                                        }
+                                    }
+
+                                    if (toCheckAboutTeamOne.size() != toCheckAboutTeamTwo.size()) {
+                                        break;
+                                    } else {
+
+                                    }
                                 }*/
 
-                                /*logWriter.println("send task " + socket.toString());
-                                logWriter.flush();*/
+                                if (!action1.isEmpty() && !action2.isEmpty() && toJudgeAboutTeamOne.size() >= 2 && toJudgeAboutTeamTwo.size() >= 2 && action1.getLocation().equals(action2.getLocation())) {
+                                    Action first = toJudgeAboutTeamOne.get(toJudgeAboutTeamOne.size() - 2);
+                                    Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
+                                    if (first.getLocation().equals(second.getLocation())) {
+                                        if (conflict.complete()) {
+                                            judgeStore.putOneAction(action1, action2, conflict.textId, 3);
+                                            synchronized (leaderBoard) {
+                                                leaderBoard.put(conflict.teamOneId, leaderBoard.get(conflict.teamOneId) + 5);
+                                                leaderBoard.put(conflict.teamTwoId, leaderBoard.get(conflict.teamTwoId) + 5);
+                                            }
+                                            logWriter.println("judge" + socket.toString() + " complete task");
+                                            logWriter.flush();
+                                        }
+
+                                        task.compareAndSet(conflict, null, true, false);
+                                        continue;
+                                    }
+                                }
 
                                 UpdateDocument teamOne = new UpdateDocument(toJudgeAboutTeamOne);
                                 UpdateDocument teamTwo = new UpdateDocument(toJudgeAboutTeamTwo);
@@ -877,9 +917,21 @@ public class ServerImpl implements Server {
                             /*logWriter.println("get decision from judge" + socket.toString());
                             logWriter.flush();*/
                                 int decision = Integer.parseInt(request);
-                                judgeStore.putOneAction(action1, action2, conflict.textId, decision);
 
                                 if (conflict.complete()) {
+                                    judgeStore.putOneAction(action1, action2, conflict.textId, decision);
+                                    synchronized (leaderBoard) {
+                                        if (decision == 1 || decision == 3) {
+                                            leaderBoard.put(conflict.teamOneId, leaderBoard.get(conflict.teamOneId) + 5);
+                                        } else {
+                                            leaderBoard.put(conflict.teamOneId, leaderBoard.get(conflict.teamOneId) - 50);
+                                        }
+                                        if (decision == 2 || decision == 3) {
+                                            leaderBoard.put(conflict.teamTwoId, leaderBoard.get(conflict.teamTwoId) + 5);
+                                        } else {
+                                            leaderBoard.put(conflict.teamTwoId, leaderBoard.get(conflict.teamTwoId) - 50);
+                                        }
+                                    }
                                     logWriter.println("judge" + socket.toString() + " complete task");
                                     logWriter.flush();
                                 }

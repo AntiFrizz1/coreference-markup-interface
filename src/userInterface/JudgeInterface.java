@@ -27,7 +27,7 @@ public class JudgeInterface {
     private volatile Judge judge;
 
     private JudgeController controller = new JudgeController();
-    private List<String> decisions = Arrays.asList("Принять решение первого", "Принять решение второго", "Принять решения обоих", "Не принимать ничье решение");
+    private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
 
 
     public void start(Stage primaryStage) {

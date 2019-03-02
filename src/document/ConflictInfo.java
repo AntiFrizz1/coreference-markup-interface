@@ -38,8 +38,8 @@ public class ConflictInfo {
             counter = new Thread(() -> {
                 while(status.get() != 2) {
                     try {
-                        Thread.sleep(10000);
-                        System.out.println("conflict_info " + textId + " " + teamOneId + " " + teamTwoId  + " " + status);
+                        Thread.sleep(20000);
+                        System.out.println("conflict_info " + textId + " " + teamOneId + " " + teamTwoId  + " " + status + " " + this);
                         int localStatus = status.get();
                         if(localStatus == 1) {
                             if (status.compareAndSet(localStatus, 0)) {

@@ -49,6 +49,9 @@ public class ConflictImpl implements Conflict {
 
     private void makeSets() {
         for (Action action: first) {
+            if (action.isEmpty()) {
+                continue;
+            }
             Location loc = action.getLocation();
             if (loc instanceof Phrase) {
                 firstWordsLocation.addAll(((Phrase) loc).getPositions());
@@ -58,6 +61,9 @@ public class ConflictImpl implements Conflict {
         }
 
         for (Action action: second) {
+            if (action.isEmpty()) {
+                continue;
+            }
             Location loc = action.getLocation();
             if (loc instanceof Phrase) {
                 secondWordsLocation.addAll(((Phrase) loc).getPositions());
@@ -92,18 +98,31 @@ public class ConflictImpl implements Conflict {
         secondWordsLocation = secondWordsLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
         firstBlanksLocation = firstBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
         secondBlanksLocation = secondBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
+        Action fir = first.get(first.size() - 1);
+        Action sec = second.get(second.size() - 1);
 
-        Location firstTmp = first.get(first.size() - 1).getLocation();
-        Location secondTmp = second.get(second.size() - 1).getLocation();
+        Location firstTmp = null;
+        Location secondTmp = null;
 
-        if (firstTmp instanceof Phrase) {
+        if (!fir.isEmpty()) {
+            firstTmp = fir.getLocation();
+        }
+
+        if (!sec.isEmpty()) {
+            secondTmp = sec.getLocation();
+        }
+        if (firstTmp == null) {
+            firstLast = new HashSet<>();
+        } else if (firstTmp instanceof Phrase) {
             firstLast = ((Phrase) firstTmp).getPositions();
         } else if (firstTmp instanceof Blank) {
             firstLast = new HashSet<>();
             firstLast.add(((Blank) firstTmp).getPosition());
         }
 
-        if (secondTmp instanceof Phrase) {
+        if (secondTmp == null) {
+          secondLast = new HashSet<>();
+        } else if (secondTmp instanceof Phrase) {
             secondLast = ((Phrase) secondTmp).getPositions();
         } else if (firstTmp instanceof Blank) {
             secondLast = new HashSet<>();

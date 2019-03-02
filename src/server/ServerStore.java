@@ -107,10 +107,10 @@ public class ServerStore {
                         Action actionFromTeamOne = curGame.teamOneList.get(0);
                         Action actionFromTeamTwo = curGame.teamTwoList.get(0);
                         if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
-                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(), i, curGame.teamOne, curGame.teamTwo)));
+                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamOne, curGame.teamTwo)));
                             curGame.teamOneList.remove(0);
                         } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
-                            conflicts.get(i).add(new ConflictInfo(new ConflictData(new Action(), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
+                            conflicts.get(i).add(new ConflictInfo(new ConflictData(new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
                             curGame.teamTwoList.remove(0);
                         } else {
                             conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
