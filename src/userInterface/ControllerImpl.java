@@ -155,14 +155,14 @@ public class ControllerImpl implements Controller {
     }
 
     public void restoreFromDump(File file) throws IOException {
-        BufferedReader r =  new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
+        BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
 //        String textPath = r.readLine();
 //        File f = new File(textPath);
 //        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
 //        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
         List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
         List<Action> actions = new ArrayList<>();
-        for (String s: lines) {
+        for (String s : lines) {
             actions.addAll(new UpdateDocument(s).getActions());
         }
 //        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
@@ -190,6 +190,7 @@ public class ControllerImpl implements Controller {
         callChainRefresh();
         callMoveSentence(maxId);
     }
+
 
     public void callTextRefresh() {
         //System.out.println("Refresh");
@@ -363,11 +364,13 @@ public class ControllerImpl implements Controller {
 //    long timeStamp = 0;
 
     String textPath;
+
     public void setTextPath(String path) {
         textPath = path;
     }
 
     BufferedWriter w = null;
+
     private void initTimestamp() {
         if (w == null) {
             try {

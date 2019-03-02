@@ -42,6 +42,9 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -652,12 +655,22 @@ public class Main extends Application {
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     controller.setText(txt);
                     controller.setTextPath(file.getName());
+                    File file1 = Paths.get("dump" + controller.textPath).toFile();
+                    try {
+                        if (file1.exists()) {
+                            controller.restoreFromDump(file1);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
             }
+            /*FileChooser сhooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));*/
         });
-        Button dump = new Button("Восстановить разметку из дампа");
+        /*Button dump = new Button("Восстановить разметку из дампа");
         dump.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));
@@ -669,9 +682,10 @@ public class Main extends Application {
                     e.printStackTrace();
                 }
             }
-        });
+        });*/
+
         if (controller.isOnline()) fileSelect.setVisible(false);
-        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
+        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect/*, dump*/);
         leftSide.setTop(box);
 
         /*
