@@ -6,7 +6,8 @@ import chain.Chain;
 import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
-import client.ConflictImpl;
+import javafx.event.Event;
+import javafx.event.EventType;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 
@@ -108,6 +109,21 @@ public class ControllerImpl implements Controller {
     @Override
     public void offlineMode() {
 
+    }
+
+    public void restoreState(String text, List<Action> actions) {
+        Map<Integer, Chain> chain = new HashMap<>();
+        for (Action a: actions) {
+            int id = a.getChainId();
+            chain.computeIfAbsent(id, i -> new ChainImpl(a)).addPart(a.getLocation());
+        }
+        chains = new ArrayList<>(chain.values());
+        callTextRefresh();
+    }
+
+    public void callTextRefresh() {
+        RefreshEvent event = new RefreshEvent();  // TODO: do smth so that the source is actually this
+        primaryStage.fireEvent(event);
     }
 
     public void clearActions() {
@@ -302,17 +318,6 @@ public class ControllerImpl implements Controller {
         return prevStates.size();
     }
 
-    /**
-     * Shows a new window prompting the user to resolve the conflict. The main window is paused until the conflict is
-     * resolved
-     *
-     * @param conflict a conflict to show
-     */
-    @Override
-    public void resolveConflict(ConflictImpl conflict, int decision) {
-        // TODO: this method should send the information to the server and update the chains according to the decision
-    }
-
     @Override
     public void disableOption(int option) {
 
@@ -375,6 +380,15 @@ public class ControllerImpl implements Controller {
     public boolean chainContainsBlank(Chain chain, int blankId) {
         return chain.getLocations().stream().filter(l -> l instanceof Blank).map(bl -> ((Blank) bl).getPosition())
                 .anyMatch(s -> s == blankId);
+    }
+
+    static class RefreshEvent extends Event {
+        public static final EventType<RefreshEvent> REFRESH_TEXT =
+                new EventType<>(Event.ANY, "REFRESH_TEXT");
+
+        public RefreshEvent() {
+            super(REFRESH_TEXT);
+        }
     }
 
 }

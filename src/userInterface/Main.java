@@ -98,12 +98,17 @@ public class Main extends Application {
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
-            if (true /* TODO: call to server to ensure that this user hasn't logged in yet*/) {
-                stage.getScene().getWindow().hide();
-                controller.loginUser(Integer.valueOf(id.getText()));
-            } else {
-                error.setText("Пользователь уже вошел!");
-                // TODO: maybe add an error if a user doesn't exist
+            try {
+                int ID = Integer.valueOf(id.getText());
+                if (true /* TODO: call to server to ensure that this user hasn't logged in yet*/) {
+                    stage.getScene().getWindow().hide();
+                    controller.loginUser(ID);
+                } else {
+                    error.setText("Пользователь уже вошел!");
+                    // TODO: maybe add an error if a user doesn't exist
+                }
+            } catch (NumberFormatException e) {
+                error.setText("Некорректный ID!");
             }
         });
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
@@ -112,14 +117,9 @@ public class Main extends Application {
                 event.consume();
             }
         });
-        Button back = new Button("Назад");
-        back.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-        });
-        root.add(back, 0, 0);
-        root.add(id, 0, 1);
-        root.add(enter, 0, 2);
-        root.add(error, 0, 3);
+        root.add(id, 0, 0);
+        root.add(enter, 0, 1);
+        root.add(error, 0, 2);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
         stage.setOnCloseRequest(Event::consume);
@@ -184,6 +184,14 @@ public class Main extends Application {
         text.setPadding(new Insets(5));
         generateText(text, textWrapper);
         leftSide.setCenter(textWrapper);
+
+        /*
+        The event handler used to generate the text when restoring the state of the program.
+         */
+        primaryStage.addEventHandler(ControllerImpl.RefreshEvent.REFRESH_TEXT, event -> {
+            generateText(text, textWrapper);
+            event.consume();
+        });
 
         /*
         A box that contains the buttons at the top.
@@ -406,8 +414,7 @@ public class Main extends Application {
             if (i < selectedSentenceStart) {
                 word.getStyleClass().add("highlight");  // CSS class for styling sentence selection
             } else if (sentence) {
-                if (selectedSentenceEnd != textSizeInWords - 1 &&
-                        (!isSentenceStart(words[i], words[i + 1]) || selectedSentenceStart + 3 > selectedSentenceEnd)) {  // this one allows to not detect stuff like И.О.Соколова
+                if (selectedSentenceEnd != textSizeInWords - 1 && !isSentenceStart(words[i], words[i + 1])) {
                     selectedSentenceEnd++;
                 } else {
                     sentence = false;
@@ -569,7 +576,7 @@ public class Main extends Application {
      * @return true if cur is a start of a new sentence
      */
     private boolean isSentenceStart(String prev, String cur) {
-        return Character.isUpperCase(cur.charAt(0)) &&
+        return prev.length() > 2 && Character.isUpperCase(cur.charAt(0)) &&
                 (prev.endsWith(".") ||
                         prev.endsWith("?") ||
                         prev.endsWith("!"));
@@ -620,7 +627,7 @@ public class Main extends Application {
         root.add(name, 0, 1);
         Button ok = new Button("OK");
         ok.setOnAction(event -> {
-            if (!name.getText().isEmpty()) {
+            if (!name.getText().trim().isEmpty()) {
                 stage.getScene().getWindow().hide();
                 controller.setNewChainName(name.getText());
             }
