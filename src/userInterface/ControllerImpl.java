@@ -128,6 +128,8 @@ public class ControllerImpl implements Controller {
     }
 
     public void callTextRefresh() {
+        System.out.println("Refresh");
+        System.out.println(text);
         RefreshEvent event = new RefreshEvent();  // TODO: do smth so that the source is actually this
         primaryStage.fireEvent(event);
     }
@@ -181,7 +183,7 @@ public class ControllerImpl implements Controller {
                 .map(Map.Entry::getValue).collect(Collectors.joining(" "));
         Location phrase = new Phrase(result, new HashSet<>(selected.keySet()));
         curChain.addPart(phrase);
-        Action ac = new Action(ADDWORD, curChain.getId(), phrase);
+        Action ac = new Action(ADDWORD, curChain.getId(), phrase, curChain.getName());
         saveState(ac, prevIndex);
         chains.add(0, curChain);
         selected.clear();
@@ -202,7 +204,7 @@ public class ControllerImpl implements Controller {
         chains.remove(curChain);
         Location blank = new Blank(selectedBlank);
         curChain.addPart(blank);
-        Action ac = new Action(ADDWORD, curChain.getId(), blank);
+        Action ac = new Action(ADDWORD, curChain.getId(), blank, curChain.getName());
         saveState(ac, prevIndex);
         chains.add(0, curChain);
         selectedBlank = -1;
@@ -234,7 +236,7 @@ public class ControllerImpl implements Controller {
         Phrase phrase = new Phrase(result, new HashSet<>(selected.keySet()));
         ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
                 chains.size(), phrase);
-        Action ac = new Action(ADDCHAIN, newChain.getId(), phrase);
+        Action ac = new Action(ADDCHAIN, newChain.getId(), phrase, newChain.getName());
         saveState(ac, -1);
         newChainName = "";
         chains.add(0, newChain);

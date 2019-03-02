@@ -4,6 +4,7 @@ import chain.Action;
 import document.ConflictInfo;
 import document.Data;
 import document.UpdateDocument;
+import javafx.util.Pair;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -14,6 +15,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.stream.Collectors;
 
 /**
  * This class describes interaction protocol of Server
@@ -100,6 +102,9 @@ public class ServerImpl implements Server {
 
     Socket nullSocket;
 
+    private Map<Integer, Integer> leaderBoard;
+    private Map<Integer, String> idToUsername;
+
     public ServerImpl(int port) {
         this.port = port;
         try {
@@ -136,6 +141,9 @@ public class ServerImpl implements Server {
         idToTextId = new ConcurrentHashMap<>();
 
         nullSocket = new Socket();
+
+        leaderBoard = new ConcurrentHashMap<>();
+        idToUsername = new ConcurrentHashMap<>();
 
         try {
             logWriter = new PrintWriter("server.log");
@@ -607,6 +615,68 @@ public class ServerImpl implements Server {
             }
         }
     };
+
+    private Runnable leaderBoardRunnable = () -> {
+        while (true) {
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<!DOCTYPE html>\n" +
+                    "<html lang=\"ru\">\n" +
+                    "<head>\n" +
+                    "   <meta charset=\"UTF-8\">\n" +
+                    "   <title>Таблица Лидеров</title>\n" +
+                    "   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+                    "   <link rel=\"stylesheet\" href=\"style.css\">" +
+                    "    " +
+                    "</head>\n" +
+                    "<body>" +
+                    "<div class=\"div-table\">\n" +
+                    "   <h1>Таблица лидеров</h1>" +
+                    "   <table class=\"table\">\n" +
+                    "       <thead>\n" +
+                    "           <tr>\n" +
+                    "               <th>Название команды</th>\n" +
+                    "               <th>Количество очков</th>\n" +
+                    "           </tr>\n" +
+                    "       </thead>\n" +
+                    "       <tbody id=\"table-body\">\n");
+            List<Pair<Integer, Integer>> local = leaderBoard.entrySet().stream()
+                    .map(k -> new Pair<>(k.getKey(), k.getValue())).sorted(this::comparePairs).collect(Collectors.toList());
+            Collections.reverse(local);
+            for (int i = 0; i < local.size(); i++) {
+                htmlBuilder.append(
+                        "       <tr>\n" +
+                                "           <td>").append(idToUsername.get(local.get(i).getKey())).append("</td>\n").append(
+                        "           <td>").append(local.get(i).getValue()).append("</td>\n").append(
+                        "       </tr>\n");
+            }
+
+            htmlBuilder.append(
+                    "       </tbody>\n" +
+                            "   </table>\n" +
+                            "</div>\n" +
+                            "</body>\n" +
+                            "</html>\n");
+            try {
+                PrintWriter writer = new PrintWriter("leaderboard.html");
+                writer.println(htmlBuilder.toString());
+                writer.flush();
+                writer.close();
+                Thread.sleep(2000);
+            } catch (InterruptedException | FileNotFoundException e) {
+                System.err.println("leaderBoardRunnable :=: Error :" + e.getMessage());
+                break;
+            }
+        }
+    };
+    private int comparePairs(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+        if(o1.getValue() > o2.getValue()) {
+            return 1;
+        } else if(o1.getValue() == o2.getValue()) {
+            return  0;
+        } else {
+            return -1;
+        }
+    }
 
     AtomicBoolean down = new AtomicBoolean(false);
     Random random = new Random();

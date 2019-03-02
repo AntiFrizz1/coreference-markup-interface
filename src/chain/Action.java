@@ -7,6 +7,8 @@ import java.util.List;
 
 public class Action implements Packable {
 
+    private String name;
+
     private int action;
 
     private int chainId;
@@ -15,7 +17,8 @@ public class Action implements Packable {
 
     private boolean empty = false;
 
-    public Action(int ac, int id, Location loc) {
+    public Action(int ac, int id, Location loc, String name) {
+        this.name = name;
         action = ac;
         chainId = id;
         location = loc;
@@ -28,6 +31,7 @@ public class Action implements Packable {
             List<String> list = Arrays.asList(info.split("\t"));
             action = Integer.valueOf(list.get(0).split(" ")[0]);
             chainId = Integer.valueOf(list.get(0).split(" ")[1]);
+            name = list.get(0).split(" ")[2];
             if (list.get(1).contains("Blank")) {
                 location = new Blank(list.get(1));
             } else {
@@ -60,7 +64,7 @@ public class Action implements Packable {
     public String pack() {
         if (!empty) {
             StringBuilder sb = new StringBuilder();
-            sb.append(action).append(' ').append(chainId).append('\t');
+            sb.append(action).append(' ').append(chainId).append(' ').append(name).append('\t');
             sb.append(location.pack());
             return sb.toString();
         } else {

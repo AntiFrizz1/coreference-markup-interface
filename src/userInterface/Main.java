@@ -185,6 +185,7 @@ public class Main extends Application {
             if (out == 0) {
                 stage.getScene().getWindow().hide();
                 controller.setText(user.getText());
+                controller.callTextRefresh();
                 controller.loginUser(Integer.valueOf(id.getText()));
             } else if (out == 1) {
                 stage.getScene().getWindow().hide();
