@@ -38,15 +38,16 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.lang.reflect.Array;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Main extends Application {
 
@@ -173,7 +174,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws InterruptedException {
         controller = new ControllerImpl(primaryStage);
 
-        loginUser();
+//        loginUser();
 
         if (controller.isJudge()) {
             judgeInterface.start(primaryStage);
@@ -309,7 +310,7 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "192.168.43.126", judgeInterface.getController());
+                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
                 judgeInterface.setJudge(judge);
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
@@ -647,17 +648,27 @@ public class Main extends Application {
             File file = fileChooser.showOpenDialog(primaryStage);
             if (file != null) {
                 try {
-                    String txt = new BufferedReader(new FileReader(file)).lines().collect(Collectors.joining(". "));
+                    String txt = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     controller.setText(txt);
+                    controller.setTextPath(file.getName());
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
             }
         });
-        Button dump = new Button("Сохранить разметку в файл");
+        Button dump = new Button("Восстановить разметку из дампа");
         dump.setOnAction(event -> {
-            controller.saveStateOffline();
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));
+            File file = fileChooser.showOpenDialog(primaryStage);
+            if (file != null) {
+                try {
+                    controller.restoreFromDump(file);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         });
         if (controller.isOnline()) fileSelect.setVisible(false);
         box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
@@ -692,14 +703,17 @@ public class Main extends Application {
         Button right = new Button(">");
         right.setOnAction(event -> {
             controller.saveStateOffline();
+            controller.clearActions();
+            controller.clearSelected();
+            controller.pressedButton(" ", controller.getSelectedBlank());
             if (selectedSentenceEnd != textSizeInWords - 1) {
                 selectedSentenceEnd++;
                 selectedSentenceStart = selectedSentenceEnd;
                 generateText(text, textWrapper);
-                if (!controller.getActions().isEmpty() && controller.isOnline())
-                    if (user.sendUpdates(controller.getActions()) == 0) {
-                        controller.clearActions();
-                    }
+//                if (!controller.getActions().isEmpty() && controller.isOnline())
+//                    if (user.sendUpdates(controller.getActions()) == 0) {
+//                        controller.clearActions();
+//                    }
                 b4.setDisable(true);
             } else {
                 if (controller.isOnline()) {

@@ -156,7 +156,7 @@ public class JudgeInterface {
             Button space = new Button("   ");
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            if (whereSingle.contains(i)) {
+            if (whereSingle.contains(-i - 1)) {
                 space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {

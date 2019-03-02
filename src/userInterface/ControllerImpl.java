@@ -6,6 +6,8 @@ import chain.Chain;
 import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
+import document.Document;
+import document.UpdateDocument;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.stage.Stage;
@@ -16,6 +18,8 @@ import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ControllerImpl implements Controller {
     private final int ADDWORD = 0;
@@ -146,7 +150,43 @@ public class ControllerImpl implements Controller {
         chains = new ArrayList<>(chain.values());
         System.out.println(chains);
         setText(text);
-        System.out.println("kek");
+        callChainRefresh();
+        callMoveSentence(maxId);
+    }
+
+    public void restoreFromDump(File file) throws IOException {
+        BufferedReader r =  new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
+//        String textPath = r.readLine();
+//        File f = new File(textPath);
+//        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
+//        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
+        List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+        List<Action> actions = new ArrayList<>();
+        for (String s: lines) {
+            actions.addAll(new UpdateDocument(s).getActions());
+        }
+//        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
+        Map<Integer, Chain> chain = new HashMap<>();
+        int maxId = 0;
+        for (Action a : actions) {
+            int id = a.getChainId();
+            if (chain.containsKey(id)) {
+                chain.get(id).addPart(a.getLocation());
+            } else {
+                ChainImpl newChain = new ChainImpl(a);
+                newChain.setColor(generateRandomColor());
+                chain.put(id, newChain);
+            }
+            if (a.getLocation() instanceof Blank) {
+                maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
+            } else if (a.getLocation() instanceof Phrase) {
+                maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
+                        .max(Comparator.naturalOrder()).orElse(0));
+            }
+        }
+        chains = new ArrayList<>(chain.values());
+//        System.out.println(chains);
+//        setText(text);
         callChainRefresh();
         callMoveSentence(maxId);
     }
@@ -320,11 +360,18 @@ public class ControllerImpl implements Controller {
     public void deleteChain(Chain chain) {
 
     }
+//    long timeStamp = 0;
+
+    String textPath;
+    public void setTextPath(String path) {
+        textPath = path;
+    }
+
     BufferedWriter w = null;
-    private void initDump() {
+    private void initTimestamp() {
         if (w == null) {
             try {
-                w = new BufferedWriter(new FileWriter(new File("dump" + new Date().getTime() + ".txt")));
+                w = new BufferedWriter(new FileWriter(new File("dump" + textPath), true));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -334,14 +381,21 @@ public class ControllerImpl implements Controller {
     @Override
     public void saveStateOffline() {
         try {
-            initDump();
-            StringBuilder sb = new StringBuilder();
-            sb.append(Arrays.stream(text.split(" ")).limit(10).collect(Collectors.joining(" ")))
-                    .append("\n");
-            System.out.println(chains.size());
-            for (Chain c : chains) sb.append(c.pack()).append("\n");
-            w.write(sb.toString());
+            initTimestamp();
+
+
+//            BufferedWriter w = new BufferedWriter(new FileWriter(new File("dump" + timeStamp + "-" + textPath)));
+//            StringBuilder sb = new StringBuilder();
+//            sb.append(Arrays.stream(text.split(" ")).limit(10).collect(Collectors.joining(" ")))
+//                    .append("\n");
+//            System.out.println(chains.size());
+//            for (Chain c : chains) sb.append(c.pack()).append("\n\n");
+//            w.write(sb.toString());
+            UpdateDocument document = new UpdateDocument(actions);
+//            w.write(textPath + "\n");
+            w.write(document.pack() + "\n");
             w.flush();
+//            w.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

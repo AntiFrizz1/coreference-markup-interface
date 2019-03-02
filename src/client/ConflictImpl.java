@@ -47,7 +47,7 @@ public class ConflictImpl implements Conflict {
     }
 
     private void makeSets() {
-        for (Action action: first) {
+        for (Action action : first) {
             if (action.isEmpty()) {
                 continue;
             }
@@ -59,14 +59,15 @@ public class ConflictImpl implements Conflict {
             }
         }
 
-        for (Action action: second) {
+        for (Action action : second) {
             if (action.isEmpty()) {
                 continue;
             }
             Location loc = action.getLocation();
             if (loc instanceof Phrase) {
                 secondWordsLocation.addAll(((Phrase) loc).getPositions());
-            }if (loc instanceof Blank) {
+            }
+            if (loc instanceof Blank) {
                 secondBlanksLocation.add(((Blank) loc).getPosition());
             }
         }
@@ -95,8 +96,8 @@ public class ConflictImpl implements Conflict {
         int finalLeft = left;
         firstWordsLocation = firstWordsLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
         secondWordsLocation = secondWordsLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
-        firstBlanksLocation = firstBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
-        secondBlanksLocation = secondBlanksLocation.stream().map(e -> e - finalLeft).collect(Collectors.toSet());
+        firstBlanksLocation = firstBlanksLocation.stream().map(e -> -(e - finalLeft) - 1).collect(Collectors.toSet());
+        secondBlanksLocation = secondBlanksLocation.stream().map(e -> -(e - finalLeft) - 1).collect(Collectors.toSet());
         Action fir = first.get(first.size() - 1);
         Action sec = second.get(second.size() - 1);
 
@@ -116,16 +117,16 @@ public class ConflictImpl implements Conflict {
             firstLast = ((Phrase) firstTmp).getPositions();
         } else if (firstTmp instanceof Blank) {
             firstLast = new HashSet<>();
-            firstLast.add(((Blank) firstTmp).getPosition());
+            firstLast.add(-((Blank) firstTmp).getPosition() - 1);
         }
 
         if (secondTmp == null) {
-          secondLast = new HashSet<>();
+            secondLast = new HashSet<>();
         } else if (secondTmp instanceof Phrase) {
             secondLast = ((Phrase) secondTmp).getPositions();
         } else if (firstTmp instanceof Blank) {
             secondLast = new HashSet<>();
-            secondLast.add(((Blank) secondTmp).getPosition());
+            secondLast.add(-((Blank) secondTmp).getPosition() - 1);
         }
     }
 
