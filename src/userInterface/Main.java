@@ -422,7 +422,7 @@ public class Main extends Application {
                 error.setText("Неправильный ID!");
                 return;
             }
-            user = new User(ID, 3333, "192.168.43.126");
+            user = new User(ID, 3333, "62.109.13.129");
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();
