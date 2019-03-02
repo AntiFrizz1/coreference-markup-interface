@@ -6,6 +6,7 @@ import document.UpdateDocument;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -53,8 +54,8 @@ public abstract class AbstractClient implements Client {
             this.port = port;
             this.serviceAddress = serviceAddress;
             socket = new Socket(serviceAddress, port);
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
         } catch (IOException e) {
             System.err.println("Can't connect to server");
         }

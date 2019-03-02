@@ -15,6 +15,8 @@ public class Action implements Packable {
 
     private Location location;
 
+    private boolean empty = false;
+
     public Action(int ac, int id, Location loc, String name) {
         this.name = name;
         action = ac;
@@ -34,8 +36,16 @@ public class Action implements Packable {
         }
     }
 
+    public Action() {
+        empty = true;
+    }
+
     public int getAction() {
         return action;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public int getChainId() {

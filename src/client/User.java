@@ -96,6 +96,8 @@ public class User extends AbstractClient {
         writer.println(document.pack());
         writer.flush();
         try {
+            writer.println("EXIT");
+            writer.flush();
             socket.close();
         } catch (IOException e) {
             System.err.println("Can't close socket");

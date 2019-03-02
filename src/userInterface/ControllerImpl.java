@@ -16,14 +16,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ControllerImpl implements Controller {
@@ -33,6 +27,8 @@ public class ControllerImpl implements Controller {
     private final int DELWORD = 3;
     private final int POSSIBLE_CANCELS = 5;
 
+    private boolean online = false;
+    private boolean offline = false;
     private List<Chain> chains;
     private List<Pair<Action, Integer>> prevStates;
     private int textId;
@@ -56,7 +52,6 @@ public class ControllerImpl implements Controller {
     private boolean isLoggedUser = false, isJudge = false;
 
 
-
     ControllerImpl(Stage primaryStage) {
         chains = new ArrayList<>();
         prevStates = new ArrayList<>();
@@ -69,9 +64,17 @@ public class ControllerImpl implements Controller {
         return actions;
     }
 
+    public void setActions(List<Action> actions) {
+        this.actions = actions;
+    }
+
     @Override
     public void showUI() {
 
+    }
+
+    public boolean isOnline() {
+        return online;
     }
 
     public String getText() {
@@ -79,7 +82,9 @@ public class ControllerImpl implements Controller {
     }
 
     public void setText(String txt) {
+        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
         text = txt;
+        callTextRefresh();
     }
 
     public void setText(int id) {
@@ -103,34 +108,70 @@ public class ControllerImpl implements Controller {
     public void loginUser(int id) {
         userId = id;
         if (userId > 100) isJudge = true;
-        // TODO: call to server to mark that a user has logged in
+            // TODO: call to server to mark that a user has logged in
         else isLoggedUser = true;
+        onlineMode();
     }
 
     @Override
     public void onlineMode() {
-
+        online = true;
     }
 
     @Override
     public void offlineMode() {
+        offline = true;
+    }
 
+    public boolean isOfflineMode() {
+        return offline;
     }
 
     public void restoreState(String text, List<Action> actions) {
         Map<Integer, Chain> chain = new HashMap<>();
-        for (Action a: actions) {
+        int maxId = 0;
+        for (Action a : actions) {
             int id = a.getChainId();
-            chain.computeIfAbsent(id, i -> new ChainImpl(a)).addPart(a.getLocation());
+            if (chain.containsKey(id)) {
+                chain.get(id).addPart(a.getLocation());
+            } else {
+                ChainImpl newChain = new ChainImpl(a);
+                newChain.setColor(generateRandomColor());
+                chain.put(id, newChain);
+            }
+            if (a.getLocation() instanceof Blank) {
+                maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
+            } else if (a.getLocation() instanceof Phrase) {
+                maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
+                        .max(Comparator.naturalOrder()).orElse(0));
+            }
         }
         chains = new ArrayList<>(chain.values());
-        callTextRefresh();
+        System.out.println(chains);
+        setText(text);
+        System.out.println("kek");
+        callChainRefresh();
+        callMoveSentence(maxId);
     }
 
     public void callTextRefresh() {
-        System.out.println("Refresh");
-        System.out.println(text);
+        //System.out.println("Refresh");
+        //System.out.println(text);
         RefreshEvent event = new RefreshEvent();  // TODO: do smth so that the source is actually this
+        primaryStage.fireEvent(event);
+    }
+
+    public void callChainRefresh() {
+        //System.out.println("Refresh");
+        //System.out.println(text);
+        RefreshChainEvent event = new RefreshChainEvent();  // TODO: do smth so that the source is actually this
+        primaryStage.fireEvent(event);
+    }
+
+    public void callMoveSentence(int id) {
+        //System.out.println("Refresh");
+        //System.out.println(text);
+        MoveSelectedSentenceEvent event = new MoveSelectedSentenceEvent(id); // TODO: do smth so that the source is actually this
         primaryStage.fireEvent(event);
     }
 
@@ -288,7 +329,10 @@ public class ControllerImpl implements Controller {
         try {
             BufferedWriter w = new BufferedWriter(new FileWriter(new File("dump.txt")));
             StringBuilder sb = new StringBuilder();
-            for (Chain c : chains) sb.append(c.pack());
+            sb.append(Arrays.stream(text.split(" ")).limit(10).collect(Collectors.joining(" ")))
+                    .append("\n");
+            System.out.println(chains.size());
+            for (Chain c : chains) sb.append(c.pack()).append("\n");
             w.write(sb.toString());
             w.flush();
             w.close();
@@ -399,4 +443,24 @@ public class ControllerImpl implements Controller {
         }
     }
 
+    static class RefreshChainEvent extends Event {
+        public static final EventType<RefreshChainEvent> REFRESH_CHAIN =
+                new EventType<>(Event.ANY, "REFRESH_CHAIN");
+
+        public RefreshChainEvent() {
+            super(REFRESH_CHAIN);
+        }
+    }
+
+    static class MoveSelectedSentenceEvent extends Event {
+        public static final EventType<MoveSelectedSentenceEvent> MOVE_SELECTED_SENTENCE =
+                new EventType<>(Event.ANY, "MOVE_SELECTED_SENTENCE");
+
+        public int id;
+
+        public MoveSelectedSentenceEvent(int location) {
+            super(MOVE_SELECTED_SENTENCE);
+            id = location;
+        }
+    }
 }

@@ -7,8 +7,8 @@ import chain.Phrase;
 import document.ConflictData;
 import document.ConflictInfo;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -36,12 +36,12 @@ public class ServerStore {
             writer.flush();
 
             try {
-                writerOne = new PrintWriter(prefixOld + ServerImpl.DELIMETER + teamOne + "text=" + textNum);
+                writerOne = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixOld + ServerImpl.DELIMETER + teamOne + "text=" + textNum), StandardCharsets.UTF_8)));
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamOne + "text=" + textNum);
             }
             try {
-                writerTwo = new PrintWriter(prefixOld + ServerImpl.DELIMETER + teamTwo + "text=" + textNum);
+                writerTwo = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixOld + ServerImpl.DELIMETER + teamTwo + "text=" + textNum), StandardCharsets.UTF_8)));
             } catch (FileNotFoundException e) {
                 System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
             }
@@ -72,7 +72,7 @@ public class ServerStore {
 
     public void setServerWriter(String prefix) {
         try {
-            writer = new PrintWriter(prefix + ServerImpl.DELIMETER + "gamesServer");
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMETER + "gamesServer"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
             System.err.println("Can't find file " + prefix + ServerImpl.DELIMETER + "gamesServer");
         }
@@ -80,6 +80,7 @@ public class ServerStore {
 
     boolean putActions(List<Action> actions, int textNum, int teamNum) {
         Game curGame = games.get(textNum);
+        actions.sort(this::compareActions);
         if (teamNum == 1) {
             curGame.teamOneList.addAll(actions);
             PrintWriter writer = curGame.writerOne;
@@ -130,6 +131,10 @@ public class ServerStore {
     synchronized void addNewGame(int teamOne, int teamTwo, int textNum, String prefixOld) {
         Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld, writer);
         games.add(newGame);
+    }
+
+    public int compareActions(Action action1, Action action2) {
+        return compare(action1.getLocation(), action2.getLocation());
     }
 
     public static int compare(Location o1, Location o2) {

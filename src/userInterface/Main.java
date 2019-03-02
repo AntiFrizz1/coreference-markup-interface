@@ -8,16 +8,17 @@ import chain.Location;
 import chain.Phrase;
 import client.Judge;
 import client.User;
-import client.User;
+import document.Data;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -41,6 +42,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,13 +51,115 @@ import java.util.stream.Collectors;
 public class Main extends Application {
 
     private User user;
-    final private int APP_WIDTH = 1280;
-    final private int APP_HEIGHT = 720;
+    final private int APP_WIDTH = 800;
+    final private int APP_HEIGHT = 600;
     final private int MIN_APP_WIDTH = 700;
     final private int MIN_APP_HEIGHT = 300;
     final private int RGB_BLACK = -16777216;
     private ControllerImpl controller;
-    private String judgePassword = "password";
+    private String judgePassword = "qkordkfr";
+    private List<String> logins = Arrays.asList("benzrady",
+            "nmrctygk",
+            "mclkxvsj",
+            "odvxfuci",
+            "dfubtwqg",
+            "camamhnk",
+            "iowczict",
+            "ajngwijk",
+            "uffawdre",
+            "qggghbug",
+            "ncixnfkx",
+            "gczwfxtx",
+            "irynigde",
+            "yfzkjkes",
+            "pffcpfkv",
+            "mfdmnwum",
+            "uotqbhvv",
+            "ffurtemf",
+            "mhkpwmun",
+            "vkwljtir",
+            "fefxzvzg",
+            "nozerbzp",
+            "pujwjwvg",
+            "pbytbkok",
+            "wujjjagi",
+            "obumepcz",
+            "gxldygao",
+            "hyadyobq",
+            "ioqpyjxb",
+            "mmxmyyot",
+            "umbkejwb",
+            "kddtnqob",
+            "msgqyfrz",
+            "bqkyogqt",
+            "bvvuverw",
+            "jtdyjkck",
+            "weahvkkv",
+            "kfhbgtsx",
+            "hnpxahwe",
+            "hucedyvq",
+            "cxeixlte",
+            "izarunno",
+            "nmdvtkqy",
+            "xwcghmmh",
+            "hnfcjwmg",
+            "wiffdwgp",
+            "ugosjxop",
+            "wcoaftgi",
+            "mhvlclsh",
+            "ihsqnrpw",
+            "qkbmdtvy",
+            "rnahpxue",
+            "ytmrrels",
+            "xpgcsccm",
+            "qzszwksw",
+            "gisoxhzp",
+            "evhqggxb",
+            "povbkyln",
+            "hkihogra",
+            "mbqfjlmv",
+            "hzjwrsbw",
+            "ygqrzbby",
+            "afjicwrg",
+            "ldfknpnh",
+            "sfsnetgw",
+            "invmaxqd",
+            "yizrkyrk",
+            "rspgqlzf",
+            "qbmxhwkl",
+            "gpkfybeg",
+            "bvjjxtwy",
+            "cywzrkcu",
+            "rndnibnl",
+            "knyghfbn",
+            "ahjntsuf",
+            "wizhcvmi",
+            "rsleqtom",
+            "lwzphawv",
+            "pzhdmvgg",
+            "jwcyrccd",
+            "xrdunttf",
+            "egvqfunb",
+            "pohqhspv",
+            "yuzcwcsh",
+            "wskeofoe",
+            "nsaqwlyr",
+            "viomipbt",
+            "ufpigoqa",
+            "ajasswvn",
+            "ytgazwdv",
+            "tjhpaawo",
+            "ugeqaaow",
+            "gehujxkx",
+            "gqksnopt",
+            "pbzpdhtd",
+            "vwgdhsnf",
+            "yecygdql",
+            "hwpgqdyh",
+            "nhlqqxin",
+            "urmnmysy"
+    );
+
     private int selectedSentenceStart = 0, selectedSentenceEnd = 0, textSizeInWords, displayedIndex;
     /**
      * A search criteria for chains. Only works on separate links in chain (i.e. a chain link
@@ -78,6 +183,7 @@ public class Main extends Application {
             primaryStage.setMinWidth(MIN_APP_WIDTH);
             primaryStage.setMinHeight(MIN_APP_HEIGHT);
             primaryStage.setScene(sc);
+            //System.out.println("AAA");
             primaryStage.show();
         }
     }
@@ -92,7 +198,26 @@ public class Main extends Application {
         stage.setTitle("Выберите роль");
         GridPane root = new GridPane();
         ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(50);
+        ColumnConstraints col2 = new ColumnConstraints();
+        ColumnConstraints col3 = new ColumnConstraints();
+        ColumnConstraints col4 = new ColumnConstraints();
+        ColumnConstraints col5 = new ColumnConstraints();
+        col1.setPercentWidth(10);
+        col2.setPercentWidth(35);
+        col3.setPercentWidth(10);
+        col4.setPercentWidth(35);
+        col5.setPercentWidth(10);
+
+        root.getColumnConstraints().addAll(col1, col2, col3, col4, col5);
+        RowConstraints row1 = new RowConstraints();
+        RowConstraints row2 = new RowConstraints();
+        RowConstraints row3 = new RowConstraints();
+        row1.setPercentHeight(30);
+        row2.setPercentHeight(40);
+        row3.setPercentHeight(30);
+
+        root.getRowConstraints().addAll(row1, row2, row3);
+
         Button judge = new Button("Войти как судья");
         Button user = new Button("Войти как пользователь");
         judge.setPadding(new Insets(5));
@@ -105,10 +230,12 @@ public class Main extends Application {
         });
         user.setOnAction(event -> {
             userLoginScreen();
-            if (controller.isJudge() || controller.isLoggedUser()) stage.getScene().getWindow().hide();
+            if (controller.isOfflineMode() || controller.isJudge() || controller.isLoggedUser()) {
+                stage.getScene().getWindow().hide();
+            }
         });
-        root.add(judge, 0, 0);
-        root.add(user, 1, 0);
+        root.add(judge, 1, 1);
+        root.add(user, 3, 1);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
         stage.setOnCloseRequest(Event::consume);
@@ -120,6 +247,55 @@ public class Main extends Application {
         Stage stage = new Stage();
         stage.setTitle("Введите пароль");
         GridPane root = new GridPane();
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        ColumnConstraints col2 = new ColumnConstraints();
+        ColumnConstraints col3 = new ColumnConstraints();
+        col1.setPercentWidth(30);
+        col2.setPercentWidth(40);
+        col3.setPercentWidth(30);
+
+        root.getColumnConstraints().addAll(col1, col2, col3);
+        RowConstraints row1 = new RowConstraints();
+        RowConstraints row2 = new RowConstraints();
+        RowConstraints row3 = new RowConstraints();
+        RowConstraints row4 = new RowConstraints();
+        RowConstraints row5 = new RowConstraints();
+        row1.setPercentHeight(10);
+        row2.setPercentHeight(25);
+        row3.setPercentHeight(20);
+        row4.setPercentHeight(25);
+        row5.setPercentHeight(10);
+
+
+        root.getRowConstraints().addAll(row1, row2, row3, row4, row5);
+
+        GridPane subRoot = new GridPane();
+
+        ColumnConstraints ccol1 = new ColumnConstraints();
+        ColumnConstraints ccol2 = new ColumnConstraints();
+        ColumnConstraints ccol3 = new ColumnConstraints();
+        ColumnConstraints ccol4 = new ColumnConstraints();
+        ColumnConstraints ccol5 = new ColumnConstraints();
+
+        ccol1.setPercentWidth(10);
+        ccol2.setPercentWidth(35);
+        ccol3.setPercentWidth(10);
+        ccol4.setPercentWidth(35);
+        ccol5.setPercentWidth(10);
+
+        subRoot.getColumnConstraints().addAll(ccol1, ccol2, ccol3, ccol4, ccol5);
+
+        RowConstraints rrow1 = new RowConstraints();
+        RowConstraints rrow2 = new RowConstraints();
+        RowConstraints rrow3 = new RowConstraints();
+
+        rrow1.setPercentHeight(20);
+        rrow2.setPercentHeight(60);
+        rrow3.setPercentHeight(20);
+
+        subRoot.getRowConstraints().addAll(rrow1, rrow2, rrow3);
+
         PasswordField password = new PasswordField();
         password.setPromptText("Введите пароль судьи...");
         GridPane.setValignment(password, VPos.CENTER);
@@ -133,7 +309,7 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "localhost", judgeInterface.getController());
+                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
                 judgeInterface.setJudge(judge);
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
@@ -152,13 +328,17 @@ public class Main extends Application {
         back.setOnAction(event -> {
             stage.getScene().getWindow().hide();
         });
-        root.add(back, 0, 0);
-        root.add(password, 0, 1);
-        root.add(enter, 0, 2);
-        root.add(error, 0, 3);
+
+        subRoot.add(enter, 1, 1);
+        subRoot.add(back, 3, 1);
+        root.add(password, 1, 1);
+        root.add(error, 1, 2);
+        root.add(subRoot, 1, 3);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
         stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
@@ -170,6 +350,55 @@ public class Main extends Application {
         Stage stage = new Stage();
         stage.setTitle("Введите ID пользователя");
         GridPane root = new GridPane();
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        ColumnConstraints col2 = new ColumnConstraints();
+        ColumnConstraints col3 = new ColumnConstraints();
+        col1.setPercentWidth(30);
+        col2.setPercentWidth(40);
+        col3.setPercentWidth(30);
+
+        root.getColumnConstraints().addAll(col1, col2, col3);
+        RowConstraints row1 = new RowConstraints();
+        RowConstraints row2 = new RowConstraints();
+        RowConstraints row3 = new RowConstraints();
+        RowConstraints row4 = new RowConstraints();
+        RowConstraints row5 = new RowConstraints();
+        row1.setPercentHeight(10);
+        row2.setPercentHeight(25);
+        row3.setPercentHeight(20);
+        row4.setPercentHeight(25);
+        row5.setPercentHeight(10);
+
+
+        root.getRowConstraints().addAll(row1, row2, row3, row4, row5);
+
+        GridPane subRoot = new GridPane();
+
+        ColumnConstraints ccol1 = new ColumnConstraints();
+        ColumnConstraints ccol2 = new ColumnConstraints();
+        ColumnConstraints ccol3 = new ColumnConstraints();
+        ColumnConstraints ccol4 = new ColumnConstraints();
+        ColumnConstraints ccol5 = new ColumnConstraints();
+
+        ccol1.setPercentWidth(10);
+        ccol2.setPercentWidth(35);
+        ccol3.setPercentWidth(10);
+        ccol4.setPercentWidth(35);
+        ccol5.setPercentWidth(10);
+
+        subRoot.getColumnConstraints().addAll(ccol1, ccol2, ccol3, ccol4, ccol5);
+
+        RowConstraints rrow1 = new RowConstraints();
+        RowConstraints rrow2 = new RowConstraints();
+        RowConstraints rrow3 = new RowConstraints();
+
+        rrow1.setPercentHeight(20);
+        rrow2.setPercentHeight(60);
+        rrow3.setPercentHeight(20);
+
+        subRoot.getRowConstraints().addAll(rrow1, rrow2, rrow3);
+
         TextField id = new TextField();
         id.setPromptText("Введите ID пользователя...");
         GridPane.setValignment(id, VPos.CENTER);
@@ -177,19 +406,38 @@ public class Main extends Application {
         Button enter = new Button("Войти");
         GridPane.setValignment(enter, VPos.CENTER);
         GridPane.setHalignment(enter, HPos.CENTER);
+        Button enterOffline = new Button("Войти оффлайн");
+        GridPane.setValignment(enter, VPos.CENTER);
+        GridPane.setHalignment(enter, HPos.CENTER);
+        enterOffline.setOnAction(event -> {
+            controller.offlineMode();
+            stage.getScene().getWindow().hide();
+        });
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
-            user = new User(Integer.valueOf(id.getText()), 3333, "localhost");
+            Integer ID = 0;
+            try {
+                ID = logins.indexOf(id.getText());
+            } catch (NumberFormatException e) {
+                error.setText("Неправильный ID!");
+                return;
+            }
+            user = new User(ID, 3333, "62.109.13.129");
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();
-                controller.setText(user.getText());
-                controller.callTextRefresh();
-                controller.loginUser(Integer.valueOf(id.getText()));
+                Platform.runLater(() -> {
+                    controller.setText(user.getText());
+                });
+                controller.loginUser(ID);
             } else if (out == 1) {
                 stage.getScene().getWindow().hide();
-                controller.loginUser(Integer.valueOf(id.getText()));
+                Platform.runLater(() -> {
+                    Data data = user.getData();
+                    controller.restoreState(data.getText(), data.getActions());
+                });
+                controller.loginUser(ID);
             } else {
                 if (out == 2) {
                     error.setText("Пользователь с таким id уже авторизовался!");
@@ -204,12 +452,24 @@ public class Main extends Application {
                 event.consume();
             }
         });
-        root.add(id, 0, 0);
-        root.add(enter, 0, 1);
+
+        Button back = new Button("Назад");
+        back.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+
+        subRoot.add(enter, 1, 1);
+        subRoot.add(back, 3, 1);
+        subRoot.add(enterOffline, 5, 1);
+        root.add(id, 1, 1);
         root.add(error, 0, 2);
+        root.add(subRoot, 1, 3);
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
         stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
@@ -232,6 +492,16 @@ public class Main extends Application {
             overall.getColumnConstraints().addAll(col1, col2);
         }
 
+        /*
+        A pane containing the selected text in form of buttons.
+         */
+        ScrollPane textWrapper = new ScrollPane();
+        textWrapper.setFitToWidth(true);
+        FlowPane text = new FlowPane();
+        textWrapper.setContent(text);
+        text.setPadding(new Insets(5));
+        generateText(text, textWrapper);
+
         GridPane rightSide = new GridPane();
 
         /*
@@ -251,7 +521,7 @@ public class Main extends Application {
         TextField field = new TextField();
         field.textProperty().addListener((observable, oldValue, newValue) -> {
             chainFilter = newValue;
-            genChainsList(chainsList, controller.getChains());
+            genChainsList(chainsList, text, controller.getChains());
         });
         field.setPromptText("Введите текст для поиска в цепочках...");
 
@@ -261,15 +531,6 @@ public class Main extends Application {
 
         BorderPane leftSide = new BorderPane();
 
-        /*
-        A pane containing the selected text in form of buttons.
-         */
-        ScrollPane textWrapper = new ScrollPane();
-        textWrapper.setFitToWidth(true);
-        FlowPane text = new FlowPane();
-        textWrapper.setContent(text);
-        text.setPadding(new Insets(5));
-        generateText(text, textWrapper);
         leftSide.setCenter(textWrapper);
 
         /*
@@ -281,6 +542,14 @@ public class Main extends Application {
         });
 
         /*
+        The event handler used to generate the text when restoring the state of the program.
+         */
+        primaryStage.addEventHandler(ControllerImpl.RefreshChainEvent.REFRESH_CHAIN, event -> {
+            genChainsList(chainsList, text, controller.getChains());
+            event.consume();
+        });
+
+        /*
         A box that contains the buttons at the top.
          */
         HBox box = new HBox();
@@ -288,7 +557,7 @@ public class Main extends Application {
         Button b4 = new Button("Отменить");
         b4.setOnAction(event -> {
             Action ac = controller.cancel();
-            genChainsList(chainsList, controller.getChains());
+            genChainsList(chainsList, text, controller.getChains());
             undoAction(ac, text, controller.getChains());
             int remaining = controller.getPrevStatesSize();
             if (remaining == 0) b4.setDisable(true);
@@ -312,7 +581,7 @@ public class Main extends Application {
             Action ac = controller.addToChain();
             if (ac != null) {
                 List<Chain> chains = controller.getChains();
-                genChainsList(chainsList, chains);
+                genChainsList(chainsList, text, chains);
                 updateColoring(ac, chains.get(0), text);
                 removeSelectionFromText(selected, text);
                 b4.setDisable(false);
@@ -336,7 +605,7 @@ public class Main extends Application {
             Action ac = controller.addNewChain();
             if (ac != null) {
                 List<Chain> chains = controller.getChains();
-                genChainsList(chainsList, chains);
+                genChainsList(chainsList, text, chains);
                 updateColoring(ac, chains.get(0), text);
                 removeSelectionFromText(selected, text);
                 b4.setDisable(false);
@@ -360,7 +629,7 @@ public class Main extends Application {
             Action ac = controller.addAnaphoraToChain();
             if (ac != null) {
                 List<Chain> chains = controller.getChains();
-                genChainsList(chainsList, chains);
+                genChainsList(chainsList, text, chains);
                 Blank b = (Blank) ac.getLocation();
                 toggleSelected((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1), "word");
                 ((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1)).setText("@");
@@ -382,7 +651,6 @@ public class Main extends Application {
                     String txt = new BufferedReader(new FileReader(file)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     controller.setText(txt);
-                    generateText(text, textWrapper);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -424,18 +692,31 @@ public class Main extends Application {
          */
         Button right = new Button(">");
         right.setOnAction(event -> {
+            controller.saveStateOffline();
             if (selectedSentenceEnd != textSizeInWords - 1) {
                 selectedSentenceEnd++;
                 selectedSentenceStart = selectedSentenceEnd;
                 generateText(text, textWrapper);
-                user.sendUpdates(controller.getActions());
+                if (!controller.getActions().isEmpty() && controller.isOnline())
+                    user.sendUpdates(controller.getActions());
                 controller.clearActions();
                 b4.setDisable(true);
             } else {
-                user.close(controller.getActions());
-                controller.clearActions();
+                if (controller.isOnline()) {
+                    user.close(controller.getActions());
+                    controller.clearActions();
+                }
             }
         });
+
+        /*
+        The event handler used to generate the text when restoring the state of the program.
+         */
+        primaryStage.addEventHandler(ControllerImpl.MoveSelectedSentenceEvent.MOVE_SELECTED_SENTENCE,
+                event -> {
+                    while (selectedSentenceStart < event.id) right.fire();
+                    event.consume();
+                });
 
         ColumnConstraints col1 = new ColumnConstraints();
         ColumnConstraints col2 = new ColumnConstraints();
@@ -519,12 +800,12 @@ public class Main extends Application {
             flow.getChildren().add(clone);
             pane.applyCss();
             pane.layout();
-            if (flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
+            if (flow.getBoundsInLocal().getHeight() > outer.getHeight() && !sentence) return;
             textPane.getChildren().add(word);
             Button space = new Button("   ");
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            for (Chain c: chains) {
+            for (Chain c : chains) {
                 if (controller.chainContainsBlank(c, i)) {
                     space.setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
                             c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
@@ -539,8 +820,7 @@ public class Main extends Application {
                 space.setOnAction(event -> {
                     if (controller.pressedButton("   ", iF)) toggleSelected(space, "word");
                 });
-            }
-            else {
+            } else {
                 space.getStyleClass().add("highlight");
             }
             Button spaceClone = new Button("   ");
@@ -548,7 +828,7 @@ public class Main extends Application {
             flow.getChildren().add(spaceClone);
             pane.applyCss();
             pane.layout();
-            if (flow.getBoundsInLocal().getHeight() > outer.getHeight()) return;
+            if (flow.getBoundsInLocal().getHeight() > outer.getHeight() && !sentence) return;
             textPane.getChildren().add(space);
         }
     }
@@ -559,7 +839,7 @@ public class Main extends Application {
      * @param chainsList a pane to put buttons into
      * @param chains     a list of chains
      */
-    private void genChainsList(GridPane chainsList, List<Chain> chains) {
+    private void genChainsList(GridPane chainsList, FlowPane textPane, List<Chain> chains) {
         chainsList.getChildren().clear();
         for (int i = 0; i < chains.size(); i++) {
             Chain c = chains.get(i);
@@ -571,6 +851,9 @@ public class Main extends Application {
             chain.setOnAction(ev -> {
                 int prev = controller.selectChain(iF);
                 toggleSelected(chain, "chain");
+                for (Location l : chains.get(iF).getLocations()) {
+                    updateColoring(l, c, textPane);
+                }
                 if (prev != -1 && prev != iF) toggleSelected((Button) chainsList.getChildren().get(prev), "chain");
             });
             Tooltip fullChain = new Tooltip(c.toString());
@@ -583,12 +866,11 @@ public class Main extends Application {
     /**
      * Updates the text coloring according to the last action made (adding to chain or creating a new one)
      *
-     * @param ac   an Action describing the last action of the user
+     * @param l    a Location describing the action of the user
      * @param c    the chain that was affected by that action
      * @param text a pane that contains the text
      */
-    private void updateColoring(Action ac, Chain c, FlowPane text) {
-        Location l = ac.getLocation();
+    private void updateColoring(Location l, Chain c, FlowPane text) {
         if (l instanceof Blank) {
             text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
                     .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
@@ -601,6 +883,10 @@ public class Main extends Application {
                                 c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
             }
         }
+    }
+
+    public void updateColoring(Action ac, Chain c, FlowPane text) {
+        updateColoring(ac.getLocation(), c, text);
     }
 
     /**
@@ -664,7 +950,7 @@ public class Main extends Application {
      * @return true if cur is a start of a new sentence
      */
     private boolean isSentenceStart(String prev, String cur) {
-        return Character.isUpperCase(cur.charAt(0)) &&
+        return prev.length() > 3 && Character.isUpperCase(cur.charAt(0)) &&
                 (prev.endsWith(".") ||
                         prev.endsWith("?") ||
                         prev.endsWith("!"));

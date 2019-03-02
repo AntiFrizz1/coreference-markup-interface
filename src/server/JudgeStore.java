@@ -2,8 +2,8 @@ package server;
 
 import chain.Action;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -32,7 +32,7 @@ public class JudgeStore {
             this.textNum = textNum;
 
             try {
-                writer = new PrintWriter(prefix + ServerImpl.DELIMETER + teamOneId + "vs" + teamTwoId + "text=" + textNum);
+                writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMETER + teamOneId + "vs" + teamTwoId + "text=" + textNum), StandardCharsets.UTF_8)));
                 dumpWriter.println(teamOneId + "vs" + teamTwoId + "text=" + textNum);
                 dumpWriter.flush();
             } catch (FileNotFoundException e) {
@@ -60,7 +60,7 @@ public class JudgeStore {
 
     public void setJudgeWriter(String prefix) {
         try {
-            dumpWriter = new PrintWriter(prefix + ServerImpl.DELIMETER + "judgeStoreGames");
+            dumpWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMETER + "judgeStoreGames"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
             System.err.println("Can't find file " + prefix + ServerImpl.DELIMETER + "judgeStoreGames");
         }
