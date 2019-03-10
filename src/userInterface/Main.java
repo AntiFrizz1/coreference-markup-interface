@@ -6,11 +6,8 @@ import chain.Chain;
 import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
-import client.Judge;
 import client.User;
-import document.Data;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -44,7 +41,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -60,110 +56,9 @@ public class Main extends Application {
     final private int MIN_APP_HEIGHT = 300;
     final private int RGB_BLACK = -16777216;
     private ControllerImpl controller;
-    private String judgePassword = "qkordkfr";
-    private List<String> logins = Arrays.asList("benzrady",
-            "nmrctygk",
-            "mclkxvsj",
-            "odvxfuci",
-            "dfubtwqg",
-            "camamhnk",
-            "iowczict",
-            "ajngwijk",
-            "uffawdre",
-            "qggghbug",
-            "ncixnfkx",
-            "gczwfxtx",
-            "irynigde",
-            "yfzkjkes",
-            "pffcpfkv",
-            "mfdmnwum",
-            "uotqbhvv",
-            "ffurtemf",
-            "mhkpwmun",
-            "vkwljtir",
-            "fefxzvzg",
-            "nozerbzp",
-            "pujwjwvg",
-            "pbytbkok",
-            "wujjjagi",
-            "obumepcz",
-            "gxldygao",
-            "hyadyobq",
-            "ioqpyjxb",
-            "mmxmyyot",
-            "umbkejwb",
-            "kddtnqob",
-            "msgqyfrz",
-            "bqkyogqt",
-            "bvvuverw",
-            "jtdyjkck",
-            "weahvkkv",
-            "kfhbgtsx",
-            "hnpxahwe",
-            "hucedyvq",
-            "cxeixlte",
-            "izarunno",
-            "nmdvtkqy",
-            "xwcghmmh",
-            "hnfcjwmg",
-            "wiffdwgp",
-            "ugosjxop",
-            "wcoaftgi",
-            "mhvlclsh",
-            "ihsqnrpw",
-            "qkbmdtvy",
-            "rnahpxue",
-            "ytmrrels",
-            "xpgcsccm",
-            "qzszwksw",
-            "gisoxhzp",
-            "evhqggxb",
-            "povbkyln",
-            "hkihogra",
-            "mbqfjlmv",
-            "hzjwrsbw",
-            "ygqrzbby",
-            "afjicwrg",
-            "ldfknpnh",
-            "sfsnetgw",
-            "invmaxqd",
-            "yizrkyrk",
-            "rspgqlzf",
-            "qbmxhwkl",
-            "gpkfybeg",
-            "bvjjxtwy",
-            "cywzrkcu",
-            "rndnibnl",
-            "knyghfbn",
-            "ahjntsuf",
-            "wizhcvmi",
-            "rsleqtom",
-            "lwzphawv",
-            "pzhdmvgg",
-            "jwcyrccd",
-            "xrdunttf",
-            "egvqfunb",
-            "pohqhspv",
-            "yuzcwcsh",
-            "wskeofoe",
-            "nsaqwlyr",
-            "viomipbt",
-            "ufpigoqa",
-            "ajasswvn",
-            "ytgazwdv",
-            "tjhpaawo",
-            "ugeqaaow",
-            "gehujxkx",
-            "gqksnopt",
-            "pbzpdhtd",
-            "vwgdhsnf",
-            "yecygdql",
-            "hwpgqdyh",
-            "nhlqqxin",
-            "urmnmysy"
-    );
-
-    private int selectedSentenceStart = 0, selectedSentenceEnd = 0, textSizeInWords, displayedIndex;
+    private int selectedSentenceStart = 0, selectedSentenceEnd = 0, textSizeInWords, displayedIndex, unsentSentences = 0;
+    private String[] words = null;
+    private boolean checkSentences = true;
     /**
      * A search criteria for chains. Only works on separate links in chain (i.e. a chain link
      * must contain the whole string).
@@ -186,7 +81,6 @@ public class Main extends Application {
             primaryStage.setMinWidth(MIN_APP_WIDTH);
             primaryStage.setMinHeight(MIN_APP_HEIGHT);
             primaryStage.setScene(sc);
-            //System.out.println("AAA");
             primaryStage.show();
         }
     }
@@ -309,17 +203,18 @@ public class Main extends Application {
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
-            if (password.getText().equals(judgePassword)) {
-                stage.getScene().getWindow().hide();
-                controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
-                judgeInterface.setJudge(judge);
-                if (judge.joinOnline() != 0) {
-                    error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
-                }
-            } else {
-                error.setText("Неверный пароль!");
-            }
+            // TODO: call the server instead of local check
+//            if (password.getText().equals(judgePassword)) {
+//                stage.getScene().getWindow().hide();
+//                controller.loginJudge();
+//                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
+//                judgeInterface.setJudge(judge);
+//                if (judge.joinOnline() != 0) {
+//                    error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
+//                }
+//            } else {
+//                error.setText("Неверный пароль!");
+//            }
         });
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
@@ -419,34 +314,35 @@ public class Main extends Application {
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
         enter.setOnAction(event -> {
-            Integer ID = 0;
-            ID = logins.indexOf(id.getText());
-            if (ID == -1) {
-                error.setText("Неправильный ID!");
-                return;
-            }
-            user = new User(ID, 3333, "62.109.13.129");
-            int out = user.joinOnline();
-            if (out == 0) {
-                stage.getScene().getWindow().hide();
-                Platform.runLater(() -> {
-                    controller.setText(user.getText());
-                });
-                controller.loginUser(ID);
-            } else if (out == 1) {
-                stage.getScene().getWindow().hide();
-                Platform.runLater(() -> {
-                    Data data = user.getData();
-                    controller.restoreState(data.getText(), data.getActions());
-                });
-                controller.loginUser(ID);
-            } else {
-                if (out == 2) {
-                    error.setText("Пользователь с таким id уже авторизовался!");
-                } else {
-                    error.setText("Не удалось подключиться к серверу");
-                }
-            }
+            // TODO: call to server
+//            Integer ID = 0;
+//            ID = logins.indexOf(id.getText());
+//            if (ID == -1) {
+//                error.setText("Неправильный ID!");
+//                return;
+//            }
+//            user = new User(ID, 3333, "62.109.13.129");
+//            int out = user.joinOnline();
+//            if (out == 0) {
+//                stage.getScene().getWindow().hide();
+//                Platform.runLater(() -> {
+//                    controller.setText(user.getText());
+//                });
+//                controller.loginUser(ID);
+//            } else if (out == 1) {
+//                stage.getScene().getWindow().hide();
+//                Platform.runLater(() -> {
+//                    Data data = user.getData();
+//                    controller.restoreState(data.getText(), data.getActions());
+//                });
+//                controller.loginUser(ID);
+//            } else {
+//                if (out == 2) {
+//                    error.setText("Пользователь с таким id уже авторизовался!");
+//                } else {
+//                    error.setText("Не удалось подключиться к серверу");
+//                }
+//            }
         });
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
@@ -557,13 +453,6 @@ public class Main extends Application {
         HBox box = new HBox();
 
         Button b4 = new Button("Отменить");
-        b4.setOnAction(event -> {
-            Action ac = controller.cancel();
-            genChainsList(chainsList, text, controller.getChains());
-            undoAction(ac, text, controller.getChains());
-            int remaining = controller.getPrevStatesSize();
-            if (remaining == 0) b4.setDisable(true);
-        });
         b4.setDisable(true);
 
         Button b1 = new Button("Продолжить цепочку");
@@ -664,7 +553,9 @@ public class Main extends Application {
                 try {
                     String txt = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
+                    words = null;
                     controller.setText(txt);
+                    unsentSentences = 0;
                     controller.setTextPath(file.getName());
                     File file1 = Paths.get("dump" + controller.textPath).toFile();
                     try {
@@ -681,22 +572,15 @@ public class Main extends Application {
             /*FileChooser сhooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));*/
         });
-        /*Button dump = new Button("Восстановить разметку из дампа");
+        Button dump = new Button("Сохранить разметку в файл");
         dump.setOnAction(event -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));
-            File file = fileChooser.showOpenDialog(primaryStage);
-            if (file != null) {
-                try {
-                    controller.restoreFromDump(file);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });*/
+            unsentSentences = 0;
+            controller.saveStateOffline();
+            b4.setDisable(true);
+        });
 
         if (controller.isOnline()) fileSelect.setVisible(false);
-        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect/*, dump*/);
+        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
         leftSide.setTop(box);
 
         /*
@@ -721,14 +605,38 @@ public class Main extends Application {
             }
         });
 
+        Button left = new Button("<");
+        /*
+        The following action basically searches for the next occurrence of a sentence start and shifts the
+        indices accordingly, while toggling the buttons styles.
+         */
+        left.setOnAction(event -> {
+            if (selectedSentenceStart != 0) {
+                selectedSentenceStart--;
+                while (selectedSentenceStart != 0 &&
+                        !isSentenceStart(words[selectedSentenceStart - 1],
+                                words[selectedSentenceStart])) {
+                    selectedSentenceStart--;
+                }
+                selectedSentenceEnd = selectedSentenceStart;
+                generateText(text, textWrapper);
+            }
+        });
+
         /*
         The following action basically searches for the next occurrence of a sentence start and shifts the
         indices accordingly, while toggling the buttons styles.
          */
         Button right = new Button(">");
         right.setOnAction(event -> {
-            controller.saveStateOffline();
-            controller.clearActions();
+            if (checkSentences) {
+                unsentSentences++;
+                if (unsentSentences >= 5) {
+                    controller.saveStateOffline();
+                    unsentSentences = 0;
+                    b4.setDisable(true);
+                }
+            }
             controller.clearSelected();
             controller.pressedButton(" ", controller.getSelectedBlank());
             if (selectedSentenceEnd != textSizeInWords - 1) {
@@ -739,13 +647,20 @@ public class Main extends Application {
 //                    if (user.sendUpdates(controller.getActions()) == 0) {
 //                        controller.clearActions();
 //                    }
-                b4.setDisable(true);
             } else {
                 if (controller.isOnline()) {
                     user.close(controller.getActions());
                     controller.clearActions();
                 }
             }
+        });
+
+        b4.setOnAction(event -> {
+            Action ac = controller.cancel();
+            genChainsList(chainsList, text, controller.getChains());
+            undoAction(ac, text, controller.getChains(), left, right);
+            int remaining = controller.getPrevStatesSize();
+            if (remaining == 0) b4.setDisable(true);
         });
 
         /*
@@ -759,10 +674,12 @@ public class Main extends Application {
 
         ColumnConstraints col1 = new ColumnConstraints();
         ColumnConstraints col2 = new ColumnConstraints();
-        col1.setHgrow(Priority.ALWAYS);
-        bottom.getColumnConstraints().addAll(col1, col2);
-        bottom.add(textField, 0, 0);
-        bottom.add(right, 1, 0);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        bottom.getColumnConstraints().addAll(col1, col2, col3);
+        bottom.add(left, 0, 0);
+        bottom.add(textField, 1, 0);
+        bottom.add(right, 2, 0);
 
         leftSide.setBottom(bottom);
 
@@ -802,8 +719,10 @@ public class Main extends Application {
 
         textPane.getChildren().clear();
         // TODO: should probably remove punctuation from buttons into separate TextAreas
-        String[] words = text.split(" ");
-        textSizeInWords = words.length;
+        if (words == null) {
+            words = text.split(" ");
+            textSizeInWords = words.length;
+        }
         displayedIndex = Math.max(0, selectedSentenceStart - 15);
         boolean sentence = true;
         boolean toSetSentence = true;
@@ -898,6 +817,8 @@ public class Main extends Application {
                 if (prev != -1 && prev != iF) toggleSelected((Button) chainsList.getChildren().get(prev), "chain");
             });
             Tooltip fullChain = new Tooltip(c.toString());
+            fullChain.setWrapText(true);
+            fullChain.setPrefWidth(550);
             Tooltip.install(chain, fullChain);
             if (c.toString().toLowerCase().contains(chainFilter.toLowerCase())
                     || c.getName().toLowerCase().contains(chainFilter.toLowerCase())) chainsList.add(chain, 0, i);
@@ -943,12 +864,14 @@ public class Main extends Application {
      * @param chains a list of chains used to determine whether words that were affected by the cancel appeared
      *               in any other chain
      */
-    private void undoAction(Action ac, FlowPane text, List<Chain> chains) {
+    private void undoAction(Action ac, FlowPane text, List<Chain> chains, Button backBtn, Button forwardBtn) {
         Location l = ac.getLocation();
+        Integer from = 0;
         if (l instanceof Blank) {
             text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
                     .setStyle("-fx-background-color: rgba(0,0,0,0)");
             ((Button)text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
+            from = ((Blank) l).getPosition();
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
             for (Integer i : pos) {
@@ -959,7 +882,16 @@ public class Main extends Application {
                         .setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
                                 c.getGreen() + "," + c.getBlue() + ((c.getRGB() == RGB_BLACK) ? ",0)" : ",0.3)"));
             }
+            from = pos.iterator().next();
         }
+        while (from < selectedSentenceStart) {
+            backBtn.fire();
+        }
+        checkSentences = false;
+        while (from > selectedSentenceEnd) {
+            forwardBtn.fire();
+        }
+        checkSentences = true;
     }
 
     /**
@@ -1028,7 +960,7 @@ public class Main extends Application {
         });
         stage.setScene(new Scene(root, 320, 50));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+//        stage.setOnCloseRequest(Event::consume);
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(primaryStage);
         stage.showAndWait();

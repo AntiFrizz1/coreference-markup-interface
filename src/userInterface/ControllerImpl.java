@@ -423,8 +423,10 @@ public class ControllerImpl implements Controller {
 //            w.write(sb.toString());
             UpdateDocument document = new UpdateDocument(actions);
 //            w.write(textPath + "\n");
-            w.write(document.pack() + "\n");
+            String packed = document.pack();
+            if (!packed.trim().isEmpty()) w.write(document.pack() + "\n");
             w.flush();
+            clearActions();
 //            w.close();
         } catch (IOException e) {
             e.printStackTrace();
