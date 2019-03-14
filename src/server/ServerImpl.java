@@ -468,7 +468,7 @@ public class ServerImpl implements Server {
                         writer.flush();
                         log("userScheduler", localServerIdToId.get(id) + " get text with id=" + textId);
 
-                        serverStore.addSample(id, textId);
+                        serverStore.addSample(id, textId, backupName);
                         judgeStore.addNewTeam(id, textId, backupName);
                         /*serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
                         judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);*/
@@ -1016,9 +1016,37 @@ public class ServerImpl implements Server {
                     writer.println(list.get(0) + "@" + list.get(1) + "@" + list.get(2));
                     writer.flush();
                 }
-                judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, writer);
+                judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, writer, prefixNew);
                 judgeStore.dumpWriter.println(judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId);
                 judgeStore.dumpWriter.flush();
+            }
+            gameReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "gamesServer"), StandardCharsets.UTF_8));
+            String firstFile;
+            ArrayList<ServerStoreFile> files = new ArrayList<>();
+            while ((firstFile = gameReader.readLine()) != null) {
+                String[] splittedFirst = firstFile.split("text=");
+                files.add(new ServerStoreFile(Integer.valueOf(splittedFirst[0]), Integer.valueOf(splittedFirst[1])));
+            }
+            files.sort(this::compareSS);
+            for (int i = 0; i < files.size(); i++) {
+                ServerStoreFile ssf = files.get(i);
+                if (i + 1 < files.size() && files.get(i + 1).textId == ssf.textId) {
+                    boolean f = false;
+                    for (int j = 0; j < judgeStore.games.size(); j++) {
+                        if (judgeStore.games.get(i).textNum == ssf.textId) {
+                            f = true;
+                            break;
+                        }
+                    }
+                    if (!f) {
+                        ServerStoreFile ssf2 = files.get(i + 1);
+                        judgeStore.addNewTeam(ssf.teamId, ssf.textId, prefixNew);
+                        judgeStore.addNewTeam(ssf2.teamId, ssf2.textId, prefixNew);
+                    }
+                    i++;
+                } else {
+                    judgeStore.addNewTeam(ssf.teamId, ssf.textId, prefixNew);
+                }
             }
             return true;
         } catch (Exception e) {
@@ -1135,7 +1163,7 @@ public class ServerImpl implements Server {
                         }
 
                         conflicts.add(new ConcurrentLinkedQueue<>());
-                        serverStore.addFullRecoverGame(ssf.teamId, ssf2.teamId, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond);
+                        serverStore.addFullRecoverGame(ssf.teamId, ssf2.teamId, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond, prefixNew);
                     } catch (IOException e2) {
                         log("serverRecover", e2.getMessage());
                     }
@@ -1155,7 +1183,7 @@ public class ServerImpl implements Server {
                             writerFirst.println(s);
                             writerFirst.flush();
                         }
-                        serverStore.addHalfRecoverGame(ssf.teamId, ssf.textId, listFirst, writerFirst);
+                        serverStore.addHalfRecoverGame(ssf.teamId, ssf.textId, listFirst, writerFirst, prefixNew);
                     } catch (IOException e2) {
                         log("serverRecover", e2.getMessage());
                     }

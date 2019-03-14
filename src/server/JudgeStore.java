@@ -33,7 +33,7 @@ public class JudgeStore {
             this.prefix = prefix;
         }
 
-        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer) {
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer, String prefix) {
             teamIdList.add(teamOneId);
             teamIdList.add(teamTwoId);
             this.textNum = textNum;
@@ -41,6 +41,7 @@ public class JudgeStore {
             idToTeamApprovedList.put(teamTwoId, teamTwoApproved);
             this.decisions = decisions;
             this.writer = writer;
+            this.prefix = prefix;
         }
 
         void addTeam(int teamId) {
@@ -53,7 +54,7 @@ public class JudgeStore {
                 writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                         teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum),
                         StandardCharsets.UTF_8)));
-                dumpWriter.println(teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum);
+                dumpWriter.println(prefix + ServerImpl.DELIMITER + teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum);
                 dumpWriter.flush();
             } catch (FileNotFoundException e) {
                 log("JudgeStore.Game.makeWriter", e.getMessage());
@@ -113,8 +114,8 @@ public class JudgeStore {
         }
     }
 
-    public void addNewRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer) {
-        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneApproved, teamTwoApproved, decisions, writer);
+    public void addNewRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneApproved, List<Action> teamTwoApproved, List<Integer> decisions, PrintWriter writer, String prefix) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneApproved, teamTwoApproved, decisions, writer, prefix);
         games.add(tmp);
     }
 }

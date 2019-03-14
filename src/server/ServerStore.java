@@ -24,13 +24,16 @@ public class ServerStore {
         int textNum;
         Map<Integer, List<Action>> idToActionList = new ConcurrentHashMap<>();
 
+        String prefix;
+
         Map<Integer, PrintWriter> idToWriter = new ConcurrentHashMap<>();
 
-        Game(int textNum) {
+        Game(int textNum, String prefix) {
             this.textNum = textNum;
+            this.prefix = prefix;
         }
 
-        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2) {
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
             teamIdList.add(teamOneId);
             teamIdList.add(teamTwoId);
             this.textNum = textNum;
@@ -38,20 +41,22 @@ public class ServerStore {
             idToActionList.put(teamTwoId, teamTwoActions);
             idToWriter.put(teamOneId, writer1);
             idToWriter.put(teamTwoId, writer2);
+            this.prefix = prefix;
         }
 
-        Game(int teamId, int textNum, List<Action> teamActions, PrintWriter writer) {
+        Game(int teamId, int textNum, List<Action> teamActions, PrintWriter writer, String prefix) {
             teamIdList.add(teamId);
             this.textNum = textNum;
             idToActionList.put(teamId, teamActions);
             idToWriter.put(teamId, writer);
+            this.prefix = prefix;
         }
 
         void addTeam(int teamId) {
             teamIdList.add(teamId);
             idToActionList.put(teamId, new CopyOnWriteArrayList<>());
             try {
-                idToWriter.put(teamId, new PrintWriter(teamId + "text=" + textNum));
+                idToWriter.put(teamId, new PrintWriter(prefix + ServerImpl.DELIMITER + teamId + "text=" + textNum));
                 writer.println(teamId + "text=" + textNum);
                 writer.flush();
             } catch(FileNotFoundException e) {
@@ -131,19 +136,19 @@ public class ServerStore {
         }
     };
 
-    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2) {
-        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneActions, teamTwoActions, writer1, writer2);
+    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneActions, teamTwoActions, writer1, writer2, prefix);
         games.add(tmp);
     }
 
-    public void addHalfRecoverGame(int teamId, int textNum, List<Action> teamActions, PrintWriter writer) {
-        Game tmp = new Game(teamId, textNum, teamActions, writer);
+    public void addHalfRecoverGame(int teamId, int textNum, List<Action> teamActions, PrintWriter writer, String prefix) {
+        Game tmp = new Game(teamId, textNum, teamActions, writer, prefix);
         games.add(tmp);
     }
 
-    synchronized void addSample(int teamNumber, int textNum) {
+    synchronized void addSample(int teamNumber, int textNum, String prefix) {
         if(!gamesMap.containsKey(textNum)) {
-            Game newGame = new Game(textNum);
+            Game newGame = new Game(textNum, prefix);
             games.add(newGame);
             gamesMap.put(textNum, newGame);
             newGame.addTeam(teamNumber);
