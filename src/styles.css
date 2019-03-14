@@ -9,7 +9,6 @@
 }
 
 .word-selected {
-    -fx-font-family: Chandas;
     -fx-border-color: red;
     -fx-border-width: 1px;
     -fx-padding: 0, 0, 0, 0;
