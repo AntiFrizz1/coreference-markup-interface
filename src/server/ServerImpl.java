@@ -20,19 +20,28 @@ import java.util.stream.Collectors;
 /**
  * This class describes interaction protocol of Server
  *
- * @author Vadim Baydyuk
  * @see Server
  */
 public class ServerImpl implements Server {
     /**
-     * Identifier of server.
+     * Server's port for user connection.
      */
-    private int port;
+    private int portForUser;
 
     /**
-     * An internal endpoint for sending or receiving data.
+     * Server's port for judge connection.
      */
-    private ServerSocket socket;
+    private int portForJudge;
+
+    /**
+     * An internal endpoint for sending or receiving data from user.
+     */
+    private ServerSocket socketForUsers;
+
+    /**
+     * An internal endpoint for sending or receiving data from judge.
+     */
+    private ServerSocket socketForJudges;
 
     /**
      * Texts.
@@ -45,127 +54,106 @@ public class ServerImpl implements Server {
     private Queue<Socket> clients;
 
     /**
-     * Pool of users.
-     */
-    private Queue<Socket> users;
-
-    /**
-     * Pool of users.
-     */
-    private Queue<Socket> onlineUsers;
-
-    /**
-     * Pool of users.
-     */
-    private Queue<Socket> offlineUsers;
-
-    /**
-     * Set of judges id.
-     */
-    private Set<Integer> judgesId;
-
-    /**
      * Pool of judges.
      */
     private Set<JudgeInfo> judges;
-
-    /**
-     * List of workers
-     */
-    private List<Thread> workers;
 
     /**
      * List of conflicts
      */
     static List<Queue<ConflictInfo>> conflicts;
 
-    static final char DELIMETER = '/';
+    private Map<String, Integer> idToLocalServerId;
+    private Map<Integer, String> localServerIdToId;
+
+    private Map<Integer, Integer> idToTextId;
+
+    private Map<Integer, AtomicInteger> idToStatus;
+
+    private Map<Integer, Socket> idToSocket;
+
+    private Map<Integer, Thread> idToThread;
+
+    private Queue<Pair<Integer, Socket>> reconnectQueue;
+
+    private Queue<Pair<Integer, Socket>> connectedUsers;
+
+    private Map<String, Integer> idToUsername;
+
+    static final char DELIMITER = '/';
 
     private volatile ServerStore serverStore;
     private volatile JudgeStore judgeStore;
 
-    Map<Integer, Socket> idToSocket;
-
-    Map<Socket, Integer> socketToId;
-
-    Map<Socket, Integer> reconnectMap;
-
-    Map<Integer, Integer> idToTextId;
-
-    private Queue<Socket> reconnectQueue;
-
-    AtomicBoolean work;
-
-    volatile PrintWriter logWriter;
+    private static volatile PrintWriter logWriter;
 
     Socket nullSocket = new Socket();
+    Thread nullThread = new Thread();
 
-    String backupName;
+    private String backupName;
 
-    AtomicInteger textNumber = new AtomicInteger(0);
-    AtomicBoolean needBackUp = new AtomicBoolean(false);
-    AtomicBoolean leaderBoardNeed = new AtomicBoolean(false);
+    private AtomicInteger textNumber = new AtomicInteger(0);
 
+    private AtomicInteger clientNumber = new AtomicInteger(0);
 
-    private Map<Integer, Integer> leaderBoard;
-    private Map<Integer, String> idToUsername;
-
+    private AtomicBoolean needBackUp = new AtomicBoolean(false);
+    private AtomicBoolean leaderBoardNeed = new AtomicBoolean(false);
 
 
-    public ServerImpl(int port, String prefixOld, String prefixNew) {
-        this.port = port;
+    private Map<String, Integer> leaderBoard;
+
+
+    public ServerImpl(int portForUser, int portForJudge, String prefixOld, String prefixNew) {
+        logFileInitialize();
+        this.portForJudge = portForJudge;
+        this.portForUser = portForUser;
         try {
-            socket = new ServerSocket(port);
+            socketForUsers = new ServerSocket(portForUser);
+            socketForJudges = new ServerSocket(portForJudge);
         } catch (IOException e) {
-            e.printStackTrace();
+            log("ServerImpl with prefix", e.getMessage());
         }
-        work = new AtomicBoolean(true);
+
         texts = new CopyOnWriteArrayList<>();
 
-        users = new ConcurrentLinkedQueue<>();
         judges = new CopyOnWriteArraySet<>();
         clients = new ConcurrentLinkedQueue<>();
-        offlineUsers = new ConcurrentLinkedQueue<>();
-        onlineUsers = new ConcurrentLinkedQueue<>();
-        workers = new CopyOnWriteArrayList<>();
-
-        judgesId = new ConcurrentSkipListSet<>();
 
         serverStore = new ServerStore();
         judgeStore = new JudgeStore();
 
-
-        idToSocket = new ConcurrentHashMap<>();
-        socketToId = new ConcurrentHashMap<>();
-
         conflicts = new CopyOnWriteArrayList<>();
 
-        reconnectMap = new ConcurrentHashMap<>();
-
-        reconnectQueue = new ConcurrentLinkedQueue<>();
-
-        idToTextId = new ConcurrentHashMap<>();
         leaderBoard = new ConcurrentHashMap<>();
+
+        idToSocket = new ConcurrentHashMap<>();
+        idToLocalServerId = new ConcurrentHashMap<>();
+        localServerIdToId = new ConcurrentHashMap<>();
+        idToTextId = new ConcurrentHashMap<>();
+        idToThread = new ConcurrentHashMap<>();
+        idToStatus = new ConcurrentHashMap<>();
         idToUsername = new ConcurrentHashMap<>();
 
+        reconnectQueue = new ConcurrentLinkedQueue<>();
+        connectedUsers = new ConcurrentLinkedQueue<>();
+
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("users"), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("users"),
+                    StandardCharsets.UTF_8));
             while (reader.ready()) {
                 String request = reader.readLine();
                 String[] str = request.split("\\|");
-                idToUsername.put(Integer.parseInt(str[0]), str[1]);
             }
         } catch (IOException e) {
-            System.err.println("Can't load file: " + e.getMessage());
+            log("ServerImpl with prefix", e.getMessage());
         }
-
         File path = new File(prefixNew);
         path.mkdir();
         backupName = prefixNew;
-        try {
-            logWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMETER + "server.log"), StandardCharsets.UTF_8)));
+        /*try {
+            logWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + "server.log"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
-            System.err.println("file " + prefixNew + DELIMETER + "server.log not found");
+            System.err.println("file " + prefixNew + DELIMITER + "server.log not found");
         }
         if (judgeRecover(prefixOld, prefixNew)) {
             if (serverRecover(prefixOld, prefixNew)) {
@@ -179,79 +167,73 @@ public class ServerImpl implements Server {
             }
         } else {
             System.err.println("Can't reconnect server: judgeRecover error");
-        }
+        }*/
     }
 
 
-    public ServerImpl(int port) {
-        this.port = port;
+    public ServerImpl(int portForUser, int portForJudge) {
+        this.portForJudge = portForJudge;
+        this.portForUser = portForUser;
+
         try {
-            socket = new ServerSocket(port);
+            socketForUsers = new ServerSocket(portForUser);
+            socketForJudges = new ServerSocket(portForJudge);
         } catch (IOException e) {
-            e.printStackTrace();
+            log("ServerImpl", e.getMessage());
         }
-        work = new AtomicBoolean(true);
+
         texts = new CopyOnWriteArrayList<>();
 
-        users = new ConcurrentLinkedQueue<>();
         judges = new CopyOnWriteArraySet<>();
         clients = new ConcurrentLinkedQueue<>();
-        offlineUsers = new ConcurrentLinkedQueue<>();
-        onlineUsers = new ConcurrentLinkedQueue<>();
-        workers = new CopyOnWriteArrayList<>();
-
-        judgesId = new ConcurrentSkipListSet<>();
 
         serverStore = new ServerStore();
         judgeStore = new JudgeStore();
 
 
         idToSocket = new ConcurrentHashMap<>();
-        socketToId = new ConcurrentHashMap<>();
 
         conflicts = new CopyOnWriteArrayList<>();
 
-        reconnectMap = new ConcurrentHashMap<>();
-
-        reconnectQueue = new ConcurrentLinkedQueue<>();
-
-        idToTextId = new ConcurrentHashMap<>();
-
-        nullSocket = new Socket();
-
         leaderBoard = new ConcurrentHashMap<>();
+
+        idToSocket = new ConcurrentHashMap<>();
+        idToLocalServerId = new ConcurrentHashMap<>();
+        localServerIdToId = new ConcurrentHashMap<>();
+        idToTextId = new ConcurrentHashMap<>();
+        idToThread = new ConcurrentHashMap<>();
+        idToStatus = new ConcurrentHashMap<>();
         idToUsername = new ConcurrentHashMap<>();
 
+        reconnectQueue = new ConcurrentLinkedQueue<>();
+        connectedUsers = new ConcurrentLinkedQueue<>();
+
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("users"), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("users"),
+                    StandardCharsets.UTF_8));
             while (reader.ready()) {
                 String request = reader.readLine();
                 String[] str = request.split("|");
-                idToUsername.put(Integer.parseInt(str[0]), str[1]);
             }
         } catch (IOException e) {
-            System.err.println("Can't load file: " + e.getMessage());
+            log("ServerImpl", e.getMessage());
         }
 
         File path = new File("prefix");
         path.mkdir();
         backupName = "prefix";
-        try {
-            logWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream("prefix" + DELIMETER + "server.log"), StandardCharsets.UTF_8)));
-        } catch (FileNotFoundException e) {
-            System.err.println("file prefix" + DELIMETER + "server.log not found");
-        }
         judgeStore.setJudgeWriter("prefix");
         serverStore.setServerWriter("prefix");
-        backupInfo();
-        leaderBoardBackUp();
+        /*backupInfo();
+        leaderBoardBackUp();*/
         System.out.println("Successful start server");
     }
 
     public void loadTexts(List<String> filenames) {
         for (String filename : filenames) {
             try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename), StandardCharsets.UTF_8));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename),
+                        StandardCharsets.UTF_8));
 
                 StringBuilder text = new StringBuilder();
                 String help = "";
@@ -261,217 +243,166 @@ public class ServerImpl implements Server {
                 }
 
                 texts.add(text.toString());
-            } catch (FileNotFoundException e) {
-                System.err.println("Can't find file : " + filename);
             } catch (IOException e) {
-                System.err.println("Can't read file : " + filename + ". Error: " + e.getMessage());
+                log("loadTexts", e.getMessage());
             }
         }
     }
 
-    Thread listenerThread;
-    Thread schedulerThread;
+    private static void logFileInitialize() {
+        try {
+            logWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream("server.log"),
+                    StandardCharsets.UTF_8)));
+        } catch (FileNotFoundException e) {
+            log("logFileInitialize", e.getMessage());
+        }
+    }
+
+    public static void log(String from, String what) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[").append(new Date()).append("]").append(" :==: ").append(from).append(" :==: ").append(what);
+        if (logWriter != null) {
+            logWriter.println(builder.toString());
+            logWriter.flush();
+        }
+        System.out.println(builder.toString());
+    }
+
+    Thread userListenerThread;
+    Thread judgeListenerThread;
+    Thread userConnectionThread;
+    Thread userReconnectionThread;
     Thread userSchedulerThread;
-    Thread onlineUsersSchedulerThread;
-    Thread offlineUsersSchedulerThread;
     Thread serverStoreWorkerThread;
     Thread conflictInfoSchedulerThread;
-    Thread reconnectWorkerThread;
-    Thread backupThread;
-    Thread leaderBoardThread;
-    Thread leaderBoardBackUpThread;
-
     /**
      * Start server
      */
     public void run() {
-        listenerThread = new Thread(listener);
-        schedulerThread = new Thread(scheduler);
+        userListenerThread = new Thread(userListener);
+        judgeListenerThread = new Thread(judgeListener);
+        userConnectionThread = new Thread(userConnection);
+        userReconnectionThread = new Thread(userReconnection);
         userSchedulerThread = new Thread(userScheduler);
-        onlineUsersSchedulerThread = new Thread(onlineUsersScheduler);
-        offlineUsersSchedulerThread = new Thread(offlineUsersScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
-        reconnectWorkerThread = new Thread(reconnectWorker);
-        backupThread = new Thread(backupWorker);
-        leaderBoardThread = new Thread(leaderBoardRunnable);
-        leaderBoardBackUpThread = new Thread(leaderBoardWorker);
 
-        listenerThread.start();
-        schedulerThread.start();
+        userListenerThread.start();
+        judgeListenerThread.start();
+        userReconnectionThread.start();
+        userConnectionThread.start();
         userSchedulerThread.start();
-        onlineUsersSchedulerThread.start();
-        offlineUsersSchedulerThread.start();
         serverStoreWorkerThread.start();
         conflictInfoSchedulerThread.start();
-        reconnectWorkerThread.start();
-        backupThread.start();
-        leaderBoardThread.start();
-        leaderBoardBackUpThread.start();
-
 
         try {
-            listenerThread.join();
+            userListenerThread.join();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log("run", e.getMessage());
         }
     }
 
     public void close() {
-        work.compareAndSet(true, false);
 
-        try {
-            listenerThread.join();
-            schedulerThread.join();
-            userSchedulerThread.join();
-            onlineUsersSchedulerThread.join();
-            offlineUsersSchedulerThread.join();
-            serverStoreWorkerThread.join();
-            conflictInfoSchedulerThread.join();
-        } catch (InterruptedException e) {
-            System.err.println("close :=: Error: " + e.getMessage());
-        }
     }
 
     /**
      * Connect clients to server
      */
-    private Runnable listener = () -> {
-        while (work.get()) {
+    private Runnable userListener = () -> {
+        while (true) {
             try {
-                Socket client = socket.accept();
-                System.out.println("listener :=: connected: " + client.toString());
+                Socket client = socketForUsers.accept();
+                log("userListener", client.toString());
                 clients.add(client);
             } catch (IOException e) {
-                e.printStackTrace();
+                log("userListener", e.getMessage());
             }
         }
-        try {
-            socket.close();
-        } catch (IOException e) {
-            System.err.println("listener :=: ServerSocket closed with error: " + e.getMessage());
+    };
+
+    private Runnable judgeListener = () -> {
+        while (true) {
+            try {
+                Socket client = socketForJudges.accept();
+                log("judgeListener", client.toString());
+                judges.add(new JudgeInfo(client, 0));
+            } catch (IOException e) {
+                log("judgeListener", e.getMessage());
+            }
         }
     };
 
     /**
      * Split clients on clients or judges
      */
-    private Runnable scheduler = () -> {
-        while (work.get()) {
+    private Runnable userConnection = () -> {
+        while (true) {
             try {
-
                 if (!clients.isEmpty()) {
                     Socket client = clients.poll();
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
 
-                        String request = reader.readLine();
-                        System.out.println("scheduler :=: Request from " + client.toString() + " = " + request);
-
-                        int id = Integer.parseInt(request);
-
-                        if (id > 100) {
-                            writer.println("OK");
-                            writer.flush();
-                            judges.add(new JudgeInfo(client, judges.size()));
-
-                        } else {
-                            if (idToSocket.containsKey(id)) {
-                                if (idToSocket.get(id) == nullSocket) {
-                                    /*idToSocket.put(id, client);
-                                    socketToId.put(client, id);*/
-                                    writer.println("R");
-                                    writer.flush();
-                                    reconnectMap.put(client, id);
-                                    users.add(client);
-                                } else {
-                                    writer.println("E");
-                                    writer.flush();
-                                }
-                            } else {
-                                writer.println("OK");
+                        String stringId = reader.readLine();
+                        log("userConnection", client.toString() + " id=" + stringId);
+                        if (idToLocalServerId.containsKey(stringId)) {
+                            int id = idToLocalServerId.get(stringId);
+                            if (idToStatus.get(id).compareAndSet(0, 1)) {
+                                log("userConnection", stringId + " serverAns=1");
+                                writer.write(1);
                                 writer.flush();
-                                idToSocket.put(id, client);
-                                needBackUp.compareAndSet(false, true);
-                                socketToId.put(client, id);
-                                users.add(client);
+                                reconnectQueue.add(new Pair<>(id, client));
+                            } else {
+                                log("userConnection", stringId + " serverAns=2");
+                                writer.write(2);
+                                writer.flush();
                             }
+                        } else {
+                            int id = clientNumber.getAndIncrement();
+                            idToLocalServerId.put(stringId, id);
+                            localServerIdToId.put(id, stringId);
+                            log("userConnection", stringId + " serverAns=0");
+                            writer.write(0);
+                            writer.flush();
+                            idToSocket.put(id, client);
+                            idToStatus.put(id, new AtomicInteger(1));
+                            connectedUsers.add(new Pair<>(id, client));
                         }
 
                     } catch (Exception e) {
-                        System.err.println("scheduler :=: Error: " + e.getMessage());
+                        log("userConnection", e.getMessage());
                     }
                 } else {
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
-                System.err.println("scheduler :=: scheduler interrupted: " + e.getMessage());
-            }
-
-        }
-    };
-
-    /**
-     * Split users on online or offline users
-     */
-    private Runnable userScheduler = () -> {
-        while (work.get()) {
-            try {
-
-                if (!users.isEmpty()) {
-                    Socket client = users.poll();
-                    try {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
-                        PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
-
-                        String request = reader.readLine();
-                        System.out.println("userScheduler :=: request from " + client.toString() + " = " + request);
-
-                        int id = Integer.parseInt(request);
-
-                        if (id == 0) {
-                            if (reconnectMap.containsKey(client)) {
-                                writer.println("OK");
-                                writer.flush();
-                                reconnectQueue.add(client);
-                            } else {
-                                writer.println("OK");
-                                writer.flush();
-                                onlineUsers.add(client);
-                            }
-                        } else {
-                            writer.println("OK");
-                            writer.flush();
-                            offlineUsers.add(client);
-                        }
-
-
-                    } catch (Exception e) {
-                        System.err.println("userScheduler :=: Error: " + e.getMessage());
-                    }
-                } else {
-                    Thread.sleep(1000);
-                }
-            } catch (InterruptedException e) {
-                System.err.println("userScheduler :=: userScheduler interrupted: " + e.getMessage());
+                log("userConnection", e.getMessage());
+                break;
             }
         }
     };
 
-    private Runnable reconnectWorker = () -> {
-        while (work.get()) {
+    private Runnable userReconnection = () -> {
+        while (true) {
             try {
                 if (!reconnectQueue.isEmpty()) {
-                    Socket client = reconnectQueue.poll();
-                    int id = reconnectMap.get(client);
-                    reconnectMap.remove(client);
+                    Pair<Integer, Socket> pair = reconnectQueue.poll();
+
+                    Socket client = pair.getValue();
+                    int id = pair.getKey();
+
+                    if (!idToTextId.containsKey(id)) {
+                        continue;
+                    }
+
                     int textId = idToTextId.get(id);
 
-                    BufferedReader localReader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
-                    PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
+                    PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
 
-                    String fileName = backupName + DELIMETER + id + "text=" + textId;
+                    String fileName = id + "text=" + textId;
 
                     BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), StandardCharsets.UTF_8));
 
@@ -483,20 +414,22 @@ public class ServerImpl implements Server {
 
                     Data data = new Data(texts.get(textId), actionList);
 
-                    localWriter.println(data.toString());
-                    localWriter.flush();
+                    writer.println(data.toString());
+                    writer.flush();
 
                     idToSocket.put(id, client);
                     needBackUp.compareAndSet(false, true);
-                    socketToId.put(client, id);
-
+                    idToStatus.get(id).compareAndSet(1, 2);
+                    log("userReconnection", localServerIdToId.get(id) + " reconnection successful");
+                    startThreadWorker(id, textId, reader, writer);
                 } else {
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
-                System.err.println("reconnectWorker :=: reconnectWorker interrupted: " + e.getMessage());
-            } catch (IOException e) {
-                System.err.println("reconnectWorker :=: Error: " + e.getMessage());
+                log("userReconnection", e.getMessage());
+                break;
+            } catch (Exception e) {
+                log("userReconnection", e.getMessage());
             }
         }
     };
@@ -505,199 +438,104 @@ public class ServerImpl implements Server {
      * Give task for online users
      */
 
-    private Runnable onlineUsersScheduler = () -> {
-        while (work.get()) {
+    private int getNewTextId() {
+        return textNumber.getAndIncrement() / 2;
+    }
+
+
+    private Runnable userScheduler = () -> {
+        while (true) {
             try {
-
-                if (onlineUsers.size() >= 2) {
-                    Socket client1 = onlineUsers.poll();
-                    Socket client2 = onlineUsers.poll();
+                if (!connectedUsers.isEmpty()) {
+                    Pair<Integer, Socket> pair = connectedUsers.poll();
+                    int id = pair.getKey();
+                    Socket client = pair.getValue();
                     try {
+                        int textId = getNewTextId();
 
-                        int text = textNumber.get();
-
-                        textNumber.getAndIncrement();
-
-                        idToTextId.put(socketToId.get(client1), text);
-                        idToTextId.put(socketToId.get(client2), text);
-                        leaderBoard.put(socketToId.get(client1), 0);
-                        leaderBoard.put(socketToId.get(client2), 0);
+                        idToTextId.put(id, textId);
+                        leaderBoard.put(localServerIdToId.get(id), 0);
 
                         needBackUp.compareAndSet(false, true);
 
-                        BufferedReader reader1 = new BufferedReader(new InputStreamReader(client1.getInputStream(), StandardCharsets.UTF_8));
-                        BufferedReader reader2 = new BufferedReader(new InputStreamReader(client2.getInputStream(), StandardCharsets.UTF_8));
-
-                        PrintWriter writer1 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client1.getOutputStream(), StandardCharsets.UTF_8)));
-                        PrintWriter writer2 = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client2.getOutputStream(), StandardCharsets.UTF_8)));
-                        writer1.println(texts.get(text));
-                        writer2.println(texts.get(text));
-
-                        writer1.flush();
-                        writer2.flush();
-
-
-                        serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
-                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
-
-                        conflicts.add(new ConcurrentLinkedQueue<>());
-
-                        Thread thread1 = new Thread(() -> {
-                            int localText = text;
-                            int id = socketToId.get(client1);
-                            while (true) {
-                                try {
-                                    if (idToSocket.get(id) != nullSocket) {
-                                        BufferedReader localReader = new BufferedReader(new InputStreamReader(idToSocket.get(id).getInputStream(), StandardCharsets.UTF_8));
-                                        PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(idToSocket.get(id).getOutputStream(), StandardCharsets.UTF_8)));
-                                        String request = localReader.readLine();
-                                        if (request == null) {
-                                            idToSocket.put(id, nullSocket);
-                                            needBackUp.compareAndSet(false, true);
-                                            socketToId.remove(client1);
-                                            continue;
-                                        } else if (request.equals("EXIT")) {
-                                            idToTextId.remove(id);
-                                            socketToId.remove(client1);
-                                            idToSocket.remove(id);
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-
-                                        synchronized (leaderBoard) {
-                                            leaderBoard.put(id, leaderBoard.get(id) + 5 * document.getActions().size());
-                                        }
-                                        leaderBoardNeed.compareAndSet(false, true);
-                                        serverStore.putActions(document.getActions(), localText, 1);
-                                    }
-                                } catch (IOException e) {
-                                    idToSocket.put(id, nullSocket);
-                                    needBackUp.compareAndSet(false, true);
-                                    socketToId.remove(client1);
-                                    System.err.println("onlineUsersScheduler[client1, id = " + id + "] :=: Error: " + e.getMessage());
-                                }
-                            }
-                        });
-
-                        Thread thread2 = new Thread(() -> {
-                            int localText = text;
-                            int id = socketToId.get(client2);
-                            while (true) {
-                                try {
-                                    if (idToSocket.get(id) != nullSocket) {
-                                        BufferedReader localReader = new BufferedReader(new InputStreamReader(idToSocket.get(id).getInputStream(), StandardCharsets.UTF_8));
-                                        PrintWriter localWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(idToSocket.get(id).getOutputStream(), StandardCharsets.UTF_8)));
-                                        String request = localReader.readLine();
-                                        if (request == null) {
-                                            idToSocket.put(id, nullSocket);
-                                            needBackUp.compareAndSet(false, true);
-                                            socketToId.remove(client2);
-                                            continue;
-                                        } else if (request.equals("EXIT")) {
-                                            idToTextId.remove(id);
-                                            socketToId.remove(client2);
-                                            idToSocket.remove(id);
-                                            break;
-                                        }
-                                        UpdateDocument document = new UpdateDocument(request);
-                                        synchronized (leaderBoard) {
-                                            leaderBoard.put(id, leaderBoard.get(id) + 5 * document.getActions().size());
-                                        }
-                                        leaderBoardNeed.compareAndSet(false, true);
-                                        /*serverStore.putActions(document.getActions(), text, 1);*/
-                                        serverStore.putActions(document.getActions(), localText, 2);
-                                    }
-                                } catch (IOException e) {
-                                    idToSocket.put(id, nullSocket);
-                                    needBackUp.compareAndSet(false, true);
-                                    socketToId.remove(client2);
-                                    System.err.println("onlineUsersScheduler[client2, id = " + id + "] :=: Error: " + e.getMessage());
-
-                                }
-                            }
-                        });
-
-                        thread1.start();
-                        thread2.start();
-                        workers.add(thread1);
-                        workers.add(thread2);
-
-                    } catch (IOException e) {
-                        System.err.println("onlineUsersScheduler :=: Error: " + e.getMessage());
-                    }
-                } else {
-                    Thread.sleep(1000);
-                }
-            } catch (InterruptedException e) {
-                System.out.println("onlineUsersScheduler :=: onlineUsersScheduler interrupted : " + e.getMessage());
-            }
-        }
-    };
-
-    /**
-     * Give task for offline users
-     */
-    private Runnable offlineUsersScheduler = () -> {
-        while (work.get()) {
-            try {
-
-                if (!offlineUsers.isEmpty()) {
-                    Socket client = offlineUsers.poll();
-                    System.out.println("offlineUsersScheduler :=: " + client.toString());
-                    try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
+
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
-                        int text = textNumber.get();
 
-                        textNumber.getAndIncrement();
-
-                        writer.println(texts.get(text));
+                        writer.println(texts.get(textId));
                         writer.flush();
-                        Thread worker = new Thread(() -> {
-                            try {
-                                String doc = reader.readLine();
-                                UpdateDocument document = new UpdateDocument(doc);
-                                List<Action> answer = document.getActions();
-                                //save data
+                        log("userScheduler", localServerIdToId.get(id)+ " get text with id=" + textId);
 
-                            } catch (IOException e) {
-                                System.out.println("offlineUsersScheduler[worker] :=: Error: " + e.getMessage());
-                            }
-                        });
-                        worker.run();
-                        workers.add(worker);
+                        serverStore.addSample(id, textId);
+                        judgeStore.addNewTeam(id, textId, backupName);
+                        /*serverStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);
+                        judgeStore.addNewGame(socketToId.get(client1), socketToId.get(client2), text, backupName);*/
+                        idToStatus.get(id).compareAndSet(1, 2);
+
+                        startThreadWorker(id, textId, reader, writer);
+
                     } catch (IOException e) {
-                        System.out.println("offlineUsersScheduler :=: Error: " + e.getMessage());
+                        log("userScheduler", e.getMessage());
                     }
                 } else {
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
-                System.out.println("offlineUsersScheduler :=: offlineUsersScheduler interrupted : " + e.getMessage());
+                log("userScheduler", e.getMessage());
+                break;
             }
         }
     };
 
-    /*private Runnable addTaskWorker = () -> {
-        while (work.get() || !tasks.isEmpty()) {
-            try {
-                if (!tasks.isEmpty()) {
-                    AddTask addTask = tasks.poll();
-                    if (!serverStore.putActions(addTask.getActionList(), addTask.getTextNum(), addTask.getTeamNum())) {
-                        tasks.add(addTask);
+    private void startThreadWorker(int id, int textId, BufferedReader reader, PrintWriter writer) {
+        Thread thread = new Thread(() -> {
+            idToThread.put(id, Thread.currentThread());
+            while (true) {
+                try {
+                    int count = 0;
+                    while (!reader.ready() && count < 3) {
+                        Thread.sleep(5000);
+                        writer.write(0);
+                        writer.flush();
+                        count++;
                     }
-                } else {
-                    Thread.sleep(1000);
+
+                    String stringData = null;
+                    int out = reader.read();
+                    if (count < 2 && out == 1) {
+                        continue;
+                    } else if (count < 2 && out == 0) {
+                        stringData = reader.readLine();
+                    }
+
+                    if (stringData == null) {
+                        idToSocket.put(id, nullSocket);
+                        idToStatus.get(id).compareAndSet(2, 0);
+                        idToThread.put(id, nullThread);
+                        log("startThreadWorker", localServerIdToId.get(id) + " lost connection");
+                        break;
+                    }
+                    System.out.println(stringData);
+                    UpdateDocument doc = new UpdateDocument(stringData);
+                    List<Action> actions = doc.getActions();
+                    serverStore.putActions(actions, textId, id);
+                    log("startThreadWorker", localServerIdToId.get(id) + " added actions");
+                } catch (IOException | InterruptedException e) {
+                    log("startThreadWorker", e.getMessage());
+                    idToSocket.put(id, nullSocket);
+                    idToStatus.get(id).compareAndSet(2, 0);
+                    idToThread.put(id, nullThread);
+                    log("startThreadWorker", localServerIdToId.get(id) + " lost connection");
+                    break;
+
                 }
-            } catch (InterruptedException e) {
-                System.out.println("addTaskWorker :=: addTaskWorker interrupted : " + e.getMessage());
             }
-        }
-    };*/
+        });
+        thread.start();
+    }
 
     private Runnable conflictInfoScheduler = () -> {
-        while (!conflicts.isEmpty() || work.get()) {
+        while (true) {
             try {
                 if (!conflicts.isEmpty()) {
                     for (int i = 0; i < conflicts.size(); i++) {
@@ -710,22 +548,16 @@ public class ServerImpl implements Server {
                                 synchronized (judges) {
                                     judgeInfoList = new ArrayList<>(judges);
                                 }
-                        /*logWriter.println(judgeInfoList.stream().map(judgeInfo -> socket.toString()).collect(Collectors.joining("----")));
-                        logWriter.flush();*/
                                 for (JudgeInfo judgeInfo : judgeInfoList) {
                                     if (!judgeInfo.task.isMarked()) {
                                         if (judgeInfo.setTask(conflict)) {
 
-                                    /*logWriter.println("get task" + judges.get(j).socket + " " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
-                                    logWriter.flush();*/
                                             f = true;
                                             break;
                                         }
                                     }
                                 }
-                                //System.out.println("not get " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                             } else if (conflict.status.get() == 1) {
-                                //System.out.println("in process " + conflict.textId + " " + conflict.teamOneId + " " + conflict.teamTwoId);
                             } else {
                                 conflictInfoQueue.poll();
                             }
@@ -735,7 +567,8 @@ public class ServerImpl implements Server {
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
-                System.out.println("conflictInfoScheduler :=: conflictInfoScheduler interrupted : " + e.getMessage());
+                log("conflictInfoScheduler", e.getMessage());
+                break;
             }
         }
     };
@@ -763,13 +596,12 @@ public class ServerImpl implements Server {
                     "           </tr>\n" +
                     "       </thead>\n" +
                     "       <tbody id=\"table-body\">\n");
-            List<Pair<Integer, Integer>> local = leaderBoard.entrySet().stream()
+            List<Pair<String, Integer>> local = leaderBoard.entrySet().stream()
                     .map(k -> new Pair<>(k.getKey(), k.getValue())).sorted(this::comparePairs).collect(Collectors.toList());
             Collections.reverse(local);
             for (int i = 0; i < local.size(); i++) {
                 htmlBuilder.append(
-                        "       <tr>\n" +
-                                "           <td>").append(idToUsername.get(local.get(i).getKey())).append("</td>\n").append(
+                        "       <tr>\n           <td>").append(idToUsername.get(local.get(i).getKey())).append("</td>\n").append(
                         "           <td>").append(local.get(i).getValue()).append("</td>\n").append(
                         "       </tr>\n");
             }
@@ -793,7 +625,7 @@ public class ServerImpl implements Server {
         }
     };
 
-    private int comparePairs(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+    private int comparePairs(Pair<String, Integer> o1, Pair<String, Integer> o2) {
         if (o1.getValue() > o2.getValue()) {
             return 1;
         } else if (o1.getValue() == o2.getValue()) {
@@ -822,6 +654,8 @@ public class ServerImpl implements Server {
             worker = new Thread(judgeWorker);
             try {
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
+                writer.write(0);
+                writer.flush();
                 writer.println(texts.size());
                 writer.flush();
                 for (String string : texts) {
@@ -850,8 +684,8 @@ public class ServerImpl implements Server {
 
                                 ConflictInfo conflict = task.getReference();
 
-                                List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, 1);
-                                List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, 2);
+                                List<Action> teamOneActions = judgeStore.getTeamList(conflict.textId, conflict.teamOneId);
+                                List<Action> teamTwoActions = judgeStore.getTeamList(conflict.textId, conflict.teamTwoId);
                                 List<Integer> decisions = judgeStore.getDecisionList(conflict.textId);
 
                                 Action action1 = conflict.action1;
@@ -909,7 +743,10 @@ public class ServerImpl implements Server {
                                     Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
                                     if (first.getLocation().equals(second.getLocation())) {
                                         if (conflict.complete()) {
-                                            judgeStore.putOneAction(action1, action2, conflict.textId, 3);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
+                                            leaderBoardNeed.compareAndSet(false, true);
+                                            judgeStore.putOneAction(conflict.teamOneId, action1,conflict.teamTwoId, action2, conflict.textId, 3);
                                             logWriter.println("judge" + socket.toString() + " complete task");
                                             logWriter.flush();
                                         }
@@ -957,19 +794,33 @@ public class ServerImpl implements Server {
                                 int decision = Integer.parseInt(request);
 
                                 if (conflict.complete()) {
-                                    judgeStore.putOneAction(action1, action2, conflict.textId, decision);
+                                    judgeStore.putOneAction(conflict.teamOneId, action1,conflict.teamTwoId, action2, conflict.textId, decision);
                                     synchronized (leaderBoard) {
-                                        if (decision == 2 || decision == 0) {
-                                            leaderBoard.put(conflict.teamOneId, leaderBoard.get(conflict.teamOneId) - 50);
+                                        if (decision == 2 && !action2.isEmpty()) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) - 20);
                                         }
-                                        if (decision == 1 || decision == 0) {
-                                            leaderBoard.put(conflict.teamTwoId, leaderBoard.get(conflict.teamTwoId) - 50);
+                                        if (decision == 1 && !action1.isEmpty()) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) - 20);
                                         }
+                                        if (decision == 1 || decision == 3) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) + 5);
+                                        }
+                                        if (decision == 2 || decision == 3) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) + 5);
+                                        }
+                                        if (decision == 0 && !action1.isEmpty()) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) - 20);
+                                        }
+                                        if (decision == 0 && !action2.isEmpty()) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) - 20);
+                                        }
+
                                     }
+                                    leaderBoardNeed.compareAndSet(false, true);
                                     logWriter.println("judge" + socket.toString() + " complete task");
                                     logWriter.flush();
                                 }
-                                leaderBoardNeed.compareAndSet(false, true);
+
                                 task.compareAndSet(conflict, null, true, false);
                             }
                         } else {
@@ -993,10 +844,10 @@ public class ServerImpl implements Server {
 
     }
 
-    void backupInfo() {
+   /* void backupInfo() {
         PrintWriter backupWriter;
         try {
-            backupWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMETER + "backupInfo"), StandardCharsets.UTF_8)));
+            backupWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMITER + "backupInfo"), StandardCharsets.UTF_8)));
             backupWriter.println(textNumber);
             backupWriter.flush();
             Set<Integer> set = idToSocket.keySet();
@@ -1009,12 +860,12 @@ public class ServerImpl implements Server {
                 backupWriter.flush();
             });
         } catch (FileNotFoundException e) {
-            System.err.println("Can't find file " + backupName + DELIMETER + "backupInfo");
+            System.err.println("Can't find file " + backupName + DELIMITER + "backupInfo");
         }
     }
 
     private Runnable backupWorker = () -> {
-        while (work.get()) {
+        while (true) {
             if (needBackUp.compareAndSet(true, false)) {
                 backupInfo();
             } else {
@@ -1028,7 +879,7 @@ public class ServerImpl implements Server {
     };
 
     private Runnable leaderBoardWorker = () -> {
-        while (work.get()) {
+        while (true) {
             if (leaderBoardNeed.compareAndSet(true, false)) {
                 leaderBoardBackUp();
             } else {
@@ -1044,7 +895,7 @@ public class ServerImpl implements Server {
     void leaderBoardBackUp() {
         PrintWriter leaderboardWriter;
         try {
-            leaderboardWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMETER + "leaderboardInfo"), StandardCharsets.UTF_8)));
+            leaderboardWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMITER + "leaderboardInfo"), StandardCharsets.UTF_8)));
             leaderboardWriter.println(leaderBoard.size());
             leaderboardWriter.flush();
             leaderBoard.forEach((k, v) -> {
@@ -1055,11 +906,11 @@ public class ServerImpl implements Server {
             e.printStackTrace();
         }
     }
-
+*//*
     public boolean finalRecover(String prefixOld) {
         BufferedReader backupReader;
         try {
-            backupReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "backupInfo"), StandardCharsets.UTF_8));
+            backupReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "backupInfo"), StandardCharsets.UTF_8));
             String request = backupReader.readLine();
             textNumber.set(Integer.parseInt(request));
             request = backupReader.readLine();
@@ -1074,7 +925,7 @@ public class ServerImpl implements Server {
                 String[] nums = request.split(" ");
                 idToTextId.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
             }
-            BufferedReader leaderboardReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "leaderboardInfo"), StandardCharsets.UTF_8));
+            BufferedReader leaderboardReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "leaderboardInfo"), StandardCharsets.UTF_8));
             request = leaderboardReader.readLine();
             size = Integer.parseInt(request);
             for (int i = 0; i < size; i++) {
@@ -1086,10 +937,10 @@ public class ServerImpl implements Server {
             leaderBoardBackUp();
             return true;
         } catch (Exception e) {
-            System.err.println("Can't find file " + prefixOld + DELIMETER + "backupInfo");
+            System.err.println("Can't find file " + prefixOld + DELIMITER + "backupInfo");
             return false;
         }
-    }
+    }*//*
 
     class JudgeStoreFile {
         int id1;
@@ -1106,7 +957,7 @@ public class ServerImpl implements Server {
     public boolean judgeRecover(String prefixOld, String prefixNew) {
         BufferedReader gameReader;
         try {
-            gameReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "judgeStoreGames"), StandardCharsets.UTF_8));
+            gameReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "judgeStoreGames"), StandardCharsets.UTF_8));
             //gameReader = new BufferedReader(new FileReader("judgeStoreGames"));
             String fileName = gameReader.readLine();
             List<JudgeStoreFile> judgeStoreFiles = new ArrayList<>(0);
@@ -1120,14 +971,14 @@ public class ServerImpl implements Server {
             judgeStoreFiles.sort(this::judgeStoreCompare);
             judgeStore.setJudgeWriter(prefixNew);
             for (JudgeStoreFile judgeStoreFile : judgeStoreFiles) {
-                String file = prefixOld + DELIMETER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
+                String file = prefixOld + DELIMITER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
                 BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
                 //BufferedReader reader = new BufferedReader(new FileReader(file));
                 String line = reader.readLine();
                 List<Action> teamOneActions = new CopyOnWriteArrayList<>();
                 List<Action> teamTwoActions = new CopyOnWriteArrayList<>();
                 List<Integer> decisions = new CopyOnWriteArrayList<>();
-                PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMETER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId), StandardCharsets.UTF_8)));
+                PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId), StandardCharsets.UTF_8)));
 
                 while (line != null) {
                     List<String> list = Arrays.asList(line.split("@"));
@@ -1170,7 +1021,7 @@ public class ServerImpl implements Server {
     }
 
     public boolean serverRecover(String prefixOld, String prefixNew) {
-        try (BufferedReader readerG = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + "gamesServer"), StandardCharsets.UTF_8))) {
+        try (BufferedReader readerG = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "gamesServer"), StandardCharsets.UTF_8))) {
             String firstFile, secondFile;
             ArrayList<ServerStoreFile> files = new ArrayList<>();
             while ((firstFile = readerG.readLine()) != null) {
@@ -1182,23 +1033,31 @@ public class ServerImpl implements Server {
             files.sort(this::compareSS);
             serverStore.setServerWriter(prefixNew);
             for (ServerStoreFile ssf : files) {
-                try (BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8));
-                     BufferedReader readerSecond = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMETER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8));
-                     PrintWriter writerFirst = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMETER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8)));
-                     PrintWriter writerSecond = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMETER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8)))) {
+                try (BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8));
+                     BufferedReader readerSecond = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8));
+                     PrintWriter writerFirst = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8)));
+                     PrintWriter writerSecond = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8)))) {
                     ArrayList<Action> listFirst = new ArrayList<>();
                     ArrayList<Action> listSecond = new ArrayList<>();
                     String input;
-                    while ((input = readerFirst.readLine()) != null) {
-                        listFirst.add(new Action(input));
-                        writerFirst.println(listFirst.get(listFirst.size() - 1).pack());
+
+                    List<String> lines = readerFirst.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                    for (String s : lines) {
+                        UpdateDocument doc = new UpdateDocument(s);
+                        listFirst.addAll(doc.getActions());
+                        writerFirst.println(s);
                         writerFirst.flush();
                     }
-                    while ((input = readerSecond.readLine()) != null) {
-                        listSecond.add(new Action(input));
-                        writerSecond.println(listSecond.get(listSecond.size() - 1).pack());
+
+
+                    lines = readerSecond.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                    for (String s : lines) {
+                        UpdateDocument doc = new UpdateDocument(s);
+                        listSecond.addAll(doc.getActions());
+                        writerSecond.println(s);
                         writerSecond.flush();
                     }
+
                     List<Action> toDeleteFirst = new ArrayList<>();
                     List<Action> toDeleteSecond = new ArrayList<>();
                     for (int j = 0; j < judgeStore.games.size(); j++) {
@@ -1212,10 +1071,27 @@ public class ServerImpl implements Server {
                             break;
                         }
                     }
-                    listFirst.removeAll(toDeleteFirst);
-                    listSecond.removeAll(toDeleteSecond);
+                    List<Action> firstActionNeeded = new ArrayList<>();
+                    List<Action> secondActionNeeded = new ArrayList<>();
+
+                    for (int i = 0; i < listFirst.size(); i++) {
+                        if (toDeleteFirst.isEmpty() || !listFirst.get(i).getLocation().equals(toDeleteFirst.get(0).getLocation())) {
+                            firstActionNeeded.add(listFirst.get(i));
+                        } else {
+                            toDeleteFirst.remove(0);
+                        }
+                    }
+
+                    for (int i = 0; i < listSecond.size(); i++) {
+                        if (toDeleteSecond.isEmpty() || !listSecond.get(i).getLocation().equals(toDeleteSecond.get(0).getLocation())) {
+                            secondActionNeeded.add(listSecond.get(i));
+                        } else {
+                            toDeleteSecond.remove(0);
+                        }
+                    }
+
                     conflicts.add(new ConcurrentLinkedQueue<>());
-                    serverStore.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, listFirst, listSecond, writerFirst, writerSecond);
+                    //serverStore.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond);
                 } catch (IOException e2) {
                     e2.printStackTrace();
                 }
@@ -1229,6 +1105,6 @@ public class ServerImpl implements Server {
             e.printStackTrace();
             return false;
         }
-    }
+    }*/
 
 }

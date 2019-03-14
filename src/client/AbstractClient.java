@@ -1,13 +1,10 @@
 package client;
 
-import chain.Action;
-import chain.Chain;
-import document.UpdateDocument;
-
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * This class provides some extra fields for {@code Client}.
@@ -36,7 +33,7 @@ public abstract class AbstractClient implements Client {
     /**
      * Client id.
      */
-    protected int id;
+    protected String id;
 
     /**
      * Client reader
@@ -48,14 +45,19 @@ public abstract class AbstractClient implements Client {
      */
     protected PrintWriter writer;
 
-    public AbstractClient(int id, int port, String serviceAddress) {
+    protected Queue<String> dataToSend;
+
+    protected Thread senderThread;
+
+    protected Thread receiverThread;
+
+    public AbstractClient(String id, int port, String serviceAddress) {
         try {
             this.id = id;
             this.port = port;
             this.serviceAddress = serviceAddress;
-            socket = new Socket(serviceAddress, port);
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
+            dataToSend = new ConcurrentLinkedQueue<>();
+            connect();
         } catch (IOException e) {
             System.err.println("Can't connect to server");
         }
@@ -64,34 +66,88 @@ public abstract class AbstractClient implements Client {
     /**
      * Send connection information to server and waiting for positive response
      *
-     * @param info information for sending
      */
-    protected int sendConnectionInfo(String info) {
-        try {
-            writer.println(info);
-            writer.flush();
-            String request = reader.readLine();
-            if (request.equals("OK")) {
-                return 0;
-            } else if (request.equals("R")) {
-                return 1;
-            } else if (request.equals("E")) {
-                return 2;
-            } else {
-                return 3;
+    protected int sendConnectionInfo() {
+        while (true) {
+            try {
+                writer.println(id);
+                writer.flush();
+                while (!reader.ready()) {
+                    Thread.sleep(1000);
+                }
+                int request = reader.read();
+                if (request == -1) {
+                    break;
+                    //continue;
+                }
+                return request;
+            } catch (Exception e) {
+                System.err.println("Can't read answer from server: " + e.getMessage());
+                break;
             }
-        } catch (Exception e) {
-            System.err.println("Can't read answer from server: " + e.getMessage());
         }
         return 3;
     }
 
+    protected void connect() throws IOException {
+        socket = new Socket(serviceAddress, port);
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
+    }
+
     public void close() {
         try {
+            senderThread.interrupt();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    protected Runnable sender = () -> {
+        while(true) {
+            if (!dataToSend.isEmpty()) {
+                writer.write(0);
+                writer.println(dataToSend.poll());
+                writer.flush();
+            } else {
+                writer.write(1);
+                writer.flush();
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                break;
+}
+}
+    };
+
+    public boolean isServerWork = false;
+
+    protected Runnable receiver = () -> {
+        while (true) {
+            try {
+                int count = 0;
+                while (!reader.ready() && count < 3) {
+                    Thread.sleep(5000);
+                    count++;
+                }
+                if (count == 3) {
+                    isServerWork = false;
+                    break;
+                }
+                int out = reader.read();
+                System.out.println(out);
+                if (out != 0) {
+                    isServerWork = false;
+                    break;
+                }
+            } catch (IOException e) {
+
+            } catch (InterruptedException e) {
+                break;
+            }
+        }
+    };
 
 }

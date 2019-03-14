@@ -176,7 +176,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws InterruptedException {
         controller = new ControllerImpl(primaryStage);
 
-//        loginUser();
+        loginUser();
 
         if (controller.isJudge()) {
             judgeInterface.start(primaryStage);
@@ -312,7 +312,7 @@ public class Main extends Application {
             if (password.getText().equals(judgePassword)) {
                 stage.getScene().getWindow().hide();
                 controller.loginJudge();
-                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
+                Judge judge = new Judge("1337", 3333, "62.109.13.129", judgeInterface.getController());
                 judgeInterface.setJudge(judge);
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
@@ -425,7 +425,7 @@ public class Main extends Application {
                 error.setText("Неправильный ID!");
                 return;
             }
-            user = new User(ID, 3333, "62.109.13.129");
+            user = new User(String.valueOf(ID), 3333, "62.109.13.129");
             int out = user.joinOnline();
             if (out == 0) {
                 stage.getScene().getWindow().hide();

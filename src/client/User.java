@@ -1,7 +1,6 @@
 package client;
 
 import chain.Action;
-import chain.Chain;
 import document.Data;
 import document.UpdateDocument;
 
@@ -17,35 +16,62 @@ import java.util.List;
 public class User extends AbstractClient {
     //private Listener listener;
 
-    public User(int id, int port, String serviceAddress) {
+    public User(String id, int port, String serviceAddress) {
         super(id, port, serviceAddress);
     }
 
     public Data getData() {
-        String input = null;
-        try {
-            input = reader.readLine();
-            return new Data(input);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+        while (true) {
+            try {
+                while (!reader.ready()) {
+                    Thread.sleep(1000);
+                }
+                String input = reader.readLine();
+                if (input == null) {
+                    /*connect();
+                    sendConnectionInfo();*/
+                    return null;
+                } else {
+                    receiverThread = new Thread(receiver);
+                    receiverThread.start();
+                    return new Data(input);
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
     }
 
     public String getText() {
-        try {
-            return reader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+        while (true) {
+            try {
+                while (!reader.ready()) {
+                    Thread.sleep(1000);
+                }
+                String text = reader.readLine();
+                if (text == null) {
+                    /*connect();
+                    sendConnectionInfo();*/
+                    return null;
+                } else {
+                    receiverThread = new Thread(receiver);
+                    receiverThread.start();
+                    return text;
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
     }
 
     public int sendUpdates(List<Action> actions) {
         try {
             UpdateDocument document = new UpdateDocument(actions);
-            writer.println(document.pack());
-            writer.flush();
+            dataToSend.add(document.pack());
+            /*writer.println(document.pack());
+            writer.flush();*/
             return 0;
         } catch (Exception e) {
             return 1;
@@ -54,46 +80,13 @@ public class User extends AbstractClient {
 
     @Override
     public int joinOnline() {
-        int out = sendConnectionInfo(String.valueOf(id));
-        if (out == 0) {
-            out = sendConnectionInfo("0");
-            if (out == 0) {
-                System.out.println("Successful connect to server in online mode with id = " + id);
-                return 0;
-            } else {
-                System.err.println("Can't connect to server in online mode with id = " + id);
-                return -1;
-            }
-        } else if (out == 1) {
-            out = sendConnectionInfo("0");
-            if (out == 0) {
-                System.out.println("Successful reconnect to server in online mode with id = " + id);
-                return 1;
-            } else {
-                System.err.println("Can't reconnect to server in online mode with id = " + id);
-                return -1;
-            }
-        } else if (out == 2) {
-            return 2;
-        } else {
-            return -1;
+        int out = sendConnectionInfo();
+        if (out == 1 || out == 0) {
+            isServerWork = true;
+            senderThread = new Thread(sender);
+            senderThread.start();
         }
-    }
-
-    public int joinOffline() {
-        int out = sendConnectionInfo(String.valueOf(id));
-        if (out == 0) {
-            out = sendConnectionInfo("1");
-            if (out == 0) {
-                System.out.println("Successful connect to server in offline mode with id = " + id);
-                return 0;
-            } else {
-                System.err.println("Can't connect to server in offline mode with id = " + id);
-                return -1;
-            }
-        } else {
-            return -1;
-        }
+        return out;
     }
 
     public void close(List<Action> actions) {

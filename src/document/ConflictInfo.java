@@ -38,7 +38,7 @@ public class ConflictInfo {
             counter = new Thread(() -> {
                 while(status.get() != 2) {
                     try {
-                        Thread.sleep(6000000);
+                        Thread.sleep(120000);
                         System.out.println("conflict_info " + textId + " " + teamOneId + " " + teamTwoId  + " " + status + " " + this);
                         int localStatus = status.get();
                         if(localStatus == 1) {

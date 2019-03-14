@@ -160,7 +160,8 @@ public class JudgeInterface {
                 space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {
-                if (whereBlank.contains(i)) {
+                if (whereBlank.contains(-i-1)) {
+                    space.setText("@");
                     space.getStyleClass().add("chain-selected-judge");
                 }
             }
