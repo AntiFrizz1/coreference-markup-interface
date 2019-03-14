@@ -1,0 +1,1 @@
+1 0 n	Phrase: Вот :: 5	0 0 n	Phrase: насрано! :: 10	1 1 jh	Phrase: НАССАТЬ :: 1	0 1 jh	Blank: 2	1 2 cdd	Blank: 7	1 3  njk	Phrase: ыыы. :: 11

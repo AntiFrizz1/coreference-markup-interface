@@ -74,7 +74,10 @@ public class ControllerImpl implements Controller {
         this.primaryStage = primaryStage;
     }
 
-    public List<Action> getActions() {
+    String simpleText(){
+        return TEXT_PLACEHOLDER;
+    }
+    List<Action> getActions() {
         return actions;
     }
 
@@ -87,7 +90,7 @@ public class ControllerImpl implements Controller {
 
     }
 
-    public boolean isOnline() {
+    boolean isOnline() {
         return online;
     }
 
@@ -107,11 +110,11 @@ public class ControllerImpl implements Controller {
         // text = getText(id);
     }
 
-    public boolean isJudge() {
+    boolean isJudge() {
         return isJudge;
     }
 
-    public boolean isLoggedUser() {
+    boolean isLoggedUser() {
         return isLoggedUser;
     }
 
@@ -137,7 +140,7 @@ public class ControllerImpl implements Controller {
         offline = true;
     }
 
-    public boolean isOfflineMode() {
+    boolean isOfflineMode() {
         return offline;
     }
 

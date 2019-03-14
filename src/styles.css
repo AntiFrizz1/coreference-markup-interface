@@ -1,13 +1,15 @@
-.root {
-    -fx-base: white;
-}
-
 .word {
     -fx-padding: 0, 0, 0, 0;
     -fx-font-size: 20pt;
 }
 
+.default-outline {
+    -fx-border-color: blue;;
+    -fx-border-width: 2px;
+}
+
 .word-selected {
+    -fx-font-family: Chandas;
     -fx-border-color: red;
     -fx-border-width: 1px;
     -fx-padding: 0, 0, 0, 0;
@@ -47,4 +49,16 @@
     -fx-border-width: 1px;
     -fx-padding: 0, 0, 0, 0;
     -fx-font-size: 14pt;
+}
+
+.default-background {
+    -fx-background-color: burlywood;
+}
+
+.button-font {
+    -fx-opacity: 1;
+    -fx-font-family: Arial;
+    -fx-text-fill: silver;
+    -fx-background-color: grey;
+    -fx-font-size: 10pt;
 }

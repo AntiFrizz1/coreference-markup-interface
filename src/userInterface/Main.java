@@ -8,9 +8,11 @@ import chain.Location;
 import chain.Phrase;
 import client.User;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -19,6 +21,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -68,10 +71,10 @@ public class Main extends Application {
     private JudgeInterface judgeInterface = new JudgeInterface();
 
     @Override
-    public void start(Stage primaryStage) throws InterruptedException {
+    public void start(Stage primaryStage) {
         controller = new ControllerImpl(primaryStage);
 
-//        loginUser();
+        loginUser();
 
         if (controller.isJudge()) {
             judgeInterface.start(primaryStage);
@@ -90,33 +93,94 @@ public class Main extends Application {
         launch(args);
     }
 
+    private ColumnConstraints makeColFromPercent(int value) {
+        ColumnConstraints res = new ColumnConstraints();
+        res.setPercentWidth(value);
+        return res;
+    }
+
+    private RowConstraints makeRowFromPercent(int value) {
+        RowConstraints res = new RowConstraints();
+        res.setPercentHeight(value);
+        return res;
+    }
+
+    private GridPane baseUserPart() {
+        GridPane root = new GridPane();
+
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(30),
+                makeColFromPercent(40),
+                makeColFromPercent(30)
+        );
+
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(20)
+        );
+
+        return root;
+    }
+
+    private GridPane baseUserSubPart() {
+        GridPane subRoot = new GridPane();
+
+        subRoot.getColumnConstraints().addAll(
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10)
+        );
+
+
+        subRoot.getRowConstraints().addAll(
+                makeRowFromPercent(20),
+                makeRowFromPercent(60),
+                makeRowFromPercent(20)
+        );
+        return subRoot;
+    }
+
     private void loginUser() {
         Stage stage = new Stage();
         stage.setTitle("Выберите роль");
         GridPane root = new GridPane();
-        ColumnConstraints col1 = new ColumnConstraints();
-        ColumnConstraints col2 = new ColumnConstraints();
-        ColumnConstraints col3 = new ColumnConstraints();
-        ColumnConstraints col4 = new ColumnConstraints();
-        ColumnConstraints col5 = new ColumnConstraints();
-        col1.setPercentWidth(10);
-        col2.setPercentWidth(35);
-        col3.setPercentWidth(10);
-        col4.setPercentWidth(35);
-        col5.setPercentWidth(10);
 
-        root.getColumnConstraints().addAll(col1, col2, col3, col4, col5);
-        RowConstraints row1 = new RowConstraints();
-        RowConstraints row2 = new RowConstraints();
-        RowConstraints row3 = new RowConstraints();
-        row1.setPercentHeight(30);
-        row2.setPercentHeight(40);
-        row3.setPercentHeight(30);
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
 
-        root.getRowConstraints().addAll(row1, row2, row3);
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10)
+        );
+
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(30),
+                makeRowFromPercent(40),
+                makeRowFromPercent(30)
+        );
 
         Button judge = new Button("Войти как судья");
         Button user = new Button("Войти как пользователь");
+        judge.getStyleClass().add("button-font");
+        user.getStyleClass().add("button-font");
+
+        GridPane.setValignment(judge, VPos.CENTER);
+        GridPane.setHalignment(judge, HPos.CENTER);
+
+        GridPane.setValignment(user, VPos.CENTER);
+        GridPane.setHalignment(user, HPos.CENTER);
+
         judge.setPadding(new Insets(5));
         user.setPadding(new Insets(5));
         GridPane.setFillHeight(judge, true);
@@ -140,81 +204,41 @@ public class Main extends Application {
         stage.showAndWait();
     }
 
+
     private void judgeLoginScreen() {
         Stage stage = new Stage();
         stage.setTitle("Введите пароль");
-        GridPane root = new GridPane();
-
-        ColumnConstraints col1 = new ColumnConstraints();
-        ColumnConstraints col2 = new ColumnConstraints();
-        ColumnConstraints col3 = new ColumnConstraints();
-        col1.setPercentWidth(30);
-        col2.setPercentWidth(40);
-        col3.setPercentWidth(30);
-
-        root.getColumnConstraints().addAll(col1, col2, col3);
-        RowConstraints row1 = new RowConstraints();
-        RowConstraints row2 = new RowConstraints();
-        RowConstraints row3 = new RowConstraints();
-        RowConstraints row4 = new RowConstraints();
-        RowConstraints row5 = new RowConstraints();
-        row1.setPercentHeight(10);
-        row2.setPercentHeight(25);
-        row3.setPercentHeight(20);
-        row4.setPercentHeight(25);
-        row5.setPercentHeight(10);
 
 
-        root.getRowConstraints().addAll(row1, row2, row3, row4, row5);
+        GridPane root = baseUserPart();
+        GridPane subRoot = baseUserSubPart();
 
-        GridPane subRoot = new GridPane();
-
-        ColumnConstraints ccol1 = new ColumnConstraints();
-        ColumnConstraints ccol2 = new ColumnConstraints();
-        ColumnConstraints ccol3 = new ColumnConstraints();
-        ColumnConstraints ccol4 = new ColumnConstraints();
-        ColumnConstraints ccol5 = new ColumnConstraints();
-
-        ccol1.setPercentWidth(10);
-        ccol2.setPercentWidth(35);
-        ccol3.setPercentWidth(10);
-        ccol4.setPercentWidth(35);
-        ccol5.setPercentWidth(10);
-
-        subRoot.getColumnConstraints().addAll(ccol1, ccol2, ccol3, ccol4, ccol5);
-
-        RowConstraints rrow1 = new RowConstraints();
-        RowConstraints rrow2 = new RowConstraints();
-        RowConstraints rrow3 = new RowConstraints();
-
-        rrow1.setPercentHeight(20);
-        rrow2.setPercentHeight(60);
-        rrow3.setPercentHeight(20);
-
-        subRoot.getRowConstraints().addAll(rrow1, rrow2, rrow3);
 
         PasswordField password = new PasswordField();
         password.setPromptText("Введите пароль судьи...");
         GridPane.setValignment(password, VPos.CENTER);
         GridPane.setHalignment(password, HPos.CENTER);
+
         Button enter = new Button("Войти");
+        enter.getStyleClass().add("button-font");
+
+        Button back = new Button("Назад");
+        back.getStyleClass().add("button-font");
+
         GridPane.setValignment(enter, VPos.CENTER);
         GridPane.setHalignment(enter, HPos.CENTER);
+
         Text error = new Text("");
+
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+
         enter.setOnAction(event -> {
-            // TODO: call the server instead of local check
-//            if (password.getText().equals(judgePassword)) {
-//                stage.getScene().getWindow().hide();
-//                controller.loginJudge();
-//                Judge judge = new Judge(1337, 3333, "62.109.13.129", judgeInterface.getController());
-//                judgeInterface.setJudge(judge);
-//                if (judge.joinOnline() != 0) {
-//                    error.setText("Не удалось подключиться. Проверьте подключение к интернету.");
-//                }
-//            } else {
-//                error.setText("Неверный пароль!");
-//            }
+            if (password.getText().equals("1234")) {
+                stage.getScene().getWindow().hide();
+                controller.loginJudge();
+            } else {
+                error.setText("Неверный пароль!");
+            }
         });
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
@@ -222,21 +246,25 @@ public class Main extends Application {
                 event.consume();
             }
         });
-        Button back = new Button("Назад");
+
         back.setOnAction(event -> {
             stage.getScene().getWindow().hide();
         });
 
-        subRoot.add(enter, 1, 1);
-        subRoot.add(back, 3, 1);
+        subRoot.add(enter, 0, 1, 2, 1);
+        subRoot.add(back, 3, 1, 2, 1);
+
         root.add(password, 1, 1);
         root.add(error, 1, 2);
         root.add(subRoot, 1, 3);
+
         stage.setScene(new Scene(root, 400, 200));
         stage.setResizable(false);
+
         stage.setOnCloseRequest(event -> {
             stage.getScene().getWindow().hide();
         });
+
         stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
@@ -247,129 +275,96 @@ public class Main extends Application {
     private void userLoginScreen() {
         Stage stage = new Stage();
         stage.setTitle("Введите ID пользователя");
-        GridPane root = new GridPane();
 
-        ColumnConstraints col1 = new ColumnConstraints();
-        ColumnConstraints col2 = new ColumnConstraints();
-        ColumnConstraints col3 = new ColumnConstraints();
-        col1.setPercentWidth(30);
-        col2.setPercentWidth(40);
-        col3.setPercentWidth(30);
-
-        root.getColumnConstraints().addAll(col1, col2, col3);
-        RowConstraints row1 = new RowConstraints();
-        RowConstraints row2 = new RowConstraints();
-        RowConstraints row3 = new RowConstraints();
-        RowConstraints row4 = new RowConstraints();
-        RowConstraints row5 = new RowConstraints();
-        row1.setPercentHeight(10);
-        row2.setPercentHeight(25);
-        row3.setPercentHeight(20);
-        row4.setPercentHeight(25);
-        row5.setPercentHeight(10);
-
-
-        root.getRowConstraints().addAll(row1, row2, row3, row4, row5);
-
-        GridPane subRoot = new GridPane();
-
-        ColumnConstraints ccol1 = new ColumnConstraints();
-        ColumnConstraints ccol2 = new ColumnConstraints();
-        ColumnConstraints ccol3 = new ColumnConstraints();
-        ColumnConstraints ccol4 = new ColumnConstraints();
-        ColumnConstraints ccol5 = new ColumnConstraints();
-
-        ccol1.setPercentWidth(10);
-        ccol2.setPercentWidth(35);
-        ccol3.setPercentWidth(10);
-        ccol4.setPercentWidth(35);
-        ccol5.setPercentWidth(10);
-
-        subRoot.getColumnConstraints().addAll(ccol1, ccol2, ccol3, ccol4, ccol5);
-
-        RowConstraints rrow1 = new RowConstraints();
-        RowConstraints rrow2 = new RowConstraints();
-        RowConstraints rrow3 = new RowConstraints();
-
-        rrow1.setPercentHeight(20);
-        rrow2.setPercentHeight(60);
-        rrow3.setPercentHeight(20);
-
-        subRoot.getRowConstraints().addAll(rrow1, rrow2, rrow3);
+        GridPane root = baseUserPart();
+        GridPane subRoot = baseUserSubPart();
 
         TextField id = new TextField();
         id.setPromptText("Введите ID пользователя...");
+
         GridPane.setValignment(id, VPos.CENTER);
         GridPane.setHalignment(id, HPos.CENTER);
+
         Button enter = new Button("Войти");
-        GridPane.setValignment(enter, VPos.CENTER);
-        GridPane.setHalignment(enter, HPos.CENTER);
+        Button back = new Button("Назад");
         Button enterOffline = new Button("Войти оффлайн");
+
+        enter.getStyleClass().add("button-font");
+        back.getStyleClass().add("button-font");
+        enterOffline.getStyleClass().add("button-font");
+
         GridPane.setValignment(enter, VPos.CENTER);
         GridPane.setHalignment(enter, HPos.CENTER);
+
+
+        GridPane.setValignment(back, VPos.CENTER);
+        GridPane.setHalignment(back, HPos.CENTER);
+
+        GridPane.setValignment(enterOffline, VPos.CENTER);
+        GridPane.setHalignment(enterOffline, HPos.CENTER);
+
         enterOffline.setOnAction(event -> {
             controller.offlineMode();
             stage.getScene().getWindow().hide();
         });
+
         Text error = new Text("");
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+
         enter.setOnAction(event -> {
             // TODO: call to server
-//            Integer ID = 0;
-//            ID = logins.indexOf(id.getText());
-//            if (ID == -1) {
-//                error.setText("Неправильный ID!");
-//                return;
-//            }
-//            user = new User(ID, 3333, "62.109.13.129");
-//            int out = user.joinOnline();
-//            if (out == 0) {
-//                stage.getScene().getWindow().hide();
-//                Platform.runLater(() -> {
-//                    controller.setText(user.getText());
-//                });
-//                controller.loginUser(ID);
-//            } else if (out == 1) {
-//                stage.getScene().getWindow().hide();
-//                Platform.runLater(() -> {
-//                    Data data = user.getData();
-//                    controller.restoreState(data.getText(), data.getActions());
-//                });
-//                controller.loginUser(ID);
-//            } else {
-//                if (out == 2) {
-//                    error.setText("Пользователь с таким id уже авторизовался!");
-//                } else {
-//                    error.setText("Не удалось подключиться к серверу");
-//                }
-//            }
+            Integer ID = 0;
+            stage.getScene().getWindow().hide();
+            Platform.runLater(() -> {
+                controller.setText(controller.simpleText());
+            });
         });
-        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event ->
+
+        {
             if (event.getCode() == KeyCode.ENTER) {
                 enter.fire();
                 event.consume();
             }
         });
 
-        Button back = new Button("Назад");
-        back.setOnAction(event -> {
+        back.setOnAction(event ->
+
+        {
             stage.getScene().getWindow().hide();
         });
 
 
-        subRoot.add(enter, 1, 1);
-        subRoot.add(back, 3, 1);
-//        subRoot.add(enterOffline, 5, 1);
+        subRoot.add(enter, 0, 1, 2, 1);
+        subRoot.add(back, 3, 1, 2, 1);
+        subRoot.add(enterOffline, 0, 2, 5, 1);
         root.add(id, 1, 1);
         root.add(error, 0, 2);
         root.add(subRoot, 1, 3);
-        stage.setScene(new Scene(root, 400, 200));
+        stage.setScene(new
+
+                Scene(root, 400, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(event -> {
+        stage.setOnCloseRequest(event ->
+
+        {
             stage.getScene().getWindow().hide();
         });
         stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
+    }
+
+    private Button genButton(String image) {
+        ImageView imageView = new ImageView(image + ".png");
+        imageView.setFitWidth(20);
+        imageView.setFitHeight(20);
+        Button button = new Button("", imageView);
+        button.setMinSize(20, 20);
+        button.setStyle("-fx-background-color: burlywood");
+        GridPane.setHalignment(button, HPos.CENTER);
+        GridPane.setValignment(button, VPos.CENTER);
+        return button;
     }
 
     /**
@@ -379,57 +374,137 @@ public class Main extends Application {
      * @return the scene
      */
     private Scene genScene(Stage primaryStage) {
-        /*
-        General layout: two columns, the left one with text/buttons and the right one with chains.
-         */
-        GridPane overall = new GridPane();
+        //buttons and words search
+        HBox buttons = new HBox(1);
+        buttons.getStyleClass().add("default-background");
+
+        Button nnew = genButton("new");
+        Button add = genButton("plus");
+        Button empty = genButton("empty");
+        Button undo = genButton("undo");
+        Button del = genButton("delete");
+        Button fileSelect = genButton("download");
+        Button dump = genButton("upload");
+        undo.setDisable(true);
+
+        buttons.getChildren().addAll(nnew, add, empty, undo, del, fileSelect, dump);
+
+        GridPane.setFillWidth(buttons, false);
+        GridPane.setFillHeight(buttons, false);
+        GridPane.setHalignment(buttons, HPos.LEFT);
+        GridPane.setValignment(buttons, VPos.CENTER);
+
+        HBox search = new HBox(5);
+
+        TextField textField = new TextField();
+        textField.setPromptText("Введите слово для поиска...");
+        Button left = genButton("prev");
+        Button right = genButton("next");
+
+        search.getChildren().addAll(textField, left, right);
+        GridPane.setValignment(search, VPos.CENTER);
+        GridPane.setHalignment(search, HPos.RIGHT);
+        GridPane.setFillWidth(search, false);
+        GridPane.setFillHeight(search, false);
+
+        GridPane buttonsSearch = new GridPane();
         {
             ColumnConstraints col1 = new ColumnConstraints();
-            col1.setHgrow(Priority.ALWAYS);
-            ColumnConstraints col2 = new ColumnConstraints();
-            overall.getColumnConstraints().addAll(col1, col2);
+            col1.setMinWidth(buttons.getMinWidth());
+
+
+            ColumnConstraints col3 = new ColumnConstraints();
+            col3.setMinWidth(search.getMinWidth());
+
+            buttonsSearch.getColumnConstraints().addAll(
+                    col1,
+                    col3
+            );
+
+            RowConstraints row1 = new RowConstraints();
+            row1.setPercentHeight(100);
+
+            buttonsSearch.getRowConstraints().add(row1);
         }
 
-        /*
-        A pane containing the selected text in form of buttons.
-         */
+        buttonsSearch.add(buttons, 0, 0);
+        buttonsSearch.add(search, 1, 0);
+        GridPane.setMargin(buttonsSearch, new Insets(10));
+        GridPane.setFillWidth(buttonsSearch, true);
+
+        //text
         ScrollPane textWrapper = new ScrollPane();
         textWrapper.setFitToWidth(true);
+        textWrapper.setFitToHeight(true);
+        textWrapper.setPadding(new Insets(20, 20, 20, 20));
         FlowPane text = new FlowPane();
         textWrapper.setContent(text);
-        text.setPadding(new Insets(5));
         generateText(text, textWrapper);
+        textWrapper.getStyleClass().add("default-outline");
+        GridPane.setMargin(textWrapper, new Insets(10));
 
-        GridPane rightSide = new GridPane();
-
-        /*
-        A scrollpane with a list of chains.
-         */
-        ScrollPane pane = new ScrollPane();
-        pane.prefWidthProperty().bind(primaryStage.widthProperty().divide(4));
+        //chains
+        ScrollPane chainsField = new ScrollPane();
         GridPane chainsList = new GridPane();
-        pane.setContent(chainsList);
-        RowConstraints row1 = new RowConstraints();
-        RowConstraints row2 = new RowConstraints();
-        row2.setVgrow(Priority.ALWAYS);
+        chainsField.setContent(chainsList);
+        chainsField.prefWidthProperty().bind(primaryStage.widthProperty().divide(4));
+        GridPane.setMargin(chainsField, new Insets(10));
+        chainsField.getStyleClass().add("default-outline");
 
-        /*
-        An input text field from which chainFilter is parsed.
-         */
+        //chains search
         TextField field = new TextField();
+        field.setPromptText("Введите текст для поиска в цепочках...");
+        GridPane.setHalignment(field, HPos.LEFT);
+        GridPane.setValignment(field, VPos.CENTER);
+        GridPane.setFillWidth(field, false);
+        GridPane.setMargin(field, new Insets(10));
+
+        GridPane overall = new GridPane();
+        overall.getStylesheets().add("styles.css");
+        overall.getStyleClass().add("default-background");
+        {
+            ColumnConstraints col1 = new ColumnConstraints();
+            col1.setPercentWidth(70);
+            col1.setMinWidth(buttonsSearch.getMinWidth());
+            col1.setFillWidth(true);
+
+            ColumnConstraints col2 = new ColumnConstraints();
+            col2.setPercentWidth(30);
+            col2.setFillWidth(true);
+
+            overall.getColumnConstraints().addAll(
+                    col1,
+                    col2
+            );
+
+            RowConstraints row1 = new RowConstraints(0.1 * APP_HEIGHT, 0.1 * APP_HEIGHT, 0.1 * APP_HEIGHT);
+            row1.setFillHeight(true);
+            row1.setVgrow(Priority.NEVER);
+
+            RowConstraints row2 = new RowConstraints();
+            row2.setPercentHeight(90);
+            row2.setFillHeight(true);
+
+            overall.getRowConstraints().addAll(
+                    row1,
+                    row2
+            );
+        }
+
+        overall.add(field, 1, 0);
+        overall.add(buttonsSearch, 0, 0);
+        overall.add(textWrapper, 0, 1);
+        overall.add(chainsField, 1, 1);
+        Scene sc = new Scene(overall, APP_WIDTH, APP_HEIGHT);
+        sc.getStylesheets().add("styles.css");
+
+        //if (controller.isOnline()) fileSelect.setVisible(false);
+
+
         field.textProperty().addListener((observable, oldValue, newValue) -> {
             chainFilter = newValue;
             genChainsList(chainsList, text, controller.getChains());
         });
-        field.setPromptText("Введите текст для поиска в цепочках...");
-
-        rightSide.getRowConstraints().addAll(row1, row2);
-        rightSide.add(field, 0, 0);
-        rightSide.add(pane, 0, 1);
-
-        BorderPane leftSide = new BorderPane();
-
-        leftSide.setCenter(textWrapper);
 
         /*
         The event handler used to generate the text when restoring the state of the program.
@@ -448,15 +523,15 @@ public class Main extends Application {
         });
 
         /*
-        A box that contains the buttons at the top.
+        The event handler used to generate the text when restoring the state of the program.
          */
-        HBox box = new HBox();
+        primaryStage.addEventHandler(ControllerImpl.MoveSelectedSentenceEvent.MOVE_SELECTED_SENTENCE,
+                event -> {
+                    while (selectedSentenceStart < event.id) right.fire();
+                    event.consume();
+                });
 
-        Button b4 = new Button("Отменить");
-        b4.setDisable(true);
-
-        Button b1 = new Button("Продолжить цепочку");
-        b1.setOnAction(event -> {
+        add.setOnAction(event -> {
             Set<Integer> selected = controller.getSelected();
             if (controller.isSelectedAlreadyBound()) {
                 generateErrorScreen(primaryStage, "Выбранные вами слова уже добавлены в другую цепочку!");
@@ -475,12 +550,11 @@ public class Main extends Application {
                 genChainsList(chainsList, text, chains);
                 updateColoring(ac, chains.get(0), text);
                 removeSelectionFromText(selected, text);
-                b4.setDisable(false);
+                undo.setDisable(false);
             }
         });
 
-        Button b2 = new Button("Новая цепочка");
-        b2.setOnAction(event -> {
+        nnew.setOnAction(event -> {
             Set<Integer> selected = controller.getSelected();
             int selectedBlank = controller.getSelectedBlank();
             if (selected.isEmpty() && selectedBlank == -1) {
@@ -511,12 +585,11 @@ public class Main extends Application {
                 } else {
                     removeSelectionFromText(selected, text);
                 }
-                b4.setDisable(false);
+                undo.setDisable(false);
             }
         });
 
-        Button b3 = new Button("Добавить нулевую анафору");
-        b3.setOnAction(event -> {
+        empty.setOnAction(event -> {
             int selectedBlank = controller.getSelectedBlank();
             if (controller.isSelectedBlankAlreadyBound()) {
                 generateErrorScreen(primaryStage, "Выбранные вами слова уже добавлены в другую цепочку!");
@@ -537,14 +610,10 @@ public class Main extends Application {
                 toggleSelected((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1), "word");
                 ((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1)).setText("@");
                 updateColoring(ac, chains.get(0), text);
-                b4.setDisable(false);
+                undo.setDisable(false);
             }
         });
 
-        Pane spacer = new Pane();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Button fileSelect = new Button("Выбрать файл для разметки");
         fileSelect.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));
@@ -572,24 +641,13 @@ public class Main extends Application {
             /*FileChooser сhooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"));*/
         });
-        Button dump = new Button("Сохранить разметку в файл");
+
         dump.setOnAction(event -> {
             unsentSentences = 0;
             controller.saveStateOffline();
-            b4.setDisable(true);
+            undo.setDisable(true);
         });
 
-        if (controller.isOnline()) fileSelect.setVisible(false);
-        box.getChildren().addAll(b1, b2, b3, b4, spacer, fileSelect, dump);
-        leftSide.setTop(box);
-
-        /*
-        A bottom pane with sentence navigation and text search.
-         */
-        GridPane bottom = new GridPane();
-
-        TextField textField = new TextField();
-        textField.setPromptText("Введите слово для поиска...");
         textField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (oldValue.length() >= 3) {  // remove highlight from old query
                 for (Node button : text.getChildren()) {
@@ -605,7 +663,6 @@ public class Main extends Application {
             }
         });
 
-        Button left = new Button("<");
         /*
         The following action basically searches for the next occurrence of a sentence start and shifts the
         indices accordingly, while toggling the buttons styles.
@@ -627,14 +684,13 @@ public class Main extends Application {
         The following action basically searches for the next occurrence of a sentence start and shifts the
         indices accordingly, while toggling the buttons styles.
          */
-        Button right = new Button(">");
         right.setOnAction(event -> {
             if (checkSentences) {
                 unsentSentences++;
                 if (unsentSentences >= 5) {
                     controller.saveStateOffline();
                     unsentSentences = 0;
-                    b4.setDisable(true);
+                    undo.setDisable(true);
                 }
             }
             controller.clearSelected();
@@ -653,41 +709,18 @@ public class Main extends Application {
                     controller.clearActions();
                 }
             }
+            System.out.println(selectedSentenceStart + "   " + selectedSentenceEnd);
         });
 
-        b4.setOnAction(event -> {
+        undo.setOnAction(event -> {
             Action ac = controller.cancel();
             genChainsList(chainsList, text, controller.getChains());
             undoAction(ac, text, controller.getChains(), left, right);
             int remaining = controller.getPrevStatesSize();
-            if (remaining == 0) b4.setDisable(true);
+            if (remaining == 0) undo.setDisable(true);
         });
 
-        /*
-        The event handler used to generate the text when restoring the state of the program.
-         */
-        primaryStage.addEventHandler(ControllerImpl.MoveSelectedSentenceEvent.MOVE_SELECTED_SENTENCE,
-                event -> {
-                    while (selectedSentenceStart < event.id) right.fire();
-                    event.consume();
-                });
 
-        ColumnConstraints col1 = new ColumnConstraints();
-        ColumnConstraints col2 = new ColumnConstraints();
-        ColumnConstraints col3 = new ColumnConstraints();
-        col2.setHgrow(Priority.ALWAYS);
-        bottom.getColumnConstraints().addAll(col1, col2, col3);
-        bottom.add(left, 0, 0);
-        bottom.add(textField, 1, 0);
-        bottom.add(right, 2, 0);
-
-        leftSide.setBottom(bottom);
-
-        leftSide.prefHeightProperty().bind(primaryStage.heightProperty());
-        overall.add(leftSide, 0, 0);
-        overall.add(rightSide, 1, 0);
-        Scene sc = new Scene(overall, APP_WIDTH, APP_HEIGHT);
-        sc.getStylesheets().add("styles.css");
         return sc;
     }
 
@@ -697,7 +730,6 @@ public class Main extends Application {
      * @param textPane a pane to put the text buttons into
      */
     private void generateText(FlowPane textPane, ScrollPane outer) {
-        String text = controller.getText();
         List<Chain> chains = controller.getChains();
 
         /*
@@ -720,6 +752,7 @@ public class Main extends Application {
         textPane.getChildren().clear();
         // TODO: should probably remove punctuation from buttons into separate TextAreas
         if (words == null) {
+            String text = controller.getText();
             words = text.split(" ");
             textSizeInWords = words.length;
         }
@@ -870,7 +903,7 @@ public class Main extends Application {
         if (l instanceof Blank) {
             text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
                     .setStyle("-fx-background-color: rgba(0,0,0,0)");
-            ((Button)text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
+            ((Button) text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
             from = ((Blank) l).getPosition();
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
@@ -945,20 +978,49 @@ public class Main extends Application {
         // TODO: style this properly
         Stage stage = new Stage();
         stage.setTitle("Ошибка");
+
+
         GridPane root = new GridPane();
-        root.add(new Text(errorMessage), 0, 0);
+
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(50),
+                makeRowFromPercent(50)
+        );
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(20),
+                makeColFromPercent(60),
+                makeColFromPercent(20)
+        );
+
+
+        Text text = new Text(errorMessage);
+        GridPane.setHalignment(text, HPos.CENTER);
+        GridPane.setValignment(text, VPos.CENTER);
+
+
         Button ok = new Button("OK");
+        GridPane.setValignment(ok, VPos.CENTER);
+        GridPane.setHalignment(ok, HPos.CENTER);
+        ok.getStyleClass().add("button-font");
+
+        root.add(text, 1, 0);
+        root.add(ok, 1, 1);
+
         ok.setOnAction(event -> {
             stage.getScene().getWindow().hide();
         });
-        root.add(ok, 0, 1);
+
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 ok.fire();
                 event.consume();
             }
         });
-        stage.setScene(new Scene(root, 320, 50));
+
+        stage.setScene(new Scene(root, 320, 70));
         stage.setResizable(false);
 //        stage.setOnCloseRequest(Event::consume);
         stage.initModality(Modality.WINDOW_MODAL);
@@ -975,26 +1037,58 @@ public class Main extends Application {
         Stage stage = new Stage();
         stage.setTitle("Введите название новой цепочки");
         GridPane root = new GridPane();
-        root.add(new Text("Введите название новой цепочки:"), 0, 0);
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(35),
+                makeRowFromPercent(35),
+                makeRowFromPercent(30)
+        );
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(20),
+                makeColFromPercent(60),
+                makeColFromPercent(20)
+        );
+
+        //text
+        Text text = new Text("Введите название новой цепочки");
+        GridPane.setHalignment(text, HPos.CENTER);
+        GridPane.setValignment(text, VPos.CENTER);
+
+
+        //text field
         TextField name = new TextField();
-        root.add(name, 0, 1);
+        GridPane.setHalignment(name, HPos.CENTER);
+        GridPane.setValignment(name, VPos.CENTER);
+
+        //ok
         Button ok = new Button("OK");
+        ok.getStyleClass().add("button-font");
+        GridPane.setValignment(ok, VPos.CENTER);
+        GridPane.setHalignment(ok, HPos.CENTER);
+
+        root.add(text, 1, 0);
+        root.add(name, 1, 1);
+        root.add(ok, 1, 2);
+
+
         ok.setOnAction(event -> {
             if (!name.getText().isEmpty()) {
                 stage.getScene().getWindow().hide();
                 controller.setNewChainName(name.getText());
             }
         });
-//        ok.setAlignment(Pos.CENTER);  // TODO: style this properly
-        root.add(ok, 0, 2);
+
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 ok.fire();
                 event.consume();
             }
         });
-//        root.setAlignment(Pos.CENTER);
-        stage.setScene(new Scene(root, 190, 70));
+
+        stage.setScene(new Scene(root, 300, 120));
         stage.setResizable(false);
         stage.setOnCloseRequest(Event::consume);
         stage.initModality(Modality.WINDOW_MODAL);

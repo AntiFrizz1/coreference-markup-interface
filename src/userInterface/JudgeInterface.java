@@ -1,7 +1,5 @@
 package userInterface;
 
-import client.Conflict;
-import client.ConflictImpl;
 import client.Judge;
 import javafx.event.Event;
 import javafx.geometry.Insets;
@@ -36,7 +34,7 @@ public class JudgeInterface {
         primaryStage.setMinHeight(MIN_APP_HEIGHT);
         primaryStage.setScene(startScene(primaryStage));
         primaryStage.show();
-        while (true) {
+        /*while (true) {
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
             if (conflict == null) {
                 //
@@ -48,7 +46,7 @@ public class JudgeInterface {
                     conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
             judgeScene();
             judge.sendDecision(controller.getDecision());
-        }
+        }*/
     }
 
 
