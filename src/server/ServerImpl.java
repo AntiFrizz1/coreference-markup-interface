@@ -63,10 +63,10 @@ public class ServerImpl implements Server {
      */
     static List<Queue<ConflictInfo>> conflicts;
 
-    private Map<String, Integer> idToLocalServerId;
-    private Map<Integer, String> localServerIdToId;
+    private Map<String, Integer> idToLocalServerId; // NEED
+    private Map<Integer, String> localServerIdToId; // NEED BY FIRST
 
-    private Map<Integer, Integer> idToTextId;
+    private Map<Integer, Integer> idToTextId; // NEED
 
     private Map<Integer, AtomicInteger> idToStatus;
 
@@ -78,7 +78,7 @@ public class ServerImpl implements Server {
 
     private Queue<Pair<Integer, Socket>> connectedUsers;
 
-    private Map<String, Integer> idToUsername;
+    private Map<String, Integer> idToUsername; // NEED
 
     static final char DELIMITER = '/';
 
@@ -111,7 +111,7 @@ public class ServerImpl implements Server {
             socketForUsers = new ServerSocket(portForUser);
             socketForJudges = new ServerSocket(portForJudge);
         } catch (IOException e) {
-            log("ServerImpl with prefix", e.getMessage());
+            log("ServerImplRecover", e.getMessage());
         }
 
         texts = new CopyOnWriteArrayList<>();
@@ -145,29 +145,24 @@ public class ServerImpl implements Server {
                 String[] str = request.split("\\|");
             }
         } catch (IOException e) {
-            log("ServerImpl with prefix", e.getMessage());
+            log("ServerImplRecover", e.getMessage());
         }
         File path = new File(prefixNew);
         path.mkdir();
         backupName = prefixNew;
-        /*try {
-            logWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + "server.log"), StandardCharsets.UTF_8)));
-        } catch (FileNotFoundException e) {
-            System.err.println("file " + prefixNew + DELIMITER + "server.log not found");
-        }
         if (judgeRecover(prefixOld, prefixNew)) {
             if (serverRecover(prefixOld, prefixNew)) {
                 if (finalRecover(prefixOld)) {
-                    System.out.println("Successful reconnect server");
+                    log("ServerImplRecover", "Successful reconnect server");
                 } else {
-                    System.err.println("Can't reconnect server: finalRecover error");
+                    log("ServerImplRecover", "Can't reconnect server: finalRecover error");
                 }
             } else {
-                System.err.println("Can't reconnect server: serverRecover error");
+                log("ServerImplRecover", "Can't reconnect server: serverRecover error");
             }
         } else {
-            System.err.println("Can't reconnect server: judgeRecover error");
-        }*/
+            log("ServerImplRecover", "Can't reconnect server: judgeRecover error");
+        }
     }
 
 
@@ -224,9 +219,9 @@ public class ServerImpl implements Server {
         backupName = "prefix";
         judgeStore.setJudgeWriter("prefix");
         serverStore.setServerWriter("prefix");
-        /*backupInfo();
-        leaderBoardBackUp();*/
-        System.out.println("Successful start server");
+        backupInfo();
+        leaderBoardBackUp();
+        log("ServerImpl", "Successful start server");
     }
 
     public void loadTexts(List<String> filenames) {
@@ -275,6 +270,9 @@ public class ServerImpl implements Server {
     Thread userSchedulerThread;
     Thread serverStoreWorkerThread;
     Thread conflictInfoSchedulerThread;
+    Thread backupThread;
+    Thread leaderboardThread;
+
     /**
      * Start server
      */
@@ -286,6 +284,8 @@ public class ServerImpl implements Server {
         userSchedulerThread = new Thread(userScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
+        backupThread = new Thread(backupWorker);
+        leaderboardThread = new Thread(leaderBoardWorker);
 
         userListenerThread.start();
         judgeListenerThread.start();
@@ -294,6 +294,8 @@ public class ServerImpl implements Server {
         userSchedulerThread.start();
         serverStoreWorkerThread.start();
         conflictInfoSchedulerThread.start();
+        backupThread.start();
+        leaderboardThread.start();
 
         try {
             userListenerThread.join();
@@ -464,7 +466,7 @@ public class ServerImpl implements Server {
 
                         writer.println(texts.get(textId));
                         writer.flush();
-                        log("userScheduler", localServerIdToId.get(id)+ " get text with id=" + textId);
+                        log("userScheduler", localServerIdToId.get(id) + " get text with id=" + textId);
 
                         serverStore.addSample(id, textId);
                         judgeStore.addNewTeam(id, textId, backupName);
@@ -746,7 +748,7 @@ public class ServerImpl implements Server {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
                                             leaderBoardNeed.compareAndSet(false, true);
-                                            judgeStore.putOneAction(conflict.teamOneId, action1,conflict.teamTwoId, action2, conflict.textId, 3);
+                                            judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2, conflict.textId, 3);
                                             logWriter.println("judge" + socket.toString() + " complete task");
                                             logWriter.flush();
                                         }
@@ -794,7 +796,7 @@ public class ServerImpl implements Server {
                                 int decision = Integer.parseInt(request);
 
                                 if (conflict.complete()) {
-                                    judgeStore.putOneAction(conflict.teamOneId, action1,conflict.teamTwoId, action2, conflict.textId, decision);
+                                    judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2, conflict.textId, decision);
                                     synchronized (leaderBoard) {
                                         if (decision == 2 && !action2.isEmpty()) {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) - 20);
@@ -844,50 +846,45 @@ public class ServerImpl implements Server {
 
     }
 
-   /* void backupInfo() {
+    void backupInfo() {
         PrintWriter backupWriter;
         try {
             backupWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMITER + "backupInfo"), StandardCharsets.UTF_8)));
             backupWriter.println(textNumber);
             backupWriter.flush();
-            Set<Integer> set = idToSocket.keySet();
-            backupWriter.println(set.stream().map(Objects::toString).collect(Collectors.joining(" ")));
+            backupWriter.println(idToLocalServerId.size());
             backupWriter.flush();
+            idToLocalServerId.forEach((k, v) -> {
+                backupWriter.println(k + " " + v);
+                backupWriter.flush();
+            });
             backupWriter.println(idToTextId.size());
             backupWriter.flush();
             idToTextId.forEach((k, v) -> {
                 backupWriter.println(k + " " + v);
                 backupWriter.flush();
             });
+            backupWriter.println(idToUsername.size());
+            backupWriter.flush();
+            idToUsername.forEach((k, v) -> {
+                backupWriter.println(k + " " + v);
+                backupWriter.flush();
+            });
         } catch (FileNotFoundException e) {
-            System.err.println("Can't find file " + backupName + DELIMITER + "backupInfo");
+            log("backupInfo", e.getMessage() + " :==: Can't find file " + backupName + DELIMITER + "backupInfo");
         }
     }
 
     private Runnable backupWorker = () -> {
         while (true) {
-            if (needBackUp.compareAndSet(true, false)) {
+            backupInfo();
+            /*if (needBackUp.compareAndSet(true, false)) {
                 backupInfo();
-            } else {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
-
-    private Runnable leaderBoardWorker = () -> {
-        while (true) {
-            if (leaderBoardNeed.compareAndSet(true, false)) {
-                leaderBoardBackUp();
-            } else {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            } else {*/
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     };
@@ -903,10 +900,33 @@ public class ServerImpl implements Server {
                 leaderboardWriter.flush();
             });
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log("backupInfo", e.getMessage() + " :==: Can't find file " + backupName + DELIMITER + "leaderboardInfo");
         }
     }
-*//*
+
+    private Runnable leaderBoardWorker = () -> {
+        while (true) {
+            leaderBoardBackUp();
+            /*if (leaderBoardNeed.compareAndSet(true, false)) {
+                leaderBoardBackUp();
+            } else {*/
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    /**
+     * private Map<String, Integer> idToLocalServerId; // NEED
+     * private Map<Integer, String> localServerIdToId; // NEED BY FIRST
+     * <p>
+     * private Map<Integer, Integer> idToTextId; // NEED
+     * <p>
+     * private Map<String, Integer> idToUsername; // NEED
+     */
+
     public boolean finalRecover(String prefixOld) {
         BufferedReader backupReader;
         try {
@@ -914,33 +934,43 @@ public class ServerImpl implements Server {
             String request = backupReader.readLine();
             textNumber.set(Integer.parseInt(request));
             request = backupReader.readLine();
-            String[] ids = request.split(" ");
-            for (String id : ids) {
-                idToSocket.put(Integer.parseInt(id), nullSocket);
+            int size = Integer.parseInt(request);
+            for (int i = 0; i < size; i++) {
+                request = backupReader.readLine();
+                String[] data = request.split(" ");
+                idToLocalServerId.put(data[0], Integer.parseInt(data[1]));
+                localServerIdToId.put(Integer.parseInt(data[1]), data[0]);
             }
             request = backupReader.readLine();
-            int size = Integer.parseInt(request);
+            size = Integer.parseInt(request);
             for (int i = 0; i < size; i++) {
                 request = backupReader.readLine();
                 String[] nums = request.split(" ");
                 idToTextId.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
+            }
+            request = backupReader.readLine();
+            size = Integer.parseInt(request);
+            for (int i = 0; i < size; i++) {
+                request = backupReader.readLine();
+                String[] data = request.split(" ");
+                idToUsername.put(data[0], Integer.parseInt(data[1]));
             }
             BufferedReader leaderboardReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "leaderboardInfo"), StandardCharsets.UTF_8));
             request = leaderboardReader.readLine();
             size = Integer.parseInt(request);
             for (int i = 0; i < size; i++) {
                 request = leaderboardReader.readLine();
-                String[] nums = request.split(" ");
-                leaderBoard.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
+                String[] data = request.split(" ");
+                leaderBoard.put(data[0], Integer.parseInt(data[1]));
             }
             backupInfo();
             leaderBoardBackUp();
             return true;
         } catch (Exception e) {
-            System.err.println("Can't find file " + prefixOld + DELIMITER + "backupInfo");
+            log("finalRecover", e.getMessage() + " :==: Can't find file " + prefixOld + DELIMITER + "backupInfo");
             return false;
         }
-    }*//*
+    }
 
     class JudgeStoreFile {
         int id1;
@@ -958,7 +988,6 @@ public class ServerImpl implements Server {
         BufferedReader gameReader;
         try {
             gameReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "judgeStoreGames"), StandardCharsets.UTF_8));
-            //gameReader = new BufferedReader(new FileReader("judgeStoreGames"));
             String fileName = gameReader.readLine();
             List<JudgeStoreFile> judgeStoreFiles = new ArrayList<>(0);
             while (fileName != null) {
@@ -973,20 +1002,18 @@ public class ServerImpl implements Server {
             for (JudgeStoreFile judgeStoreFile : judgeStoreFiles) {
                 String file = prefixOld + DELIMITER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId;
                 BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
-                //BufferedReader reader = new BufferedReader(new FileReader(file));
                 String line = reader.readLine();
                 List<Action> teamOneActions = new CopyOnWriteArrayList<>();
                 List<Action> teamTwoActions = new CopyOnWriteArrayList<>();
                 List<Integer> decisions = new CopyOnWriteArrayList<>();
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + judgeStoreFile.id1 + "vs" + judgeStoreFile.id2 + "text=" + judgeStoreFile.textId), StandardCharsets.UTF_8)));
-
                 while (line != null) {
                     List<String> list = Arrays.asList(line.split("@"));
                     teamOneActions.add(new Action(list.get(0)));
                     teamTwoActions.add(new Action(list.get(1)));
                     decisions.add(Integer.parseInt(list.get(2)));
                     line = reader.readLine();
-                    writer.println(teamOneActions.get(teamOneActions.size() - 1).pack() + "@" + teamTwoActions.get(teamTwoActions.size() - 1).pack() + "@" + decisions.get(decisions.size() - 1));
+                    writer.println(list.get(0) + "@" + list.get(1) + "@" + list.get(2));
                     writer.flush();
                 }
                 judgeStore.addNewRecoverGame(judgeStoreFile.id1, judgeStoreFile.id2, judgeStoreFile.textId, teamOneActions, teamTwoActions, decisions, writer);
@@ -995,7 +1022,7 @@ public class ServerImpl implements Server {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            log("judgeRecover", e.getMessage());
             return false;
         }
     }
@@ -1004,14 +1031,17 @@ public class ServerImpl implements Server {
         return Integer.compare(tmp1.textId, tmp2.textId);
     }
 
+
     class ServerStoreFile {
-        int idOne;
-        int idTwo;
+        //int idOne;
+        //int idTwo;
+        int teamId;
         int textId;
 
-        ServerStoreFile(int idOne, int idTwo, int textId) {
-            this.idOne = idOne;
-            this.idTwo = idTwo;
+        ServerStoreFile(int teamId, int textId) {
+            //this.idOne = idOne;
+            //this.idTwo = idTwo;
+            this.teamId = teamId;
             this.textId = textId;
         }
     }
@@ -1022,89 +1052,121 @@ public class ServerImpl implements Server {
 
     public boolean serverRecover(String prefixOld, String prefixNew) {
         try (BufferedReader readerG = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "gamesServer"), StandardCharsets.UTF_8))) {
-            String firstFile, secondFile;
+            String firstFile;
             ArrayList<ServerStoreFile> files = new ArrayList<>();
             while ((firstFile = readerG.readLine()) != null) {
-                secondFile = readerG.readLine();
                 String[] splittedFirst = firstFile.split("text=");
-                String[] splittedSecond = secondFile.split("text=");
-                files.add(new ServerStoreFile(Integer.valueOf(splittedFirst[0]), Integer.valueOf(splittedSecond[0]), Integer.valueOf(splittedFirst[1])));
+                files.add(new ServerStoreFile(Integer.valueOf(splittedFirst[0]), Integer.valueOf(splittedFirst[1])));
             }
             files.sort(this::compareSS);
             serverStore.setServerWriter(prefixNew);
-            for (ServerStoreFile ssf : files) {
-                try (BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8));
-                     BufferedReader readerSecond = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8));
-                     PrintWriter writerFirst = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.idOne + "text=" + ssf.textId), StandardCharsets.UTF_8)));
-                     PrintWriter writerSecond = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.idTwo + "text=" + ssf.textId), StandardCharsets.UTF_8)))) {
-                    ArrayList<Action> listFirst = new ArrayList<>();
-                    ArrayList<Action> listSecond = new ArrayList<>();
-                    String input;
+            for (int k = 0; k < files.size(); k++) {
+                ServerStoreFile ssf = files.get(k);
+                if ((k + 1 < files.size()) && (ssf.textId == files.get(k + 1).textId)) {
+                    ServerStoreFile ssf2 = files.get(k + 1);
+                    k++;
+                    try (BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8));
+                         BufferedReader readerSecond = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf2.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8));
+                         PrintWriter writerFirst = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8)));
+                         PrintWriter writerSecond = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf2.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8)))) {
+                        ArrayList<Action> listFirst = new ArrayList<>();
+                        ArrayList<Action> listSecond = new ArrayList<>();
+                        String input;
 
-                    List<String> lines = readerFirst.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-                    for (String s : lines) {
-                        UpdateDocument doc = new UpdateDocument(s);
-                        listFirst.addAll(doc.getActions());
-                        writerFirst.println(s);
-                        writerFirst.flush();
-                    }
-
-
-                    lines = readerSecond.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-                    for (String s : lines) {
-                        UpdateDocument doc = new UpdateDocument(s);
-                        listSecond.addAll(doc.getActions());
-                        writerSecond.println(s);
-                        writerSecond.flush();
-                    }
-
-                    List<Action> toDeleteFirst = new ArrayList<>();
-                    List<Action> toDeleteSecond = new ArrayList<>();
-                    for (int j = 0; j < judgeStore.games.size(); j++) {
-                        if (judgeStore.games.get(j).teamOneId == ssf.idOne && judgeStore.games.get(j).teamTwoId == ssf.idTwo) {
-                            toDeleteFirst = judgeStore.games.get(j).teamOneApproved;
-                            toDeleteSecond = judgeStore.games.get(j).teamTwoApproved;
-                            break;
-                        } else if (judgeStore.games.get(j).teamOneId == ssf.idTwo && judgeStore.games.get(j).teamTwoId == ssf.idOne) {
-                            toDeleteFirst = judgeStore.games.get(j).teamTwoApproved;
-                            toDeleteSecond = judgeStore.games.get(j).teamOneApproved;
-                            break;
+                        List<String> lines = readerFirst.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                        for (String s : lines) {
+                            UpdateDocument doc = new UpdateDocument(s);
+                            listFirst.addAll(doc.getActions());
+                            writerFirst.println(s);
+                            writerFirst.flush();
                         }
-                    }
-                    List<Action> firstActionNeeded = new ArrayList<>();
-                    List<Action> secondActionNeeded = new ArrayList<>();
 
-                    for (int i = 0; i < listFirst.size(); i++) {
-                        if (toDeleteFirst.isEmpty() || !listFirst.get(i).getLocation().equals(toDeleteFirst.get(0).getLocation())) {
-                            firstActionNeeded.add(listFirst.get(i));
-                        } else {
-                            toDeleteFirst.remove(0);
+
+                        lines = readerSecond.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                        for (String s : lines) {
+                            UpdateDocument doc = new UpdateDocument(s);
+                            listSecond.addAll(doc.getActions());
+                            writerSecond.println(s);
+                            writerSecond.flush();
                         }
-                    }
 
-                    for (int i = 0; i < listSecond.size(); i++) {
-                        if (toDeleteSecond.isEmpty() || !listSecond.get(i).getLocation().equals(toDeleteSecond.get(0).getLocation())) {
-                            secondActionNeeded.add(listSecond.get(i));
-                        } else {
-                            toDeleteSecond.remove(0);
+                        List<Action> toDeleteFirst = new ArrayList<>();
+                        List<Action> toDeleteSecond = new ArrayList<>();
+                        for (int j = 0; j < judgeStore.games.size(); j++) {
+                            if (judgeStore.games.get(j).teamIdList.get(0) == ssf.teamId && judgeStore.games.get(j).teamIdList.get(1) == ssf2.teamId) {
+                                toDeleteFirst = judgeStore.games.get(j).idToTeamApprovedList.get(ssf.teamId);
+                                toDeleteSecond = judgeStore.games.get(j).idToTeamApprovedList.get(ssf2.teamId);
+                                break;
+                            } else if (judgeStore.games.get(j).teamIdList.get(0) == ssf2.teamId && judgeStore.games.get(j).teamIdList.get(1) == ssf.teamId) {
+                                toDeleteFirst = judgeStore.games.get(j).idToTeamApprovedList.get(ssf2.teamId);
+                                toDeleteSecond = judgeStore.games.get(j).idToTeamApprovedList.get(ssf.teamId);
+                                break;
+                            }
                         }
-                    }
+                        /*
+                        for (int j = 0; j < judgeStore.games.size(); j++) {
+                            if (judgeStore.games.get(j).teamOneId == ssf.teamId && judgeStore.games.get(j).teamTwoId == ssf2.teamId) {
+                                toDeleteFirst = judgeStore.games.get(j).teamOneApproved;
+                                toDeleteSecond = judgeStore.games.get(j).teamTwoApproved;
+                                break;
+                            } else if (judgeStore.games.get(j).teamOneId == ssf2.teamId && judgeStore.games.get(j).teamTwoId == ssf.teamId) {
+                                toDeleteFirst = judgeStore.games.get(j).teamTwoApproved;
+                                toDeleteSecond = judgeStore.games.get(j).teamOneApproved;
+                                break;
+                            }
+                        }*/
+                        List<Action> firstActionNeeded = new ArrayList<>();
+                        List<Action> secondActionNeeded = new ArrayList<>();
 
-                    conflicts.add(new ConcurrentLinkedQueue<>());
-                    //serverStore.addNewGame(ssf.idOne, ssf.idTwo, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond);
-                } catch (IOException e2) {
-                    e2.printStackTrace();
+                        for (int i = 0; i < listFirst.size(); i++) {
+                            if (toDeleteFirst.isEmpty() || !listFirst.get(i).getLocation().equals(toDeleteFirst.get(0).getLocation())) {
+                                firstActionNeeded.add(listFirst.get(i));
+                            } else {
+                                toDeleteFirst.remove(0);
+                            }
+                        }
+
+                        for (int i = 0; i < listSecond.size(); i++) {
+                            if (toDeleteSecond.isEmpty() || !listSecond.get(i).getLocation().equals(toDeleteSecond.get(0).getLocation())) {
+                                secondActionNeeded.add(listSecond.get(i));
+                            } else {
+                                toDeleteSecond.remove(0);
+                            }
+                        }
+
+                        conflicts.add(new ConcurrentLinkedQueue<>());
+                        serverStore.addFullRecoverGame(ssf.teamId, ssf2.teamId, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond);
+                    } catch (IOException e2) {
+                        log("serverRecover", e2.getMessage());
+                    }
+                    serverStore.writer.println(ssf.teamId + "text=" + ssf.textId);
+                    serverStore.writer.flush();
+                    serverStore.writer.println(ssf2.teamId + "text=" + ssf2.textId);
+                    serverStore.writer.flush();
+                } else {
+                    try (BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + ssf.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8));
+                         PrintWriter writerFirst = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixNew + DELIMITER + ssf.teamId + "text=" + ssf.textId), StandardCharsets.UTF_8)));
+                    ) {
+                        ArrayList<Action> listFirst = new ArrayList<>();
+                        List<String> lines = readerFirst.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                        for (String s : lines) {
+                            UpdateDocument doc = new UpdateDocument(s);
+                            listFirst.addAll(doc.getActions());
+                            writerFirst.println(s);
+                            writerFirst.flush();
+                        }
+                        serverStore.addHalfRecoverGame(ssf.teamId, ssf.textId, listFirst, writerFirst);
+                    } catch (IOException e2) {
+                        log("serverRecover", e2.getMessage());
+                    }
+                    serverStore.writer.println(ssf.teamId + "text=" + ssf.textId);
+                    serverStore.writer.flush();
                 }
-                serverStore.writer.println(ssf.idOne + "text=" + ssf.textId);
-                serverStore.writer.flush();
-                serverStore.writer.println(ssf.idTwo + "text=" + ssf.textId);
-                serverStore.writer.flush();
             }
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            log("serverRecover", e.getMessage());
             return false;
         }
-    }*/
-
+    }
 }

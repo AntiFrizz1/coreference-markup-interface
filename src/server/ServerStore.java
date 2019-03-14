@@ -30,11 +30,30 @@ public class ServerStore {
             this.textNum = textNum;
         }
 
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2) {
+            teamIdList.add(teamOneId);
+            teamIdList.add(teamTwoId);
+            this.textNum = textNum;
+            idToActionList.put(teamOneId, teamOneActions);
+            idToActionList.put(teamTwoId, teamTwoActions);
+            idToWriter.put(teamOneId, writer1);
+            idToWriter.put(teamTwoId, writer2);
+        }
+
+        Game(int teamId, int textNum, List<Action> teamActions, PrintWriter writer) {
+            teamIdList.add(teamId);
+            this.textNum = textNum;
+            idToActionList.put(teamId, teamActions);
+            idToWriter.put(teamId, writer);
+        }
+
         void addTeam(int teamId) {
             teamIdList.add(teamId);
             idToActionList.put(teamId, new CopyOnWriteArrayList<>());
             try {
                 idToWriter.put(teamId, new PrintWriter(teamId + "text=" + textNum));
+                writer.println(teamId + "text=" + textNum);
+                writer.flush();
             } catch(FileNotFoundException e) {
                 log("ServerStore.Game.addTeam", e.getMessage());
             }
@@ -111,6 +130,16 @@ public class ServerStore {
             }
         }
     };
+
+    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneActions, teamTwoActions, writer1, writer2);
+        games.add(tmp);
+    }
+
+    public void addHalfRecoverGame(int teamId, int textNum, List<Action> teamActions, PrintWriter writer) {
+        Game tmp = new Game(teamId, textNum, teamActions, writer);
+        games.add(tmp);
+    }
 
     synchronized void addSample(int teamNumber, int textNum) {
         if(!gamesMap.containsKey(textNum)) {
