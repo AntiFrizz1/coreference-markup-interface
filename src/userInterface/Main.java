@@ -72,7 +72,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         controller = new ControllerImpl(primaryStage);
 
-        loginUser();
+        userLoginScreen();
 
         if (controller.isJudge()) {
             judgeInterface.start(primaryStage);
@@ -146,126 +146,7 @@ public class Main extends Application {
         return subRoot;
     }
 
-    private void loginUser() {
-        Stage stage = new Stage();
-        stage.setTitle("Выберите роль");
-        GridPane root = new GridPane();
 
-        root.getStylesheets().add("styles.css");
-        root.getStyleClass().add("default-background");
-
-        root.getColumnConstraints().addAll(
-                makeColFromPercent(10),
-                makeColFromPercent(35),
-                makeColFromPercent(10),
-                makeColFromPercent(35),
-                makeColFromPercent(10)
-        );
-
-        root.getRowConstraints().addAll(
-                makeRowFromPercent(30),
-                makeRowFromPercent(40),
-                makeRowFromPercent(30)
-        );
-
-        Button judge = new Button("Войти как судья");
-        Button user = new Button("Войти как пользователь");
-        judge.getStyleClass().add("button-font");
-        user.getStyleClass().add("button-font");
-
-        GridPane.setValignment(judge, VPos.CENTER);
-        GridPane.setHalignment(judge, HPos.CENTER);
-
-        GridPane.setValignment(user, VPos.CENTER);
-        GridPane.setHalignment(user, HPos.CENTER);
-
-        judge.setPadding(new Insets(5));
-        user.setPadding(new Insets(5));
-        GridPane.setFillHeight(judge, true);
-        GridPane.setFillHeight(user, true);
-        judge.setOnAction(event -> {
-            judgeLoginScreen();
-            if (controller.isJudge() || controller.isLoggedUser()) stage.getScene().getWindow().hide();
-        });
-        user.setOnAction(event -> {
-            userLoginScreen();
-            if (controller.isOfflineMode() || controller.isJudge() || controller.isLoggedUser()) {
-                stage.getScene().getWindow().hide();
-            }
-        });
-        root.add(judge, 1, 1);
-        root.add(user, 3, 1);
-        stage.setScene(new Scene(root, 400, 200));
-        stage.setResizable(false);
-//        stage.setOnCloseRequest(Event::consume);
-        stage.initModality(Modality.WINDOW_MODAL);
-        stage.showAndWait();
-    }
-
-
-    private void judgeLoginScreen() {
-        Stage stage = new Stage();
-        stage.setTitle("Введите пароль");
-
-
-        GridPane root = baseUserPart();
-        GridPane subRoot = baseUserSubPart();
-
-
-        PasswordField password = new PasswordField();
-        password.setPromptText("Введите пароль судьи...");
-        GridPane.setValignment(password, VPos.CENTER);
-        GridPane.setHalignment(password, HPos.CENTER);
-
-        Button enter = new Button("Войти");
-        enter.getStyleClass().add("button-font");
-
-        Button back = new Button("Назад");
-        back.getStyleClass().add("button-font");
-
-        GridPane.setValignment(enter, VPos.CENTER);
-        GridPane.setHalignment(enter, HPos.CENTER);
-
-        Text error = new Text("");
-
-        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
-
-        enter.setOnAction(event -> {
-            if (password.getText().equals("1234")) {
-                stage.getScene().getWindow().hide();
-                controller.loginJudge();
-            } else {
-                error.setText("Неверный пароль!");
-            }
-        });
-        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                enter.fire();
-                event.consume();
-            }
-        });
-
-        back.setOnAction(event -> {
-            stage.getScene().getWindow().hide();
-        });
-
-        subRoot.add(enter, 0, 1, 2, 1);
-        subRoot.add(back, 3, 1, 2, 1);
-
-        root.add(password, 1, 1);
-        root.add(error, 1, 2);
-        root.add(subRoot, 1, 3);
-
-        stage.setScene(new Scene(root, 400, 200));
-        stage.setResizable(false);
-
-        stage.setOnCloseRequest(event -> {
-            stage.getScene().getWindow().hide();
-        });
-
-        stage.initModality(Modality.WINDOW_MODAL);
-        stage.showAndWait();
-    }
 
     /**
      * Generates the UI for user login screen, which prompts the user to enter an ID.
@@ -668,6 +549,11 @@ public class Main extends Application {
                     words = null;
                     controller.setText(txt);
                     unsentSentences = 0;
+                    displayedIndex = 0;
+                    selectedSentenceEnd = 0;
+                    selectedSentenceStart = 0;
+                    controller.clearSelected();
+                    controller.pressedButton(" ", controller.getSelectedBlank()); // sets selectedBlank to -1
                     controller.setTextPath(file.getName());
                     File file1 = Paths.get("dump" + controller.textPath).toFile();
                     try {
@@ -720,6 +606,8 @@ public class Main extends Application {
                 }
                 selectedSentenceEnd = selectedSentenceStart;
                 generateText(text, textWrapper);
+                controller.clearSelected();
+                controller.pressedButton(" ", controller.getSelectedBlank()); // sets selectedBlank to -1
             }
         });
 
@@ -742,6 +630,8 @@ public class Main extends Application {
                 selectedSentenceEnd++;
                 selectedSentenceStart = selectedSentenceEnd;
                 generateText(text, textWrapper);
+                controller.clearSelected();
+                controller.pressedButton(" ", controller.getSelectedBlank()); // sets selectedBlank to -1
 //                if (!controller.getActions().isEmpty() && controller.isOnline())
 //                    if (user.sendUpdates(controller.getActions()) == 0) {
 //                        controller.clearActions();
@@ -1043,7 +933,7 @@ public class Main extends Application {
      * @return true if cur is a start of a new sentence
      */
     private boolean isSentenceStart(String prev, String cur) {
-        return prev.length() > 3 && Character.isUpperCase(cur.charAt(0)) &&
+        return prev.length() > 3 && (Character.isUpperCase(cur.charAt(0)) || Character.isDigit(cur.charAt(0))) &&
                 (prev.endsWith(".") ||
                         prev.endsWith("?") ||
                         prev.endsWith("!"));
