@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.stream.Collectors;
 
 import static server.ServerImpl.conflicts;
 import static server.ServerImpl.log;
@@ -93,7 +94,7 @@ public class ServerStore {
 
     boolean putActions(List<Action> actions, int textNum, int teamId) {
         Game curGame = games.get(textNum);
-        curGame.idToActionList.get(teamId).addAll(actions);
+        curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
         PrintWriter writer = curGame.idToWriter.get(teamId);
         for(Action action : actions) {
             writer.println(action.pack());
