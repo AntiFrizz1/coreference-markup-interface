@@ -28,7 +28,7 @@ public class Action implements Packable {
         List<String> list = Arrays.asList(info.split("\t"));
         action = Integer.valueOf(list.get(0).split(" ")[0]);
         chainId = Integer.valueOf(list.get(0).split(" ")[1]);
-        name = list.get(0).split(" ")[2];
+        name = list.get(0).split(" ", 3)[2];
         if (list.get(1).contains("Blank")) {
             location = new Blank(list.get(1));
         } else {
