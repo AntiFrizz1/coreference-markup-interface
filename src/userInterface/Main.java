@@ -12,7 +12,6 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -24,7 +23,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
@@ -367,6 +365,11 @@ public class Main extends Application {
         return button;
     }
 
+    private void addTooltip(Node node, String tooltipText) {
+        Tooltip t = new Tooltip(tooltipText);
+        Tooltip.install(node, t);
+    }
+
     /**
      * Generates the main UI window for the app.
      *
@@ -379,12 +382,19 @@ public class Main extends Application {
         buttons.getStyleClass().add("default-background");
 
         Button nnew = genButton("new");
+        addTooltip(nnew, "Новая цепочка");
         Button add = genButton("plus");
+        addTooltip(add, "Продолжить цепочку");
         Button empty = genButton("empty");
+        addTooltip(empty, "Добавить нулевую анафору");
         Button undo = genButton("undo");
+        addTooltip(undo, "Отменить");
         Button del = genButton("delete");
+        addTooltip(del, "Удалить цепочку или ее фрагмент");
         Button fileSelect = genButton("download");
+        addTooltip(fileSelect, "Открыть текстовый файл");
         Button dump = genButton("upload");
+        addTooltip(dump, "Сохранить разметку в файл");
         undo.setDisable(true);
 
         buttons.getChildren().addAll(nnew, add, empty, undo, del, fileSelect, dump);
@@ -399,7 +409,9 @@ public class Main extends Application {
         TextField textField = new TextField();
         textField.setPromptText("Введите слово для поиска...");
         Button left = genButton("prev");
+        addTooltip(left, "Предыдущее предложение");
         Button right = genButton("next");
+        addTooltip(right, "Следующее предложение");
 
         search.getChildren().addAll(textField, left, right);
         GridPane.setValignment(search, VPos.CENTER);
@@ -428,7 +440,10 @@ public class Main extends Application {
         }
 
         buttonsSearch.add(buttons, 0, 0);
-        buttonsSearch.add(search, 1, 0);
+        Pane spacer = new Pane();
+        GridPane.setHgrow(spacer, Priority.ALWAYS);
+        buttonsSearch.add(spacer, 1, 0);
+        buttonsSearch.add(search, 2, 0);
         GridPane.setMargin(buttonsSearch, new Insets(10));
         GridPane.setFillWidth(buttonsSearch, true);
 
@@ -580,7 +595,6 @@ public class Main extends Application {
                 genChainsList(chainsList, text, chains);
                 updateColoring(ac, chains.get(0), text);
                 if (selected.isEmpty()) {
-                    ((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1)).setText("@");
                     toggleSelected((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1), "word");
                 } else {
                     removeSelectionFromText(selected, text);
@@ -608,10 +622,39 @@ public class Main extends Application {
                 genChainsList(chainsList, text, chains);
                 Blank b = (Blank) ac.getLocation();
                 toggleSelected((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1), "word");
-                ((Button) text.getChildren().get(2 * (b.getPosition() - displayedIndex) + 1)).setText("@");
                 updateColoring(ac, chains.get(0), text);
                 undo.setDisable(false);
             }
+        });
+
+        del.setOnAction(event -> {
+            int selectedBlank = controller.getSelectedBlank();
+            Set<Integer> selected = controller.getSelected();
+            int selectedChain = controller.getSelectedChain();
+            if (selectedBlank == -1 && selectedChain == -1 && selected.isEmpty()) {
+                generateErrorScreen(primaryStage, "Не выбрана комбинация слов/цепочка!");
+                return;
+            }
+            List<Chain> chains = controller.getChains();
+            if (selectedChain != -1) {
+                Chain c = controller.deleteChain();
+                removeChainColoring(c, text, chains);
+            } else {
+                Action ac = controller.deletePhrase();
+                if (ac == null) {
+                    generateErrorScreen(primaryStage, "Выделенные слова не присутствуют в цепочках!");
+                } else {
+                    if (selectedBlank != -1) {
+                        controller.pressedButton(" ", selectedBlank);  // sets selectedBlank to -1
+                        toggleSelected((Button) text.getChildren().get(2 * (selectedBlank - displayedIndex) + 1), "word");
+                    } else {
+                        removeSelectionFromText(selected, text);
+                    }
+                    removeColoringFromLocation(ac.getLocation(), text, chains);
+                }
+            }
+            genChainsList(chainsList, text, chains);
+            undo.setDisable(false);
         });
 
         fileSelect.setOnAction(event -> {
@@ -709,7 +752,6 @@ public class Main extends Application {
                     controller.clearActions();
                 }
             }
-            System.out.println(selectedSentenceStart + "   " + selectedSentenceEnd);
         });
 
         undo.setOnAction(event -> {
@@ -872,6 +914,8 @@ public class Main extends Application {
                 text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
                         .setStyle("-fx-background-color: rgba(" + c.getColor().getRed() + "," +
                                 c.getColor().getGreen() + "," + c.getColor().getBlue() + ",0.3)");
+                ((Button)text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1))
+                        .setText("@");
             }
         } else if (l instanceof Phrase) {
             Set<Integer> pos = ((Phrase) l).getPositions();
@@ -898,25 +942,8 @@ public class Main extends Application {
      *               in any other chain
      */
     private void undoAction(Action ac, FlowPane text, List<Chain> chains, Button backBtn, Button forwardBtn) {
-        Location l = ac.getLocation();
-        Integer from = 0;
-        if (l instanceof Blank) {
-            text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
-                    .setStyle("-fx-background-color: rgba(0,0,0,0)");
-            ((Button) text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
-            from = ((Blank) l).getPosition();
-        } else if (l instanceof Phrase) {
-            Set<Integer> pos = ((Phrase) l).getPositions();
-            for (Integer i : pos) {
-                Color c = chains.stream().filter(ch -> ch.getLocations().stream().filter(li -> li instanceof Phrase)
-                        .map(ph -> ((Phrase) ph).getPositions()).anyMatch(s -> s.contains(i))).findAny()
-                        .orElseGet(() -> new ChainImpl("", new Color(0, 0, 0), 0, new Blank(0))).getColor();
-                text.getChildren().get(2 * (i - displayedIndex))
-                        .setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
-                                c.getGreen() + "," + c.getBlue() + ((c.getRGB() == RGB_BLACK) ? ",0)" : ",0.3)"));
-            }
-            from = pos.iterator().next();
-        }
+        Integer from = undoActionNoSentences(ac, text, chains);
+        if (from == -1) return;
         while (from < selectedSentenceStart) {
             backBtn.fire();
         }
@@ -925,6 +952,60 @@ public class Main extends Application {
             forwardBtn.fire();
         }
         checkSentences = true;
+    }
+
+    private int removeColoringFromLocation(Location l, FlowPane text, List<Chain> chains) {
+        Integer from = 0;
+        if (l instanceof Blank) {
+            if (2 * (((Blank) l).getPosition() - displayedIndex) + 1 >= 0
+                    && 2 * (((Blank) l).getPosition() - displayedIndex) + 1 < text.getChildren().size()) {
+                text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)
+                        .setStyle("-fx-background-color: rgba(0,0,0,0)");
+                ((Button) text.getChildren().get(2 * (((Blank) l).getPosition() - displayedIndex) + 1)).setText("   ");
+            }
+            from = ((Blank) l).getPosition();
+        } else if (l instanceof Phrase) {
+            Set<Integer> pos = ((Phrase) l).getPositions();
+            for (Integer i : pos) {
+                Color c = getOtherColorIfPresent(chains, i);
+                if (2 * (i - displayedIndex) >= 0 && 2 * (i - displayedIndex) < text.getChildren().size()) {
+                    text.getChildren().get(2 * (i - displayedIndex))
+                            .setStyle("-fx-background-color: rgba(" + c.getRed() + "," +
+                                    c.getGreen() + "," + c.getBlue() + ((c.getRGB() == RGB_BLACK) ? ",0)" : ",0.3)"));
+                }
+            }
+            from = pos.iterator().next();
+        }
+        return from;
+    }
+
+    private int undoActionNoSentences(Action ac, FlowPane text, List<Chain> chains) {
+        if (ac.getAction() == ControllerImpl.ADDWORD || ac.getAction() == ControllerImpl.ADDCHAIN) {
+            return removeColoringFromLocation(ac.getLocation(), text, chains);
+        } else if (ac.getAction() == ControllerImpl.DELWORD) {
+            Chain to = chains.stream().filter(c -> c.getId() == ac.getChainId()).findAny().orElse(null);
+            if (to == null) return -1;
+            updateColoring(ac.getLocation(), to, text);
+        } else if (ac.getAction() == ControllerImpl.DELCHAIN) {
+            Chain restored = chains.stream().filter(c -> c.getId() == ac.getChainId()).findAny().orElse(null);
+            if (restored == null) return -1;
+            for (Location l: restored.getLocations()) {
+                updateColoring(l, restored, text);
+            }
+        }
+        return -1;
+    }
+
+    private Color getOtherColorIfPresent(List<Chain> chains, Integer pos) {
+        return chains.stream().filter(ch -> ch.getLocations().stream().filter(li -> li instanceof Phrase)
+                .map(ph -> ((Phrase) ph).getPositions()).anyMatch(s -> s.contains(pos))).findAny()
+                .orElseGet(() -> new ChainImpl("", new Color(0, 0, 0), 0, new Blank(0))).getColor();
+    }
+
+    private void removeChainColoring(Chain c, FlowPane text, List<Chain> chains) {
+        for (Location l: c.getLocations()) {
+            removeColoringFromLocation(l, text, chains);
+        }
     }
 
     /**
