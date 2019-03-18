@@ -70,7 +70,7 @@ public class JudgeInterface extends Application {
 
     private Scene startScene() {
         //TODO something cool
-        return new Scene(new BorderPane());
+        return new Scene(new BorderPane(), 200, 200);
     }
 
     private ColumnConstraints makeColFromPercent(int value) {
@@ -410,7 +410,7 @@ public class JudgeInterface extends Application {
         stage.setMinWidth(0.8 * APP_WIDTH);
         stage.setMinHeight(0.8 * APP_HEIGHT);
         stage.setScene(sc);
-//        stage.initModality(Modality.WINDOW_MODAL);
+        //stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
 
