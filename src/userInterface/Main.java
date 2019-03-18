@@ -13,6 +13,7 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -43,6 +44,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,37 +56,25 @@ public class Main extends Application {
     private User user;
     final private int APP_WIDTH = 800;
     final private int APP_HEIGHT = 600;
-    final private int MIN_APP_WIDTH = 700;
-    final private int MIN_APP_HEIGHT = 300;
     final private int RGB_BLACK = -16777216;
     private ControllerImpl controller;
     private int selectedSentenceStart = 0, selectedSentenceEnd = 0, textSizeInWords, displayedIndex, unsentSentences = 0;
     private String[] words = null;
     private boolean checkSentences = true;
+    private Stage primaryStage;
     /**
      * A search criteria for chains. Only works on separate links in chain (i.e. a chain link
      * must contain the whole string).
      */
     private String chainFilter = "";
 
-    private JudgeInterface judgeInterface = new JudgeInterface();
 
     @Override
     public void start(Stage primaryStage) {
         controller = new ControllerImpl(primaryStage);
 
+        this.primaryStage = primaryStage;
         userLoginScreen();
-
-        if (controller.isJudge()) {
-            judgeInterface.start(primaryStage);
-        } else {
-            primaryStage.setTitle("Разметка кореференсов");
-            Scene sc = genScene(primaryStage);
-            primaryStage.setMinWidth(MIN_APP_WIDTH);
-            primaryStage.setMinHeight(MIN_APP_HEIGHT);
-            primaryStage.setScene(sc);
-            primaryStage.show();
-        }
     }
 
 
@@ -104,49 +94,6 @@ public class Main extends Application {
         return res;
     }
 
-    /*private GridPane baseUserPart() {
-        GridPane root = new GridPane();
-
-        root.getStylesheets().add("styles.css");
-        root.getStyleClass().add("default-background");
-
-        root.getColumnConstraints().addAll(
-                makeColFromPercent(30),
-                makeColFromPercent(40),
-                makeColFromPercent(30)
-        );
-
-        root.getRowConstraints().addAll(
-                makeRowFromPercent(10),
-                makeRowFromPercent(25),
-                makeRowFromPercent(10),
-                makeRowFromPercent(25),
-                makeRowFromPercent(20)
-        );
-
-        return root;
-    }
-
-    private GridPane baseUserSubPart() {
-        GridPane subRoot = new GridPane();
-
-        subRoot.getColumnConstraints().addAll(
-                makeColFromPercent(10),
-                makeColFromPercent(35),
-                makeColFromPercent(10),
-                makeColFromPercent(35),
-                makeColFromPercent(10)
-        );
-
-
-        subRoot.getRowConstraints().addAll(
-                makeRowFromPercent(20),
-                makeRowFromPercent(60),
-                makeRowFromPercent(20)
-        );
-        return subRoot;
-    }*/
-
 
     /**
      * Generates the UI for user login screen, which prompts the user to enter an ID.
@@ -155,50 +102,24 @@ public class Main extends Application {
         Stage stage = new Stage();
         stage.setTitle("Введите ID пользователя");
 
-        GridPane root = new GridPane();
-        root.getColumnConstraints().addAll(
-                
-        );
 
         TextField id = new TextField();
         id.setPromptText("Введите ID пользователя...");
-
-        GridPane.setValignment(id, VPos.CENTER);
-        GridPane.setHalignment(id, HPos.CENTER);
-
-        Button enter = new Button("Войти онлайн");
         Button enterOffline = new Button("Войти оффлайн");
+        Button enterOnline = new Button("Войти онлайн");
+        Text error = new Text("");
 
-        enter.getStyleClass().add("button-font");
-        enterOffline.getStyleClass().add("button-font");
-
-        GridPane.setValignment(enter, VPos.CENTER);
-        GridPane.setHalignment(enter, HPos.CENTER);
-
-        GridPane.setValignment(enterOffline, VPos.CENTER);
-        GridPane.setHalignment(enterOffline, HPos.CENTER);
 
         enterOffline.setOnAction(event -> {
             controller.offlineMode();
+            genScene();
             stage.getScene().getWindow().hide();
         });
 
-        Text error = new Text("");
-        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
-
-        root.addEventFilter(KeyEvent.KEY_PRESSED, event ->
-
-        {
-            if (event.getCode() == KeyCode.ENTER) {
-                enter.fire();
-                event.consume();
-            }
-        });
-
-        enter.setOnAction(event -> {
+        enterOnline.setOnAction(event -> {
             String login = id.getText();
             id.clear();
-            user = new User(login, 3333, "192.168.43.126");
+            user = new User(login, 3333, "localhost");
             int ans = user.joinOnline();
             if (ans == 2) {
                 generateErrorScreen(stage, "Пользователь с таким ID уже авторизован!");
@@ -207,6 +128,7 @@ public class Main extends Application {
             } else {
                 stage.getScene().getWindow().hide();
                 Platform.runLater(() -> {
+                    genScene();
                     if (ans == 0) {
                         controller.onlineMode();
                         words = null;
@@ -221,20 +143,63 @@ public class Main extends Application {
             }
         });
 
-        /*subRoot.add(enter, 0, 1, 3, 1);
-        subRoot.add(enterOffline, 3, 1, 3, 1);
-        root.add(id, 1, 1);
-        root.add(error, 0, 2);
-        root.add(subRoot, 1, 3);*/
-        stage.setScene(new Scene(root, 400, 200));
-        stage.setResizable(false);
-        stage.setOnCloseRequest(event ->
+        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
 
-        {
+        GridPane root = new GridPane();
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(35),
+                makeRowFromPercent(30),
+                makeRowFromPercent(35)
+        );
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
+
+        HBox box = new HBox(10);
+        box.setAlignment(Pos.CENTER);
+        box.getChildren().addAll(enterOffline, enterOnline);
+        GridPane.setFillHeight(box, true);
+        GridPane.setHalignment(box, HPos.CENTER);
+        GridPane.setValignment(box, VPos.CENTER);
+        GridPane.setFillHeight(box, true);
+
+        GridPane.setValignment(error, VPos.CENTER);
+        GridPane.setHalignment(error, HPos.CENTER);
+        GridPane.setFillHeight(error, true);
+        GridPane.setFillWidth(error, true);
+
+        GridPane.setFillWidth(id, true);
+        GridPane.setFillHeight(id, true);
+        GridPane.setHalignment(id, HPos.CENTER);
+        GridPane.setValignment(id, VPos.CENTER);
+        GridPane.setMargin(id, new Insets(10, 60, 10, 60));
+
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+        enterOffline.getStyleClass().add("button-font");
+        enterOnline.getStyleClass().add("button-font");
+        //root.setGridLinesVisible(true);
+
+        root.add(id, 0, 0);
+        root.add(box, 0, 1);
+        root.add(error, 0, 2);
+
+        stage.setScene(new Scene(root, 300, 150));
+        stage.setOnCloseRequest(event -> {
             stage.getScene().getWindow().hide();
         });
-        stage.initModality(Modality.WINDOW_MODAL);
+
         stage.showAndWait();
+
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                enterOnline.fire();
+                event.consume();
+            }
+        });
+
+
     }
 
     private Button genButton(String image) {
@@ -257,10 +222,11 @@ public class Main extends Application {
     /**
      * Generates the main UI window for the app.
      *
-     * @param primaryStage stage to bind the scene to
+     *
      * @return the scene
      */
-    private Scene genScene(Stage primaryStage) {
+    private void genScene() {
+
         primaryStage.setOnCloseRequest(event ->
 
         {
@@ -311,6 +277,7 @@ public class Main extends Application {
 
         GridPane buttonsSearch = new GridPane();
         {
+            //TODO make easier to change parameters
             ColumnConstraints col1 = new ColumnConstraints();
             col1.setMinWidth(buttons.getMinWidth());
 
@@ -382,13 +349,12 @@ public class Main extends Application {
                     col2
             );
 
-            RowConstraints row1 = new RowConstraints(0.1 * APP_HEIGHT, 0.1 * APP_HEIGHT, 0.1 * APP_HEIGHT);
+            RowConstraints row1 = new RowConstraints(0.1 * APP_HEIGHT);
             row1.setFillHeight(true);
             row1.setVgrow(Priority.NEVER);
 
             RowConstraints row2 = new RowConstraints();
-            row2.setPercentHeight(90);
-            row2.setFillHeight(true);
+            row2.setVgrow(Priority.ALWAYS);
 
             overall.getRowConstraints().addAll(
                     row1,
@@ -400,8 +366,16 @@ public class Main extends Application {
         overall.add(buttonsSearch, 0, 0);
         overall.add(textWrapper, 0, 1);
         overall.add(chainsField, 1, 1);
+
         Scene sc = new Scene(overall, APP_WIDTH, APP_HEIGHT);
         sc.getStylesheets().add("styles.css");
+        primaryStage.setOnCloseRequest(event -> {
+            sc.getWindow().hide();
+        });
+        primaryStage.setMinWidth(0.8 * APP_WIDTH);
+        primaryStage.setMinHeight(0.8 * APP_HEIGHT);
+        primaryStage.setScene(sc);
+        primaryStage.show();
 
         //if (controller.isOnline()) fileSelect.setVisible(false);
 
@@ -459,6 +433,7 @@ public class Main extends Application {
             }
         });
 
+        //TODO let user close chainNameDialog and create chain only after name selection and confirm
         nnew.setOnAction(event -> {
             Set<Integer> selected = controller.getSelected();
             int selectedBlank = controller.getSelectedBlank();
@@ -673,8 +648,6 @@ public class Main extends Application {
             if (remaining == 0) undo.setDisable(true);
         });
 
-
-        return sc;
     }
 
     /**
@@ -1082,7 +1055,6 @@ public class Main extends Application {
 
         stage.setScene(new Scene(root, 300, 120));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(primaryStage);
         stage.showAndWait();

@@ -62,7 +62,7 @@ public class Judge extends AbstractClient {
 
             if (first == null || second == null || third == null) {
                 connect();
-                sendConnectionInfo();
+                /*sendConnectionInfo();*/
             } else {
                 int id = Integer.parseInt(third);
                 return new ConflictImpl(first, second, texts.get(id));

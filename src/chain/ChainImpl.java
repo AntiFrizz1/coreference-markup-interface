@@ -51,12 +51,19 @@ public class ChainImpl implements Chain {
         this.locations = new ArrayList<>();
         this.locations.addAll(locations);
     }
+
     public ChainImpl(Action action) {
         id = action.getChainId();
         name = action.getName();
         locations = new ArrayList<>();
         locations.add(action.getLocation());
 //        locations = Collections.singletonList(action.getLocation());
+    }
+
+    public ChainImpl(List<Action> actions) {
+        id = actions.get(0).getChainId();
+        name = actions.get(0).getName();
+        locations = actions.stream().map(Action::getLocation).collect(Collectors.toList());
     }
 
     public ChainImpl(Chain another) {

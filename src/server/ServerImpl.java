@@ -54,6 +54,11 @@ public class ServerImpl implements Server {
     private Queue<Socket> clients;
 
     /**
+     * Pool of clients.
+     */
+    private Queue<Socket> judgesQueue;
+
+    /**
      * Pool of judges.
      */
     private Set<JudgeInfo> judges;
@@ -118,6 +123,7 @@ public class ServerImpl implements Server {
 
         judges = new CopyOnWriteArraySet<>();
         clients = new ConcurrentLinkedQueue<>();
+        judgesQueue = new ConcurrentLinkedQueue<>();
 
         serverStore = new ServerStore();
         judgeStore = new JudgeStore();
@@ -182,6 +188,7 @@ public class ServerImpl implements Server {
 
         judges = new CopyOnWriteArraySet<>();
         clients = new ConcurrentLinkedQueue<>();
+        judgesQueue = new ConcurrentLinkedQueue<>();
 
         serverStore = new ServerStore();
         judgeStore = new JudgeStore();
@@ -267,6 +274,7 @@ public class ServerImpl implements Server {
     Thread userListenerThread;
     Thread judgeListenerThread;
     Thread userConnectionThread;
+    Thread judgeConnectionThread;
     Thread userReconnectionThread;
     Thread userSchedulerThread;
     Thread serverStoreWorkerThread;
@@ -287,6 +295,7 @@ public class ServerImpl implements Server {
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         backupThread = new Thread(backupWorker);
         leaderboardThread = new Thread(leaderBoardWorker);
+        judgeConnectionThread = new Thread(judgeConnection);
 
         for (int i = 0; i < 4; i++) {
             userConnectionExecutor.execute(userConnection);
@@ -338,9 +347,44 @@ public class ServerImpl implements Server {
             try {
                 Socket client = socketForJudges.accept();
                 log("judgeListener", client.toString());
-                judges.add(new JudgeInfo(client, 0));
+                judgesQueue.add(client);
             } catch (IOException e) {
                 log("judgeListener", e.getMessage());
+            }
+        }
+    };
+
+    private Runnable judgeConnection = () -> {
+        while (true) {
+            try {
+                if (!judgesQueue.isEmpty()) {
+                    Socket client = judgesQueue.poll();
+                    if (client == null) {
+                        continue;
+                    }
+                    try {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
+                        PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
+
+                        String stringId = reader.readLine();
+                        log("judgeConnection", client.toString() + " id=" + stringId);
+                        if (stringId.equals("228")) {
+                            writer.write(0);
+                            writer.flush();
+                            judges.add(new JudgeInfo(client, stringId));
+                        } else {
+                            writer.write(1);
+                            writer.flush();
+                        }
+                    } catch (Exception e) {
+                        log("judgeConnection", e.getMessage());
+                    }
+                } else {
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                log("judgeConnection", e.getMessage());
+                break;
             }
         }
     };
@@ -353,6 +397,9 @@ public class ServerImpl implements Server {
             try {
                 if (!clients.isEmpty()) {
                     Socket client = clients.poll();
+                    if (client == null) {
+                        continue;
+                    }
                     try {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                         PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
@@ -657,22 +704,19 @@ public class ServerImpl implements Server {
 
     class JudgeInfo {
         Socket socket;
-        int index;
+        String id;
         /**
          * reference has mark set false if judge is free otherwise true
          */
         AtomicMarkableReference<ConflictInfo> task;
         Thread worker;
 
-        JudgeInfo(Socket socket, int index) throws IOException {
-            this.index = index;
+        JudgeInfo(Socket socket, String id) throws IOException {
+            this.id = id;
             this.socket = socket;
             task = new AtomicMarkableReference<>(null, false);
-            worker = new Thread(judgeWorker);
             try {
                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
-                writer.write(0);
-                writer.flush();
                 writer.println(texts.size());
                 writer.flush();
                 for (String string : texts) {
@@ -683,6 +727,7 @@ public class ServerImpl implements Server {
                 System.out.println("Can't send texts to judge" + socket.toString());
                 throw e;
             }
+            worker = new Thread(judgeWorker);
             worker.start();
         }
 
@@ -764,8 +809,7 @@ public class ServerImpl implements Server {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
                                             leaderBoardNeed.compareAndSet(false, true);
                                             judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2, conflict.textId, 3);
-                                            logWriter.println("judge" + socket.toString() + " complete task");
-                                            logWriter.flush();
+                                            log("judgeWorker", "judge id=" + id + " automatically complete task");
                                         }
 
                                         task.compareAndSet(conflict, null, true, false);
@@ -777,16 +821,14 @@ public class ServerImpl implements Server {
                                 UpdateDocument teamTwo = new UpdateDocument(toJudgeAboutTeamTwo);
 
                                 if (teamOne.pack() == null) {
-                                    logWriter.println("null1" + socket.toString());
-                                    logWriter.flush();
+                                    log("judgeWorker", "UpdateDocument::pack return null for teamOne");
                                 }
 
                                 writer.println(teamOne.pack());
                                 writer.flush();
                                 /*Thread.sleep(1000);*/
                                 if (teamTwo.pack() == null) {
-                                    logWriter.println("null2" + socket.toString());
-                                    logWriter.flush();
+                                    log("judgeWorker", "UpdateDocument::pack return null for teamTwo");
                                 }
 
                                 writer.println(teamTwo.pack());
@@ -798,8 +840,7 @@ public class ServerImpl implements Server {
 
                                 String request = reader.readLine();
                                 if (request == null) {
-                                    logWriter.println("done judge" + socket.toString());
-                                    logWriter.flush();
+                                    log("judgeWorker", "null request from judge id=" + id);
                                     synchronized (judges) {
                                         socket.close();
                                         judges.remove(this);
@@ -833,8 +874,7 @@ public class ServerImpl implements Server {
                                         }
                                     }
                                     leaderBoardNeed.compareAndSet(false, true);
-                                    System.out.println("judge" + socket.toString() + " complete task");
-                                    logWriter.flush();
+                                    log("judgeWorker", "judge id=" + id + " complete task with decision " + decision);
                                 }
 
                                 task.compareAndSet(conflict, null, true, false);
@@ -843,18 +883,16 @@ public class ServerImpl implements Server {
                             Thread.sleep(1000);
                         }
                     } catch (IOException e) {
-                        logWriter.println("done judge" + socket.toString());
-                        logWriter.flush();
+                        log("judgeWorker", "judge id=" + id + " lost connection");
                         synchronized (judges) {
                             judges.remove(this);
-
                         }
-                        System.err.println("judgeWorker :=: Error: " + e.getMessage());
+                        log("judgeWorker", "judge id=" + id + " Error: " + e.getMessage());
                         break;
                     }
                 }
             } catch (InterruptedException e) {
-                System.err.println("judgeWorker" + socket.toString() + " :=: Error: " + e.getMessage());
+                log("judgeWorker", "judge id=" + id + " Error: " + e.getMessage());
             }
         };
 

@@ -26,6 +26,8 @@ public class ConflictImpl implements Conflict {
     public Set<Integer> firstLast;
     public Set<Integer> secondLast;
 
+    public Chain firstChain, secondChain;
+
 
     public ConflictImpl(String list1, String list2, String text) {
         UpdateDocument doc1 = new UpdateDocument(list1);
@@ -40,6 +42,9 @@ public class ConflictImpl implements Conflict {
 
         secondWordsLocation = new HashSet<>();
         secondBlanksLocation = new HashSet<>();
+
+        firstChain = new ChainImpl(first.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
+        secondChain = new ChainImpl(second.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
 
         makeSets();
 
