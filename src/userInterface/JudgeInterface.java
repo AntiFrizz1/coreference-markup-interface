@@ -118,14 +118,15 @@ public class JudgeInterface extends Application {
         return subRoot;
     }
 
-    private FlowPane genChoices() {
+    private FlowPane genChoices(Stage stage) {
         ToggleGroup group = new ToggleGroup();
 
         RadioButton first = new RadioButton("First");
         RadioButton second = new RadioButton("Second");
         RadioButton both = new RadioButton("Both");
         RadioButton nobody = new RadioButton("Nobody");
-        Button except = new Button("Пдтвердить выбор");
+        Button confirm = new Button("Подтвердить выбор");
+        confirm.getStyleClass().add("button-font");
 
         first.setOnAction(event -> {
             controller.setDecision(1);
@@ -180,7 +181,15 @@ public class JudgeInterface extends Application {
                     res.getChildren().addAll(first, second);
                 }
         }
-        res.getChildren().add(except);
+
+        confirm.setOnAction(event -> {
+            if (group.getSelectedToggle() != null) {
+                confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
+            } else {
+                errorScene(stage, "Вы ничего не выбрали.");
+            }
+        });
+        res.getChildren().add(confirm);
 
         return res;
     }
@@ -219,6 +228,7 @@ public class JudgeInterface extends Application {
                 error.setText("Неверный пароль!");
             }
         });
+
         root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 enter.fire();
@@ -248,9 +258,9 @@ public class JudgeInterface extends Application {
         stage.showAndWait();
     }
 
-    ScrollPane genInfo(int labelWidth) {
+    ScrollPane genInfo(int labelWidth, String content) {
 
-        Label label = new Label(controller.getInfo());
+        Label label = new Label(content);
         label.setWrapText(true);
         label.setMaxWidth(labelWidth);
         GridPane.setMargin(label, new Insets(10));
@@ -289,7 +299,7 @@ public class JudgeInterface extends Application {
                 makeRowFromPercent(100)
         );
 
-        ScrollPane scroll = genInfo(500);
+        ScrollPane scroll = genInfo(500, controller.getInfo());
         GridPane.setMargin(scroll, new Insets(15));
 
         pane.add(scroll, 0, 0);
@@ -297,6 +307,7 @@ public class JudgeInterface extends Application {
         Scene scene = new Scene(pane, 400, 150);
         scene.getStylesheets().add("styles.css");
         pane.getStyleClass().add("default-background");
+        scroll.getStyleClass().add("default-outline");
         stage.setResizable(false);
         stage.setScene(scene);
         stage.showAndWait();
@@ -310,24 +321,31 @@ public class JudgeInterface extends Application {
         GridPane main = new GridPane();
         main.getStylesheets().add("styles.css");
         main.getStyleClass().add("default-background");
-        main.setGridLinesVisible(true);
+        main.setMinSize(0.8 * APP_WIDTH, 0.8 * APP_HEIGHT);
 
-        RowConstraints row1 = new RowConstraints(0.2 * APP_HEIGHT, 0.2 * APP_HEIGHT, 0.2 * APP_HEIGHT);
+        RowConstraints row1 = new RowConstraints(0.2 * APP_HEIGHT);
         row1.setFillHeight(true);
         row1.setVgrow(Priority.NEVER);
+        RowConstraints row2 = new RowConstraints();
+        //row2.setMinHeight(0.7 * APP_HEIGHT);
+        row2.setVgrow(Priority.ALWAYS);
         main.getRowConstraints().addAll(
                 row1,
-                makeRowFromPercent(80)
+                row2
         );
 
+        ColumnConstraints col1 = makeColFromPercent(50);
+        ColumnConstraints col2 = makeColFromPercent(50);
+
         main.getColumnConstraints().addAll(
-                makeColFromPercent(50),
-                makeColFromPercent(50)
+                col1,
+                col2
         );
 
 
         ScrollPane textWrapper1 = new ScrollPane();
         textWrapper1.setFitToWidth(true);
+        textWrapper1.setFitToHeight(true);
         FlowPane text1 = new FlowPane();
         textWrapper1.setContent(text1);
         text1.setPadding(new Insets(5));
@@ -339,6 +357,7 @@ public class JudgeInterface extends Application {
 
         ScrollPane textWrapper2 = new ScrollPane();
         textWrapper2.setFitToWidth(true);
+        textWrapper2.setFitToHeight(true);
         FlowPane text2 = new FlowPane();
         textWrapper2.setContent(text2);
         text1.setPadding(new Insets(5));
@@ -348,14 +367,13 @@ public class JudgeInterface extends Application {
         GridPane.setMargin(textWrapper2, new Insets(15));
 
 
-        FlowPane choices = genChoices();
-        choices.getStyleClass().add("default-outline");
+        FlowPane choices = genChoices(stage);
         GridPane.setMargin(choices, new Insets(15));
         GridPane.setValignment(choices, VPos.CENTER);
         GridPane.setHalignment(choices, HPos.LEFT);
         GridPane.setFillHeight(choices, false);
 
-        ScrollPane scroll = genInfo(600);
+        ScrollPane scroll = genInfo(600, controller.getInfo());
         GridPane.setHalignment(scroll, HPos.CENTER);
         GridPane.setValignment(scroll, VPos.CENTER);
         GridPane.setFillWidth(scroll, true);
@@ -365,13 +383,15 @@ public class JudgeInterface extends Application {
         main.add(scroll, 0, 0);
         main.add(textWrapper1, 0, 1);
         main.add(textWrapper2, 1, 1);
-        main.setMinWidth(APP_WIDTH);
-        main.setMinHeight(APP_HEIGHT);
 
+
+        textWrapper1.getStyleClass().add("default-outline");
+        textWrapper2.getStyleClass().add("default-outline");
+        scroll.getStyleClass().add("default-outline");
         Scene sc = new Scene(main, APP_WIDTH, APP_HEIGHT);
         sc.getStylesheets().add("styles.css");
-        stage.setMinWidth(MIN_APP_WIDTH);
-        stage.setMinWidth(MIN_APP_HEIGHT);
+        stage.setMinWidth(0.8 * APP_WIDTH);
+        stage.setMinHeight(0.8 * APP_HEIGHT);
         stage.setScene(sc);
 //        stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
@@ -412,24 +432,74 @@ public class JudgeInterface extends Application {
         }
     }
 
+    private void errorScene(Stage mainStage, String error) {
+        Stage stage = new Stage();
+        stage.setTitle("Ошибка");
+        GridPane root = new GridPane();
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
 
-    private void confirmDecision(Stage primaryStage) {
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(70),
+                makeRowFromPercent(30)
+        );
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
+
+        Text text = new Text(error);
+        GridPane.setValignment(text, VPos.CENTER);
+        GridPane.setHalignment(text, HPos.CENTER);
+        GridPane.setFillWidth(text, true);
+        GridPane.setFillHeight(text, true);
+        GridPane.setMargin(text, new Insets(10, 50, 10, 50));
+
+        Button ok = new Button("OK");
+        ok.getStyleClass().add("button-font");
+
+        GridPane.setHalignment(ok, HPos.CENTER);
+        GridPane.setValignment(ok, VPos.CENTER);
+
+        ok.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER){
+                ok.fire();
+                event.consume();
+            }
+        });
+
+        root.add(text, 0, 0);
+        root.add(ok, 0, 1);
+
+        stage.initOwner(mainStage);
+        stage.setScene(new Scene(root, 400, 150));
+        stage.showAndWait();
+    }
+
+
+    private void confirmDecision(Stage primaryStage, String decision) {
         Stage stage = new Stage();
         stage.setTitle("Подтвердите выбор решения конфликта");
         GridPane root = new GridPane();
 
-        root.add(new Text("Вы выбрали: ".concat(decisions.get(controller.getDecision()))), 0, 0);
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
 
-        /*BorderPane buttons = new BorderPane();
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(20);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(30);
-        ColumnConstraints col3 = new ColumnConstraints();
-        col3.setPercentWidth(20);
-        buttons.getColumnConstraints().addAll(col1, col2, col3);*/
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(70),
+                makeRowFromPercent(30)
+        );
 
-        HBox box = new HBox(190);
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        ScrollPane scroll = genInfo(600, "Вы выбрали: ".concat(decision).concat("\nПодтвердите ваш выбор"));
+        HBox box = new HBox(20);
 
         Button ok = new Button("OK");
         ok.setOnAction(event -> {
@@ -442,12 +512,29 @@ public class JudgeInterface extends Application {
             stage.getScene().getWindow().hide();
         });
 
-        box.getChildren().addAll(ok, cancel);
-        root.add(box, 0, 1);
+        ok.getStyleClass().add("button-font");
+        cancel.getStyleClass().add("button-font");
 
-        stage.setScene(new Scene(root, 300, 70));
+        box.getChildren().addAll(ok, cancel);
+        box.setAlignment(Pos.CENTER);
+        GridPane.setHalignment(box, HPos.CENTER);
+        GridPane.setValignment(box, VPos.CENTER);
+        GridPane.setFillHeight(box, true);
+        GridPane.setFillWidth(box, true);
+
+        GridPane.setFillWidth(scroll, true);
+        GridPane.setValignment(scroll, VPos.CENTER);
+        GridPane.setHalignment(scroll, HPos.CENTER);
+        GridPane.setMargin(scroll, new Insets(30, 50, 10, 50));
+
+        root.add(box, 0, 1);
+        root.add(scroll, 0, 0);
+
+        stage.setScene(new Scene(root, 600, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(primaryStage);
         stage.showAndWait();
