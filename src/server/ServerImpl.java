@@ -699,9 +699,6 @@ public class ServerImpl implements Server {
         }
     }
 
-    AtomicBoolean down = new AtomicBoolean(false);
-    Random random = new Random();
-
     class JudgeInfo {
         Socket socket;
         String id;
