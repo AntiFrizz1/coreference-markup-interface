@@ -1,13 +1,18 @@
 package userInterface;
 
-import client.Conflict;
 import client.ConflictImpl;
 import client.Judge;
+import javafx.application.Application;
 import javafx.event.Event;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
@@ -17,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class JudgeInterface {
+public class JudgeInterface extends Application {
 
     final private int APP_WIDTH = 1280;
     final private int APP_HEIGHT = 720;
@@ -29,8 +34,129 @@ public class JudgeInterface {
     private JudgeController controller = new JudgeController();
     private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
 
+    private ColumnConstraints makeColFromPercent(int value) {
+        ColumnConstraints res = new ColumnConstraints();
+        res.setPercentWidth(value);
+        return res;
+    }
+
+    private RowConstraints makeRowFromPercent(int value) {
+        RowConstraints res = new RowConstraints();
+        res.setPercentHeight(value);
+        return res;
+    }
+
+    private GridPane baseUserPart() {
+        GridPane root = new GridPane();
+
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(30),
+                makeColFromPercent(40),
+                makeColFromPercent(30)
+        );
+
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(20)
+        );
+
+        return root;
+    }
+
+    private GridPane baseUserSubPart() {
+        GridPane subRoot = new GridPane();
+
+        subRoot.getColumnConstraints().addAll(
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10)
+        );
+
+        subRoot.getRowConstraints().addAll(
+                makeRowFromPercent(20),
+                makeRowFromPercent(60),
+                makeRowFromPercent(20)
+        );
+        return subRoot;
+    }
+
+    private void judgeLoginScreen() {
+        Stage stage = new Stage();
+        stage.setTitle("Введите пароль");
+
+        GridPane root = baseUserPart();
+        GridPane subRoot = baseUserSubPart();
+
+        PasswordField password = new PasswordField();
+        password.setPromptText("Введите пароль судьи...");
+        GridPane.setValignment(password, VPos.CENTER);
+        GridPane.setHalignment(password, HPos.CENTER);
+
+        Button enter = new Button("Войти");
+        enter.getStyleClass().add("button-font");
+
+        Button back = new Button("Назад");
+        back.getStyleClass().add("button-font");
+
+        GridPane.setValignment(enter, VPos.CENTER);
+        GridPane.setHalignment(enter, HPos.CENTER);
+
+        Text error = new Text("");
+
+        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+
+        enter.setOnAction(event -> {
+            if (password.getText().equals("1234")) {
+                judge = new Judge("1234", 3334, "192.168.43.126");
+                if (judge.joinOnline() == 0) {
+                    stage.getScene().getWindow().hide();
+                } else {
+                    System.out.println("SOSESH'");
+                }
+            } else {
+                error.setText("Неверный пароль!");
+            }
+        });
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                enter.fire();
+                event.consume();
+            }
+        });
+
+        back.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        subRoot.add(enter, 0, 1, 2, 1);
+        subRoot.add(back, 3, 1, 2, 1);
+
+        root.add(password, 1, 1);
+        root.add(error, 1, 2);
+        root.add(subRoot, 1, 3);
+
+        stage.setScene(new Scene(root, 400, 200));
+        stage.setResizable(false);
+
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.showAndWait();
+    }
+
 
     public void start(Stage primaryStage) {
+        judgeLoginScreen();
         primaryStage.setTitle("Ожидание чуда");
         primaryStage.setMinWidth(MIN_APP_WIDTH);
         primaryStage.setMinHeight(MIN_APP_HEIGHT);
@@ -49,6 +175,10 @@ public class JudgeInterface {
             judgeScene();
             judge.sendDecision(controller.getDecision());
         }
+    }
+
+    public static void main(String[] args){
+        launch(args);
     }
 
 

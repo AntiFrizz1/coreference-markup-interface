@@ -102,4 +102,8 @@ public class User extends AbstractClient {
         }
     }
 
+    public void kill() {
+        receiverThread.interrupt();
+        senderThread.interrupt();
+    }
 }

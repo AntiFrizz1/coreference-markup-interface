@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static server.ServerImpl.conflicts;
@@ -60,7 +61,7 @@ public class ServerStore {
                 idToWriter.put(teamId, new PrintWriter(prefix + ServerImpl.DELIMITER + teamId + "text=" + textNum));
                 writer.println(teamId + "text=" + textNum);
                 writer.flush();
-            } catch(FileNotFoundException e) {
+            } catch (FileNotFoundException e) {
                 log("ServerStore.Game.addTeam", e.getMessage());
             }
         }
@@ -69,6 +70,7 @@ public class ServerStore {
     List<Game> games;
     HashMap<Integer, Game> gamesMap;
     PrintWriter writer;
+    AtomicIntegerArray mutexes = new AtomicIntegerArray(1000);
 
     int mode;
 
@@ -93,12 +95,14 @@ public class ServerStore {
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamId) {
-        Game curGame = games.get(textNum);
-        curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
-        PrintWriter writer = curGame.idToWriter.get(teamId);
-        for(Action action : actions) {
-            writer.println(action.pack());
-            writer.flush();
+        synchronized (games) {
+            Game curGame = games.get(textNum);
+            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
+            PrintWriter writer = curGame.idToWriter.get(teamId);
+            for (Action action : actions) {
+                writer.println(action.pack());
+                writer.flush();
+            }
         }
         return true;
     }
@@ -113,7 +117,7 @@ public class ServerStore {
                         actionFromTeamOne = curGame.idToActionList.get(curGame.teamIdList.get(0)).get(0);
                     }
                     Action actionFromTeamTwo = null;
-                    if (curGame.teamIdList.size() == 2 && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
+                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
                         actionFromTeamTwo = curGame.idToActionList.get(curGame.teamIdList.get(1)).get(0);
                     }
 
@@ -121,14 +125,21 @@ public class ServerStore {
                         continue;
                     }
 
-                    if (actionFromTeamOne != null && (mode == 1 || (mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
-                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
+                    if (actionFromTeamOne != null && (mode == 1 ||
+                            (mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne,
+                                new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamIdList.get(0),
+                                curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
-                    } else if (actionFromTeamTwo != null && (mode == 1 || mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
-                        conflicts.get(i).add(new ConflictInfo(new ConflictData(new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i, curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
+                    } else if (actionFromTeamTwo != null && (mode == 1 || mode == 0 &&
+                            compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(
+                                new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i,
+                                curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
-                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null){
-                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
+                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i,
+                                curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
                         curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
                     }
@@ -137,7 +148,8 @@ public class ServerStore {
         }
     };
 
-    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
+    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions,
+                                   List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
         Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneActions, teamTwoActions, writer1, writer2, prefix);
         games.add(tmp);
     }
@@ -147,38 +159,19 @@ public class ServerStore {
         games.add(tmp);
     }
 
-    synchronized void addSample(int teamNumber, int textNum, String prefix) {
-        if(!gamesMap.containsKey(textNum)) {
-            Game newGame = new Game(textNum, prefix);
-            games.add(newGame);
-            gamesMap.put(textNum, newGame);
-            newGame.addTeam(teamNumber);
-            conflicts.add(new ConcurrentLinkedQueue<>());
-        } else {
-            gamesMap.get(textNum).addTeam(teamNumber);
+    void addSample(int teamNumber, int textNum, String prefix) {
+        synchronized (games) {
+            if (!gamesMap.containsKey(textNum)) {
+                Game newGame = new Game(textNum, prefix);
+                games.add(newGame);
+                gamesMap.put(textNum, newGame);
+                newGame.addTeam(teamNumber);
+                conflicts.add(new ConcurrentLinkedQueue<>());
+            } else {
+                gamesMap.get(textNum).addTeam(teamNumber);
+            }
         }
     }
-
-    /*synchronized void addTeamOne(int teamOne, int textNum) {
-        if(!gamesMap.containsKey(textNum)) {
-            Game newGame = new Game(textNum);
-            newGame.setTeamOne(teamOne);
-            gamesMap.put(textNum, newGame);
-            games.add(newGame);
-        } else {
-            gamesMap.get(textNum).setTeamOne(teamOne);
-        }
-    }
-    synchronized void addTeamTwo(int teamTwo, int textNum) {
-        if(!gamesMap.containsKey(textNum)) {
-            Game newGame = new Game(textNum);
-            newGame.setTeamTwo(teamTwo);
-            gamesMap.put(textNum, newGame);
-            games.add(newGame);
-        } else {
-            gamesMap.get(textNum).setTeamTwo(teamTwo);
-        }
-    }*/
 
     public int compareActions(Action action1, Action action2) {
         return compare(action1.getLocation(), action2.getLocation());

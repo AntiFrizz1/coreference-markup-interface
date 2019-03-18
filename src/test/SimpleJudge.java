@@ -5,7 +5,7 @@ import client.Judge;
 
 public class SimpleJudge {
     public static void main(String[] args) throws InterruptedException {
-        Judge judge = new Judge("228", 3334, "localhost", null);
+        Judge judge = new Judge("228", 3334, "localhost");
 
         if (judge.joinOnline() == 0) {
             while (true) {

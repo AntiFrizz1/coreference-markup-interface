@@ -167,6 +167,7 @@ public class ServerImpl implements Server {
 
 
     public ServerImpl(int portForUser, int portForJudge) {
+        logFileInitialize();
         this.portForJudge = portForJudge;
         this.portForUser = portForUser;
 
@@ -273,25 +274,34 @@ public class ServerImpl implements Server {
     Thread backupThread;
     Thread leaderboardThread;
 
+    ExecutorService userConnectionExecutor = Executors.newFixedThreadPool(4);
+    ExecutorService userReConnectionExecutor = Executors.newFixedThreadPool(4);
+    ExecutorService userSchedulerExecutor = Executors.newFixedThreadPool(4);
     /**
      * Start server
      */
     public void run() {
         userListenerThread = new Thread(userListener);
         judgeListenerThread = new Thread(judgeListener);
-        userConnectionThread = new Thread(userConnection);
-        userReconnectionThread = new Thread(userReconnection);
-        userSchedulerThread = new Thread(userScheduler);
         serverStoreWorkerThread = new Thread(serverStore.worker);
         conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         backupThread = new Thread(backupWorker);
         leaderboardThread = new Thread(leaderBoardWorker);
 
+        for (int i = 0; i < 4; i++) {
+            userConnectionExecutor.execute(userConnection);
+        }
+
+        for (int i = 0; i < 4; i++) {
+            userSchedulerExecutor.execute(userScheduler);
+        }
+
+        for (int i = 0; i < 4; i++) {
+            userReConnectionExecutor.execute(userReconnection);
+        }
+
         userListenerThread.start();
         judgeListenerThread.start();
-        userReconnectionThread.start();
-        userConnectionThread.start();
-        userSchedulerThread.start();
         serverStoreWorkerThread.start();
         conflictInfoSchedulerThread.start();
         backupThread.start();
@@ -391,7 +401,9 @@ public class ServerImpl implements Server {
             try {
                 if (!reconnectQueue.isEmpty()) {
                     Pair<Integer, Socket> pair = reconnectQueue.poll();
-
+                    if (pair == null) {
+                        continue;
+                    }
                     Socket client = pair.getValue();
                     int id = pair.getKey();
 
@@ -404,7 +416,7 @@ public class ServerImpl implements Server {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                     PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8)));
 
-                    String fileName = id + "text=" + textId;
+                    String fileName = backupName + DELIMITER + id + "text=" + textId;
 
                     BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), StandardCharsets.UTF_8));
 
@@ -450,6 +462,9 @@ public class ServerImpl implements Server {
             try {
                 if (!connectedUsers.isEmpty()) {
                     Pair<Integer, Socket> pair = connectedUsers.poll();
+                    if (pair == null) {
+                        continue;
+                    }
                     int id = pair.getKey();
                     Socket client = pair.getValue();
                     try {
@@ -799,27 +814,26 @@ public class ServerImpl implements Server {
                                     judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2, conflict.textId, decision);
                                     synchronized (leaderBoard) {
                                         if (decision == 2 && !action2.isEmpty()) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) - 20);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) - 20);
                                         }
                                         if (decision == 1 && !action1.isEmpty()) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) - 20);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) - 20);
                                         }
                                         if (decision == 1 || decision == 3) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) + 5);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
                                         }
                                         if (decision == 2 || decision == 3) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) + 5);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
                                         }
                                         if (decision == 0 && !action1.isEmpty()) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(conflict.teamOneId) - 20);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) - 20);
                                         }
                                         if (decision == 0 && !action2.isEmpty()) {
-                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(conflict.teamTwoId) - 20);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) - 20);
                                         }
-
                                     }
                                     leaderBoardNeed.compareAndSet(false, true);
-                                    logWriter.println("judge" + socket.toString() + " complete task");
+                                    System.out.println("judge" + socket.toString() + " complete task");
                                     logWriter.flush();
                                 }
 
@@ -850,6 +864,8 @@ public class ServerImpl implements Server {
         PrintWriter backupWriter;
         try {
             backupWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupName + DELIMITER + "backupInfo"), StandardCharsets.UTF_8)));
+            backupWriter.println(clientNumber);
+            backupWriter.flush();
             backupWriter.println(textNumber);
             backupWriter.flush();
             backupWriter.println(idToLocalServerId.size());
@@ -932,6 +948,8 @@ public class ServerImpl implements Server {
         try {
             backupReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "backupInfo"), StandardCharsets.UTF_8));
             String request = backupReader.readLine();
+            clientNumber.set(Integer.parseInt(request));
+            request = backupReader.readLine();
             textNumber.set(Integer.parseInt(request));
             request = backupReader.readLine();
             int size = Integer.parseInt(request);
@@ -1033,7 +1051,7 @@ public class ServerImpl implements Server {
                 if (i + 1 < files.size() && files.get(i + 1).textId == ssf.textId) {
                     boolean f = false;
                     for (int j = 0; j < judgeStore.games.size(); j++) {
-                        if (judgeStore.games.get(i).textNum == ssf.textId) {
+                        if (judgeStore.games.get(j).textNum == ssf.textId) {
                             f = true;
                             break;
                         }

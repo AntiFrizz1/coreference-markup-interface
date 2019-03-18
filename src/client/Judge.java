@@ -19,11 +19,8 @@ public class Judge extends AbstractClient {
 
     public List<String> texts;
 
-    private JudgeController controller;
-
-    public Judge(String id, int port, String serviceAddress, JudgeController controller) {
+    public Judge(String id, int port, String serviceAddress) {
         super(id, port, serviceAddress);
-        this.controller = controller;
         texts = new ArrayList<>();
     }
     //private Listener listener;

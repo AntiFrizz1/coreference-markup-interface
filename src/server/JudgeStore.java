@@ -51,10 +51,10 @@ public class JudgeStore {
 
         void makeWriter() {
             try {
-                writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMITER +
                         teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum),
                         StandardCharsets.UTF_8)));
-                dumpWriter.println(prefix + ServerImpl.DELIMITER + teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum);
+                dumpWriter.println(teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum);
                 dumpWriter.flush();
             } catch (FileNotFoundException e) {
                 log("JudgeStore.Game.makeWriter", e.getMessage());
@@ -91,7 +91,6 @@ public class JudgeStore {
     }
 
     public List<Action> getTeamList(int textNum, int teamId) {
-        games.get(textNum).makeWriter();
         return games.get(textNum).idToTeamApprovedList.get(teamId);
     }
 
@@ -111,6 +110,7 @@ public class JudgeStore {
             games.get(textNum).mutex.lock();
             games.get(textNum).addTeam(teamId);
             games.get(textNum).mutex.unlock();
+            games.get(textNum).makeWriter();
         }
     }
 
