@@ -315,7 +315,7 @@ public class ServerImpl implements Server {
         conflictInfoSchedulerThread.start();
         backupThread.start();
         leaderboardThread.start();
-
+        judgeConnectionThread.start();
         try {
             userListenerThread.join();
         } catch (InterruptedException e) {
