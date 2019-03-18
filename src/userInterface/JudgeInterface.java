@@ -407,19 +407,19 @@ public class JudgeInterface extends Application {
             word.getStyleClass().add("search");
             word.setStyle("-fx-background-color: rgba(0,0,0,0);");
 
-            /*if (whereSingle.contains(i)) {
+            if (whereSingle.contains(i)) {
                 word.getStyleClass().add("chain-selected-judge-highlight");
             } else {
                 if (where.contains(i)) {
                     word.getStyleClass().add("chain-selected-judge");
                 }
-            }*/
+            }
 
             textPane.getChildren().add(word);
             Button space = new Button("   ");
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
-            /*if (whereSingle.contains(-i - 1)) {
+            if (whereSingle.contains(-i - 1)) {
                 space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {
@@ -427,7 +427,7 @@ public class JudgeInterface extends Application {
                     space.setText("@");
                     space.getStyleClass().add("chain-selected-judge");
                 }
-            }*/
+            }
             textPane.getChildren().add(space);
         }
     }
