@@ -35,10 +35,10 @@ import java.util.stream.Collectors;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ControllerImpl implements Controller {
-    private final int ADDWORD = 0;
-    private final int ADDCHAIN = 1;
-    private final int DELCHAIN = 2;
-    private final int DELWORD = 3;
+    public static final int ADDWORD = 0;
+    public static final int ADDCHAIN = 1;
+    public static final int DELCHAIN = 2;
+    public static final int DELWORD = 3;
     private final int POSSIBLE_CANCELS = 15;
 
     private boolean online = false;
@@ -59,9 +59,10 @@ public class ControllerImpl implements Controller {
             "граница между психическими и физиологическими явлениями в деятельности человека и где она?"*/ "";
     private Chain curChain;
     private Map<Integer, String> selected;
-    private int selectedBlank = -1;
+    private int selectedBlank = -1, maxChainId = 0;
     private String newChainName; //TODO НАССАТЬ НА ЕБАЛО ВЛАДА
     private List<Action> actions;  // TODO: send this to the server and then empty it after each send
+    private List<Chain> removedChains;
     private Stage primaryStage;  // TODO: this will be used to show the conflict window
     private boolean isLoggedUser = false, isJudge = false;
 
@@ -71,10 +72,14 @@ public class ControllerImpl implements Controller {
         prevStates = new ArrayList<>();
         selected = new HashMap<>();
         actions = new ArrayList<>();
+        removedChains = new ArrayList<>();
         this.primaryStage = primaryStage;
     }
 
-    public List<Action> getActions() {
+    String simpleText(){
+        return TEXT_PLACEHOLDER;
+    }
+    List<Action> getActions() {
         return actions;
     }
 
@@ -87,7 +92,7 @@ public class ControllerImpl implements Controller {
 
     }
 
-    public boolean isOnline() {
+    boolean isOnline() {
         return online;
     }
 
@@ -107,11 +112,11 @@ public class ControllerImpl implements Controller {
         // text = getText(id);
     }
 
-    public boolean isJudge() {
+    boolean isJudge() {
         return isJudge;
     }
 
-    public boolean isLoggedUser() {
+    boolean isLoggedUser() {
         return isLoggedUser;
     }
 
@@ -137,7 +142,7 @@ public class ControllerImpl implements Controller {
         offline = true;
     }
 
-    public boolean isOfflineMode() {
+    boolean isOfflineMode() {
         return offline;
     }
 
@@ -182,19 +187,28 @@ public class ControllerImpl implements Controller {
         Map<Integer, Chain> chain = new HashMap<>();
         int maxId = 0;
         for (Action a : actions) {
-            int id = a.getChainId();
-            if (chain.containsKey(id)) {
-                chain.get(id).addPart(a.getLocation());
-            } else {
-                ChainImpl newChain = new ChainImpl(a);
-                newChain.setColor(generateRandomColor());
-                chain.put(id, newChain);
-            }
-            if (a.getLocation() instanceof Blank) {
-                maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
-            } else if (a.getLocation() instanceof Phrase) {
-                maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
-                        .max(Comparator.naturalOrder()).orElse(0));
+            if (a.getAction() == ADDWORD || a.getAction() == ADDCHAIN) {
+                int id = a.getChainId();
+                maxChainId = Math.max(maxChainId, id);
+                if (chain.containsKey(id)) {
+                    chain.get(id).addPart(a.getLocation());
+                } else {
+                    ChainImpl newChain = new ChainImpl(a);
+                    newChain.setColor(generateRandomColor());
+                    chain.put(id, newChain);
+                }
+                if (a.getLocation() instanceof Blank) {
+                    maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
+                } else if (a.getLocation() instanceof Phrase) {
+                    maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
+                            .max(Comparator.naturalOrder()).orElse(0));
+                }
+            } else if (a.getAction() == DELCHAIN) {
+                chain.remove(a.getChainId());
+            } else if (a.getAction() == DELWORD) {
+                Chain c = chain.get(a.getChainId());
+                c.getLocations().remove(a.getLocation());
+                chain.put(a.getChainId(), c);
             }
         }
         chains = new ArrayList<>(chain.values());
@@ -229,6 +243,7 @@ public class ControllerImpl implements Controller {
     public void clearActions() {
         actions.clear();
         prevStates.clear();
+        removedChains.clear();
     }
 
     List<Chain> getChains() {
@@ -329,7 +344,7 @@ public class ControllerImpl implements Controller {
             // TODO: maybe Utils.generateRandomColor()?
             Phrase phrase = new Phrase(result, new HashSet<>(selected.keySet()));
             ChainImpl newChain = new ChainImpl(newChainName, generateRandomColor(),
-                    chains.size(), phrase);
+                    ++maxChainId, phrase);
             Action ac = new Action(ADDCHAIN, newChain.getId(), phrase, newChain.getName());
             saveState(ac, -1);
             newChainName = "";
@@ -346,6 +361,47 @@ public class ControllerImpl implements Controller {
             newChainName = "";
             chains.add(0, newChain);
             curChain = null;
+            selectedBlank = -1;
+            return ac;
+        }
+    }
+
+    public Chain deleteChain() {
+        Action ac = new Action(DELCHAIN, curChain.getId(), new Blank(0), curChain.getName());
+        int prevIndex = chains.indexOf(curChain);
+        chains.remove(curChain);
+        removedChains.add(curChain);
+        Chain curChainOld = curChain;
+        curChain = null;
+        saveState(ac, prevIndex);
+        return curChainOld;
+    }
+
+    public Action deletePhrase() {
+        if (!selected.isEmpty()) {
+            String result = selected.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey))
+                    .map(Map.Entry::getValue).collect(Collectors.joining(" "));
+            Phrase phrase = new Phrase(result, new HashSet<>(selected.keySet()));
+            Chain from = chains.stream().filter(ch -> ch.getLocations().contains(phrase)).findAny().orElse(null);
+            if (from == null) return null;
+            int prevIndex = chains.indexOf(from);
+            chains.remove(from);
+            Action ac = new Action(DELWORD, from.getId(), phrase, from.getName());
+            from.getLocations().remove(phrase);
+            saveState(ac, prevIndex);
+            if (!from.getLocations().isEmpty()) chains.add(0, from);
+            selected.clear();
+            return ac;
+        } else {
+            Blank blank = new Blank(selectedBlank);
+            Chain from = chains.stream().filter(ch -> ch.getLocations().contains(blank)).findAny().orElse(null);
+            if (from == null) return null;
+            int prevIndex = chains.indexOf(from);
+            chains.remove(from);
+            Action ac = new Action(DELWORD, from.getId(), blank, from.getName());
+            from.getLocations().remove(blank);
+            saveState(ac, prevIndex);
+            if (!from.getLocations().isEmpty()) chains.add(0, from);
             selectedBlank = -1;
             return ac;
         }
@@ -453,6 +509,22 @@ public class ControllerImpl implements Controller {
             Chain c = chains.remove(0);
             c.getLocations().remove(ac.getKey().getLocation());
             chains.add(ac.getValue(), c);
+        }
+        if (ac.getKey().getAction() == DELWORD) {
+            Chain c = chains.get(0);
+            if (c.getId() == ac.getKey().getChainId()) {
+                chains.remove(0);
+                c.getLocations().add(ac.getKey().getLocation());
+                chains.add(ac.getValue(), c);
+            } else {
+                ChainImpl restored = new ChainImpl(ac.getKey().getName(), generateRandomColor(),
+                        ++maxChainId, ac.getKey().getLocation());
+                chains.add(ac.getValue(), restored);
+            }
+        }
+        if (ac.getKey().getAction() == DELCHAIN) {
+            Chain restored = removedChains.get(removedChains.size() - 1);
+            chains.add(ac.getValue(), restored);
         }
         curChain = null;
         return ac.getKey();

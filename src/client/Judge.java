@@ -17,20 +17,17 @@ import java.util.List;
  */
 public class Judge extends AbstractClient {
 
-    List<String> texts;
+    public List<String> texts;
 
-    private JudgeController controller;
-
-    public Judge(int id, int port, String serviceAddress, JudgeController controller) {
+    public Judge(String id, int port, String serviceAddress) {
         super(id, port, serviceAddress);
-        this.controller = controller;
         texts = new ArrayList<>();
     }
     //private Listener listener;
 
     @Override
     public int joinOnline() {
-        if (sendConnectionInfo(String.valueOf(id)) == 0) {
+        if (sendConnectionInfo() == 0) {
             System.out.println("Successful connect to server as judge with id = " + id);
             readAllTextes();
             return 0;
@@ -46,25 +43,51 @@ public class Judge extends AbstractClient {
     }
 
     public Conflict getInfo() {
+
         try {
+            while (!reader.ready()) {
+                Thread.sleep(1000);
+            }
             String first = reader.readLine();
+
+            while (!reader.ready()) {
+                Thread.sleep(1000);
+            }
             String second = reader.readLine();
+
+            while (!reader.ready()) {
+                Thread.sleep(1000);
+            }
             String third = reader.readLine();
-            int id = Integer.parseInt(third);
-            return new ConflictImpl(first, second, texts.get(id));
+
+            if (first == null || second == null || third == null) {
+                connect();
+                /*sendConnectionInfo();*/
+            } else {
+                int id = Integer.parseInt(third);
+                return new ConflictImpl(first, second, texts.get(id));
+            }
         } catch (IOException e) {
             System.err.println("Can't get information from server");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return null;
     }
 
     private void readAllTextes() {
         try {
+            while (!reader.ready()) {
+                Thread.sleep(1000);
+            }
             int size = Integer.parseInt(reader.readLine());
             for (int i = 0; i < size; i++) {
+                while (!reader.ready()) {
+                    Thread.sleep(1000);
+                }
                 texts.add(reader.readLine());
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 

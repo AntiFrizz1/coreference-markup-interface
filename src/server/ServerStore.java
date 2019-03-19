@@ -10,127 +10,167 @@ import document.ConflictInfo;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static server.ServerImpl.conflicts;
+import static server.ServerImpl.log;
 
 public class ServerStore {
-    public static class Game {
-        int teamOne;
-        int teamTwo;
+    class Game {
+        List<Integer> teamIdList = new CopyOnWriteArrayList<>();
         int textNum;
-        List<Action> teamOneList;
-        List<Action> teamTwoList;
+        Map<Integer, List<Action>> idToActionList = new ConcurrentHashMap<>();
 
-        PrintWriter writerOne;
-        PrintWriter writerTwo;
+        String prefix;
 
-        Game(int teamOne, int teamTwo, int textNum, String prefixOld, PrintWriter writer) {
-            this.teamOne = teamOne;
-            this.teamTwo = teamTwo;
+        Map<Integer, PrintWriter> idToWriter = new ConcurrentHashMap<>();
+
+        Game(int textNum, String prefix) {
             this.textNum = textNum;
-            writer.println(teamOne + "text=" + textNum);
-            writer.flush();
-            writer.println(teamTwo + "text=" + textNum);
-            writer.flush();
-
-            try {
-                writerOne = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixOld + ServerImpl.DELIMETER + teamOne + "text=" + textNum), StandardCharsets.UTF_8)));
-            } catch (FileNotFoundException e) {
-                System.err.println("Can't find file : " + teamOne + "text=" + textNum);
-            }
-            try {
-                writerTwo = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefixOld + ServerImpl.DELIMETER + teamTwo + "text=" + textNum), StandardCharsets.UTF_8)));
-            } catch (FileNotFoundException e) {
-                System.err.println("Can't find file : " + teamTwo + "text=" + textNum);
-            }
-            teamOneList = new CopyOnWriteArrayList<>();
-            teamTwoList = new CopyOnWriteArrayList<>();
+            this.prefix = prefix;
         }
 
-        public Game(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList, PrintWriter writerOne, PrintWriter writerTwo) {
-            this.teamOne = teamOne;
-            this.teamTwo = teamTwo;
+        Game(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions, List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
+            teamIdList.add(teamOneId);
+            teamIdList.add(teamTwoId);
             this.textNum = textNum;
+            idToActionList.put(teamOneId, teamOneActions);
+            idToActionList.put(teamTwoId, teamTwoActions);
+            idToWriter.put(teamOneId, writer1);
+            idToWriter.put(teamTwoId, writer2);
+            this.prefix = prefix;
+        }
 
-            this.teamOneList = new CopyOnWriteArrayList<>(teamOneList);
-            this.teamTwoList = new CopyOnWriteArrayList<>(teamTwoList);
-            this.writerOne = writerOne;
-            this.writerTwo = writerTwo;
+        Game(int teamId, int textNum, List<Action> teamActions, PrintWriter writer, String prefix) {
+            teamIdList.add(teamId);
+            this.textNum = textNum;
+            idToActionList.put(teamId, teamActions);
+            idToWriter.put(teamId, writer);
+            this.prefix = prefix;
+        }
+
+        void addTeam(int teamId) {
+            teamIdList.add(teamId);
+            idToActionList.put(teamId, new CopyOnWriteArrayList<>());
+            try {
+                idToWriter.put(teamId, new PrintWriter(prefix + ServerImpl.DELIMITER + teamId + "text=" + textNum));
+                writer.println(teamId + "text=" + textNum);
+                writer.flush();
+            } catch (FileNotFoundException e) {
+                log("ServerStore.Game.addTeam", e.getMessage());
+            }
         }
     }
 
     List<Game> games;
-    AtomicIntegerArray mutexArray;
+    HashMap<Integer, Game> gamesMap;
     PrintWriter writer;
+    AtomicIntegerArray mutexes = new AtomicIntegerArray(1000);
+
+    int mode;
+
+    ServerStore(int mode) {
+        games = new CopyOnWriteArrayList<>();
+        gamesMap = new HashMap<>();
+        this.mode = mode;
+    }
 
     ServerStore() {
         games = new CopyOnWriteArrayList<>();
-        mutexArray = new AtomicIntegerArray(100);
+        gamesMap = new HashMap<>();
+        this.mode = 0;
     }
 
     public void setServerWriter(String prefix) {
         try {
-            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMETER + "gamesServer"), StandardCharsets.UTF_8)));
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMITER + "gamesServer"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
-            System.err.println("Can't find file " + prefix + ServerImpl.DELIMETER + "gamesServer");
+            log("ServerStore.setServerWriter", e.getMessage());
         }
     }
 
-    boolean putActions(List<Action> actions, int textNum, int teamNum) {
-        Game curGame = games.get(textNum);
-        actions.sort(this::compareActions);
-        if (teamNum == 1) {
-            curGame.teamOneList.addAll(actions);
-            PrintWriter writer = curGame.writerOne;
-            for (Action action : actions) {
-                writer.println(action.pack());
-                writer.flush();
-            }
-        } else {
-            curGame.teamTwoList.addAll(actions);
-            PrintWriter writer = curGame.writerTwo;
+    boolean putActions(List<Action> actions, int textNum, int teamId) {
+        synchronized (games) {
+            Game curGame = games.get(textNum);
+            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
+            PrintWriter writer = curGame.idToWriter.get(teamId);
             for (Action action : actions) {
                 writer.println(action.pack());
                 writer.flush();
             }
         }
-        mutexArray.compareAndSet(textNum, 1, 0);
         return true;
     }
 
     Runnable worker = () -> {
         while (true) {
             for (int i = 0; i < games.size(); i++) {
-                    Game curGame = games.get(i);
-                    if (!curGame.teamOneList.isEmpty() && !curGame.teamTwoList.isEmpty()) {
-                        Action actionFromTeamOne = curGame.teamOneList.get(0);
-                        Action actionFromTeamTwo = curGame.teamTwoList.get(0);
-                        if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) {
-                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                        } else  if (compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) {
-                            conflicts.get(i).add(new ConflictInfo(new ConflictData(new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamTwoList.remove(0);
-                        } else {
-                            conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i, curGame.teamOne, curGame.teamTwo)));
-                            curGame.teamOneList.remove(0);
-                            curGame.teamTwoList.remove(0);
-                        }
+                Game curGame = games.get(i);
+                if (!curGame.teamIdList.isEmpty()) {
+                    Action actionFromTeamOne = null;
+                    if (!curGame.idToActionList.get(curGame.teamIdList.get(0)).isEmpty()) {
+                        actionFromTeamOne = curGame.idToActionList.get(curGame.teamIdList.get(0)).get(0);
+                    }
+                    Action actionFromTeamTwo = null;
+                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
+                        actionFromTeamTwo = curGame.idToActionList.get(curGame.teamIdList.get(1)).get(0);
+                    }
+
+                    if ((actionFromTeamOne == null || actionFromTeamTwo == null) && mode == 0) {
+                        continue;
+                    }
+
+                    if (actionFromTeamOne != null && (mode == 1 ||
+                            (mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne,
+                                new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamIdList.get(0),
+                                curGame.teamIdList.get(1))));
+                        curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
+                    } else if (actionFromTeamTwo != null && (mode == 1 || mode == 0 &&
+                            compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(
+                                new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i,
+                                curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
+                        curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
+                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null) {
+                        conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i,
+                                curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
+                        curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
+                        curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
                     }
                 }
             }
+        }
     };
 
-    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, List<Action> teamOneList, List<Action> teamTwoList, PrintWriter writerOne, PrintWriter writerTwo) {
-        Game newGame = new Game(teamOne, teamTwo, textNum, teamOneList, teamTwoList, writerOne, writerTwo);
-        games.add(newGame);
+    public void addFullRecoverGame(int teamOneId, int teamTwoId, int textNum, List<Action> teamOneActions,
+                                   List<Action> teamTwoActions, PrintWriter writer1, PrintWriter writer2, String prefix) {
+        Game tmp = new Game(teamOneId, teamTwoId, textNum, teamOneActions, teamTwoActions, writer1, writer2, prefix);
+        games.add(tmp);
     }
 
-    synchronized void addNewGame(int teamOne, int teamTwo, int textNum, String prefixOld) {
-        Game newGame = new Game(teamOne, teamTwo, textNum, prefixOld, writer);
-        games.add(newGame);
+    public void addHalfRecoverGame(int teamId, int textNum, List<Action> teamActions, PrintWriter writer, String prefix) {
+        Game tmp = new Game(teamId, textNum, teamActions, writer, prefix);
+        games.add(tmp);
+    }
+
+    void addSample(int teamNumber, int textNum, String prefix) {
+        synchronized (games) {
+            if (!gamesMap.containsKey(textNum)) {
+                Game newGame = new Game(textNum, prefix);
+                games.add(newGame);
+                gamesMap.put(textNum, newGame);
+                newGame.addTeam(teamNumber);
+                conflicts.add(new ConcurrentLinkedQueue<>());
+            } else {
+                gamesMap.get(textNum).addTeam(teamNumber);
+            }
+        }
     }
 
     public int compareActions(Action action1, Action action2) {

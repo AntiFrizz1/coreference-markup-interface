@@ -26,6 +26,8 @@ public class ConflictImpl implements Conflict {
     public Set<Integer> firstLast;
     public Set<Integer> secondLast;
 
+    public Chain firstChain, secondChain;
+
 
     public ConflictImpl(String list1, String list2, String text) {
         UpdateDocument doc1 = new UpdateDocument(list1);
@@ -40,6 +42,9 @@ public class ConflictImpl implements Conflict {
 
         secondWordsLocation = new HashSet<>();
         secondBlanksLocation = new HashSet<>();
+
+        firstChain = new ChainImpl(first.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
+        secondChain = new ChainImpl(second.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
 
         makeSets();
 
@@ -79,14 +84,20 @@ public class ConflictImpl implements Conflict {
         int right = 0;
         boolean f = false;
         for (int i = 0; i < words.size(); i++) {
-            if (firstWordsLocation.contains(i) || firstBlanksLocation.contains(i) || secondWordsLocation.contains(i)
-                    || secondBlanksLocation.contains(i)) {
+            if (firstWordsLocation.contains(i) || secondWordsLocation.contains(i)) {
                 if (!f) {
                     left = i;
+                    f = true;
                 }
-                f = true;
+                right = i;
+            } else if (firstBlanksLocation.contains(i) || secondBlanksLocation.contains(i)) {
+                if (!f) {
+                    left = i;
+                    f = true;
+                }
                 right = i;
             }
+
         }
         left = Math.max(0, left - 20);
         right = Math.min(words.size() - 1, right + 20);
@@ -124,7 +135,7 @@ public class ConflictImpl implements Conflict {
             secondLast = new HashSet<>();
         } else if (secondTmp instanceof Phrase) {
             secondLast = ((Phrase) secondTmp).getPositions();
-        } else if (firstTmp instanceof Blank) {
+        } else if (secondTmp instanceof Blank) {
             secondLast = new HashSet<>();
             secondLast.add(-((Blank) secondTmp).getPosition() - 1);
         }

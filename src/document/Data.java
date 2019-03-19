@@ -2,6 +2,7 @@ package document;
 
 import chain.Action;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Data {
@@ -14,8 +15,12 @@ public class Data {
     public Data(String info) {
         String[] array = info.split("@");
         text = array[0];
-        UpdateDocument upd = new UpdateDocument(array[1]);
-        actions = upd.getActions();
+        if (array.length > 1) {
+            UpdateDocument upd = new UpdateDocument(array[1]);
+            actions = upd.getActions();
+        } else {
+            actions = new ArrayList<>();
+        }
     }
 
     public List<Action> getActions() {

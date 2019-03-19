@@ -3,51 +3,59 @@ package userInterface;
 import client.Conflict;
 import client.ConflictImpl;
 import client.Judge;
+import javafx.application.Application;
 import javafx.event.Event;
-import javafx.geometry.Insets;
+import javafx.geometry.*;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import sun.nio.ch.sctp.SctpNet;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class JudgeInterface {
+public class JudgeInterface extends Application {
 
     final private int APP_WIDTH = 1280;
     final private int APP_HEIGHT = 720;
-    final private int MIN_APP_WIDTH = 700;
-    final private int MIN_APP_HEIGHT = 300;
 
     private volatile Judge judge;
+    private Stage primaryStage;
 
     private JudgeController controller = new JudgeController();
     private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
 
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Ожидание чуда");
-        primaryStage.setMinWidth(MIN_APP_WIDTH);
-        primaryStage.setMinHeight(MIN_APP_HEIGHT);
-        primaryStage.setScene(startScene(primaryStage));
+        this.primaryStage = primaryStage;
+        judgeLoginScreen();
+    }
+
+    private void work() {
+        primaryStage.setScene(startScene());
         primaryStage.show();
+
         while (true) {
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
+
             if (conflict == null) {
-                //
-                break;
+                //PIZDA
+            } else {
+                controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
+                controller.getChains(conflict.firstChain, conflict.secondChain);
+                //infoScene();
+                judgeScene();
             }
-
-
-            controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation,
-                    conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
-            judgeScene();
-            judge.sendDecision(controller.getDecision());
         }
     }
 
@@ -60,77 +68,349 @@ public class JudgeInterface {
         return controller;
     }
 
-    private Scene startScene(Stage primaryStage) {
+    private Scene startScene() {
         //TODO something cool
         return new Scene(new BorderPane());
     }
 
+    private ColumnConstraints makeColFromPercent(int value) {
+        ColumnConstraints res = new ColumnConstraints();
+        res.setPercentWidth(value);
+        return res;
+    }
+
+    private RowConstraints makeRowFromPercent(int value) {
+        RowConstraints res = new RowConstraints();
+        res.setPercentHeight(value);
+        return res;
+    }
+
+    private GridPane baseUserPart() {
+        GridPane root = new GridPane();
+
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(30),
+                makeColFromPercent(40),
+                makeColFromPercent(30)
+        );
+
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(10),
+                makeRowFromPercent(25),
+                makeRowFromPercent(20)
+        );
+
+        return root;
+    }
+
+    private GridPane baseUserSubPart() {
+        GridPane subRoot = new GridPane();
+
+        subRoot.getColumnConstraints().addAll(
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10),
+                makeColFromPercent(35),
+                makeColFromPercent(10)
+        );
+
+
+        subRoot.getRowConstraints().addAll(
+                makeRowFromPercent(20),
+                makeRowFromPercent(60),
+                makeRowFromPercent(20)
+        );
+        return subRoot;
+    }
+
+    private FlowPane genChoices(Stage stage) {
+        ToggleGroup group = new ToggleGroup();
+
+        RadioButton first = new RadioButton("First");
+        RadioButton second = new RadioButton("Second");
+        RadioButton both = new RadioButton("Both");
+        RadioButton nobody = new RadioButton("Nobody");
+        Button confirm = new Button("Подтвердить выбор");
+        confirm.getStyleClass().add("button-font");
+
+        first.setOnAction(event -> {
+            controller.setDecision(1);
+        });
+
+        second.setOnAction(event -> {
+            controller.setDecision(2);
+        });
+
+        both.setOnAction(event -> {
+            controller.setDecision(3);
+        });
+
+        nobody.setOnAction(event -> {
+            controller.setDecision(0);
+        });
+
+        first.setToggleGroup(group);
+        second.setToggleGroup(group);
+        both.setToggleGroup(group);
+        nobody.setToggleGroup(group);
+
+        FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
+        res.setAlignment(Pos.CENTER_LEFT);
+
+        switch (controller.getConflType()) {
+            case NEW_SAME:
+                both.setText("Подтвердить создание цепочки.");
+                nobody.setText("Отклониь создание цепочки.");
+                res.getChildren().addAll(both, nobody);
+                break;
+            case NEWCHAIN_EMPTY:
+                first.setText("Подтвердить создание цепочки.");
+                second.setText("Отклонить создание цепочки.");
+                res.getChildren().addAll(first, second);
+                break;
+            case ADD_SAME:
+                first.setText("Подтвердить решение первого участника.");
+                second.setText("Подтердить решение второго участника.");
+                nobody.setText("Оба не правы.");
+                res.getChildren().addAll(first, second, nobody);
+                break;
+            case ADD_EMPTY_SAME:
+            case CONTCHAIN_EMPTY:
+                if (controller.isFirstEmpty()) {
+                    second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
+                    first.setText("Отклонить добавление элемента в цепочку(Принять решение первого участника).");
+                    res.getChildren().addAll(second, first);
+                } else {
+                    first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
+                    second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
+                    res.getChildren().addAll(first, second);
+                }
+        }
+
+        confirm.setOnAction(event -> {
+            if (group.getSelectedToggle() != null) {
+                confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
+            } else {
+                errorScene(stage, "Вы ничего не выбрали.");
+            }
+        });
+        res.getChildren().add(confirm);
+
+        return res;
+    }
+
+    private void judgeLoginScreen() {
+        Stage stage = new Stage();
+        stage.setTitle("Введите пароль");
+
+
+        GridPane root = baseUserPart();
+        GridPane subRoot = baseUserSubPart();
+
+
+        PasswordField password = new PasswordField();
+        password.setPromptText("Введите пароль судьи...");
+        GridPane.setValignment(password, VPos.CENTER);
+        GridPane.setHalignment(password, HPos.CENTER);
+
+        Button enter = new Button("Войти");
+        enter.getStyleClass().add("button-font");
+
+        Button back = new Button("Назад");
+        back.getStyleClass().add("button-font");
+
+        GridPane.setValignment(enter, VPos.CENTER);
+        GridPane.setHalignment(enter, HPos.CENTER);
+
+        Text error = new Text("");
+
+        error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
+
+        enter.setOnAction(event -> {
+            if (password.getText().equals("1234")) {
+                judge = new Judge("228", 3334, "localhost");
+
+                if (judge.joinOnline() != 0) {
+                    error.setText("Не удалось подключиться к серверу.");
+                } else {
+                    stage.getScene().getWindow().hide();
+                    work();
+                }
+            } else {
+                error.setText("Неверный пароль!");
+            }
+        });
+
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                enter.fire();
+                event.consume();
+            }
+        });
+
+        back.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        subRoot.add(enter, 0, 1, 2, 1);
+        subRoot.add(back, 3, 1, 2, 1);
+
+        root.add(password, 1, 1);
+        root.add(error, 1, 2);
+        root.add(subRoot, 1, 3);
+
+
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        stage.setScene(new Scene(root, 400, 200));
+        stage.setResizable(false);
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.showAndWait();
+    }
+
+    ScrollPane genInfo(int labelWidth, String content) {
+
+        Label label = new Label(content);
+        label.setWrapText(true);
+        label.setMaxWidth(labelWidth);
+        GridPane.setMargin(label, new Insets(10));
+        GridPane.setValignment(label, VPos.CENTER);
+        GridPane.setHalignment(label, HPos.CENTER);
+
+        GridPane pane = new GridPane();
+
+        pane.getRowConstraints().addAll(
+                makeRowFromPercent(100)
+        );
+
+        pane.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
+
+        pane.add(label, 0, 0);
+
+        ScrollPane scroll = new ScrollPane(pane);
+
+        return scroll;
+    }
+
+
+    public void infoScene() {
+        Stage stage = new Stage();
+        stage.setTitle("Информация о конфликте");
+
+        GridPane pane = new GridPane();
+
+        pane.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
+
+        pane.getRowConstraints().addAll(
+                makeRowFromPercent(100)
+        );
+
+        ScrollPane scroll = genInfo(500, controller.getInfo());
+        GridPane.setMargin(scroll, new Insets(15));
+
+        pane.add(scroll, 0, 0);
+
+        Scene scene = new Scene(pane, 400, 150);
+        scene.getStylesheets().add("styles.css");
+        pane.getStyleClass().add("default-background");
+        scroll.getStyleClass().add("default-outline");
+        stage.setResizable(false);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+
     public void judgeScene() {
         Stage stage = new Stage();
-        BorderPane leftSide = new BorderPane();
+        stage.setTitle("Решение конфликта");
 
-        GridPane texts = new GridPane();
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(50);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(50);
-        texts.getColumnConstraints().addAll(col1, col2);
+        GridPane main = new GridPane();
+        main.getStylesheets().add("styles.css");
+        main.getStyleClass().add("default-background");
+        main.setMinSize(0.8 * APP_WIDTH, 0.8 * APP_HEIGHT);
+
+        RowConstraints row1 = new RowConstraints(0.2 * APP_HEIGHT);
+        row1.setFillHeight(true);
+        row1.setVgrow(Priority.NEVER);
+        RowConstraints row2 = new RowConstraints();
+        //row2.setMinHeight(0.7 * APP_HEIGHT);
+        row2.setVgrow(Priority.ALWAYS);
+        main.getRowConstraints().addAll(
+                row1,
+                row2
+        );
+
+        ColumnConstraints col1 = makeColFromPercent(50);
+        ColumnConstraints col2 = makeColFromPercent(50);
+
+        main.getColumnConstraints().addAll(
+                col1,
+                col2
+        );
+
 
         ScrollPane textWrapper1 = new ScrollPane();
         textWrapper1.setFitToWidth(true);
+        textWrapper1.setFitToHeight(true);
         FlowPane text1 = new FlowPane();
         textWrapper1.setContent(text1);
         text1.setPadding(new Insets(5));
         generateText(controller.getJudgeText(), text1, controller.getFirstHighlights(), controller.getFirstWhite(), controller.getFirstSingle());
+        GridPane.setHalignment(textWrapper1, HPos.CENTER);
+        GridPane.setValignment(textWrapper1, VPos.CENTER);
+        GridPane.setMargin(textWrapper1, new Insets(15));
 
 
         ScrollPane textWrapper2 = new ScrollPane();
         textWrapper2.setFitToWidth(true);
+        textWrapper2.setFitToHeight(true);
         FlowPane text2 = new FlowPane();
         textWrapper2.setContent(text2);
         text1.setPadding(new Insets(5));
         generateText(controller.getJudgeText(), text2, controller.getSecondHighlights(), controller.getSecondWhite(), controller.getSecondSingle());
+        GridPane.setValignment(textWrapper2, VPos.CENTER);
+        GridPane.setHalignment(textWrapper2, HPos.CENTER);
+        GridPane.setMargin(textWrapper2, new Insets(15));
 
-        texts.add(textWrapper1, 0, 0);
-        texts.add(textWrapper2, 1, 0);
-        leftSide.setCenter(texts);
 
-        HBox box = new HBox(5);
+        FlowPane choices = genChoices(stage);
+        GridPane.setMargin(choices, new Insets(15));
+        GridPane.setValignment(choices, VPos.CENTER);
+        GridPane.setHalignment(choices, HPos.LEFT);
+        GridPane.setFillHeight(choices, false);
 
-        Button b1 = new Button(decisions.get(1));
-        b1.setOnAction(event -> {
-            controller.setDecision(1);
-            confirmDecision(stage);
-        });
+        ScrollPane scroll = genInfo(600, controller.getInfo());
+        GridPane.setHalignment(scroll, HPos.CENTER);
+        GridPane.setValignment(scroll, VPos.CENTER);
+        GridPane.setFillWidth(scroll, true);
+        GridPane.setMargin(scroll, new Insets(15));
 
-        Button b2 = new Button(decisions.get(2));
-        b2.setOnAction(event -> {
-            controller.setDecision(2);
-            confirmDecision(stage);
-        });
+        main.add(choices, 1, 0);
+        main.add(scroll, 0, 0);
+        main.add(textWrapper1, 0, 1);
+        main.add(textWrapper2, 1, 1);
 
-        Button b3 = new Button(decisions.get(3));
-        b3.setOnAction(event -> {
-            controller.setDecision(3);
-            confirmDecision(stage);
-        });
 
-        Button b4 = new Button(decisions.get(0));
-        b4.setOnAction(event -> {
-            controller.setDecision(0);
-            confirmDecision(stage);
-        });
-
-        box.getChildren().addAll(b1, b2, b3, b4);
-        leftSide.setTop(box);
-
-        Scene sc = new Scene(leftSide, APP_WIDTH, APP_HEIGHT);
+        textWrapper1.getStyleClass().add("default-outline");
+        textWrapper2.getStyleClass().add("default-outline");
+        scroll.getStyleClass().add("default-outline");
+        Scene sc = new Scene(main, APP_WIDTH, APP_HEIGHT);
         sc.getStylesheets().add("styles.css");
-        stage.setOnCloseRequest(Event::consume);
-        stage.setMinWidth(MIN_APP_WIDTH);
-        stage.setMinWidth(MIN_APP_HEIGHT);
-        stage.initModality(Modality.WINDOW_MODAL);
+        stage.setMinWidth(0.8 * APP_WIDTH);
+        stage.setMinHeight(0.8 * APP_HEIGHT);
         stage.setScene(sc);
+//        stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
 
@@ -161,6 +441,7 @@ public class JudgeInterface {
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {
                 if (whereBlank.contains(i)) {
+                    space.setText("@");
                     space.getStyleClass().add("chain-selected-judge");
                 }
             }
@@ -168,42 +449,109 @@ public class JudgeInterface {
         }
     }
 
+    private void errorScene(Stage mainStage, String error) {
+        Stage stage = new Stage();
+        stage.setTitle("Ошибка");
+        GridPane root = new GridPane();
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
 
-    private void confirmDecision(Stage primaryStage) {
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(70),
+                makeRowFromPercent(30)
+        );
+
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
+
+        Text text = new Text(error);
+        GridPane.setValignment(text, VPos.CENTER);
+        GridPane.setHalignment(text, HPos.CENTER);
+        GridPane.setFillWidth(text, true);
+        GridPane.setFillHeight(text, true);
+        GridPane.setMargin(text, new Insets(10, 50, 10, 50));
+
+        Button ok = new Button("OK");
+        ok.getStyleClass().add("button-font");
+
+        GridPane.setHalignment(ok, HPos.CENTER);
+        GridPane.setValignment(ok, VPos.CENTER);
+
+        ok.setOnAction(event -> {
+            stage.getScene().getWindow().hide();
+        });
+
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                ok.fire();
+                event.consume();
+            }
+        });
+
+        root.add(text, 0, 0);
+        root.add(ok, 0, 1);
+
+        stage.initOwner(mainStage);
+        stage.setScene(new Scene(root, 400, 150));
+        stage.showAndWait();
+    }
+
+
+    private void confirmDecision(Stage primaryStage, String decision) {
         Stage stage = new Stage();
         stage.setTitle("Подтвердите выбор решения конфликта");
         GridPane root = new GridPane();
 
-        root.add(new Text("Вы выбрали: ".concat(decisions.get(controller.getDecision()))), 0, 0);
+        root.getColumnConstraints().addAll(
+                makeColFromPercent(100)
+        );
 
-        /*BorderPane buttons = new BorderPane();
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(20);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(30);
-        ColumnConstraints col3 = new ColumnConstraints();
-        col3.setPercentWidth(20);
-        buttons.getColumnConstraints().addAll(col1, col2, col3);*/
+        root.getRowConstraints().addAll(
+                makeRowFromPercent(70),
+                makeRowFromPercent(30)
+        );
 
-        HBox box = new HBox(190);
+        root.getStylesheets().add("styles.css");
+        root.getStyleClass().add("default-background");
+
+        ScrollPane scroll = genInfo(600, "Вы выбрали: ".concat(decision).concat("\nПодтвердите ваш выбор"));
+        HBox box = new HBox(20);
 
         Button ok = new Button("OK");
         ok.setOnAction(event -> {
             stage.getScene().getWindow().hide();
             primaryStage.getScene().getWindow().hide();
-            //TODO disable buttons or make empty Scene
+            judge.sendDecision(controller.getDecision());
         });
         Button cancel = new Button("CANCEL");
         cancel.setOnAction(event -> {
             stage.getScene().getWindow().hide();
         });
 
-        box.getChildren().addAll(ok, cancel);
-        root.add(box, 0, 1);
+        ok.getStyleClass().add("button-font");
+        cancel.getStyleClass().add("button-font");
 
-        stage.setScene(new Scene(root, 300, 70));
+        box.getChildren().addAll(ok, cancel);
+        box.setAlignment(Pos.CENTER);
+        GridPane.setHalignment(box, HPos.CENTER);
+        GridPane.setValignment(box, VPos.CENTER);
+        GridPane.setFillHeight(box, true);
+        GridPane.setFillWidth(box, true);
+
+        GridPane.setFillWidth(scroll, true);
+        GridPane.setValignment(scroll, VPos.CENTER);
+        GridPane.setHalignment(scroll, HPos.CENTER);
+        GridPane.setMargin(scroll, new Insets(30, 50, 10, 50));
+
+        root.add(box, 0, 1);
+        root.add(scroll, 0, 0);
+
+        stage.setScene(new Scene(root, 600, 200));
         stage.setResizable(false);
-        stage.setOnCloseRequest(Event::consume);
+        stage.setOnCloseRequest(event -> {
+            stage.getScene().getWindow().hide();
+        });
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(primaryStage);
         stage.showAndWait();
