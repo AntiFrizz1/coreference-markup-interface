@@ -68,10 +68,10 @@ public class ServerImpl implements Server {
      */
     static List<Queue<ConflictInfo>> conflicts;
 
-    private Map<String, Integer> idToLocalServerId; // NEED
-    private Map<Integer, String> localServerIdToId; // NEED BY FIRST
+    private Map<String, Integer> idToLocalServerId;
+    private Map<Integer, String> localServerIdToId;
 
-    private Map<Integer, Integer> idToTextId; // NEED
+    private Map<Integer, Integer> idToTextId;
 
     private Map<Integer, AtomicInteger> idToStatus;
 
@@ -83,7 +83,7 @@ public class ServerImpl implements Server {
 
     private Queue<Pair<Integer, Socket>> connectedUsers;
 
-    private Map<String, Integer> idToUsername; // NEED
+    private Map<String, Integer> idToUsername;
 
     static final char DELIMITER = '/';
 
@@ -285,6 +285,7 @@ public class ServerImpl implements Server {
     ExecutorService userConnectionExecutor = Executors.newFixedThreadPool(4);
     ExecutorService userReConnectionExecutor = Executors.newFixedThreadPool(4);
     ExecutorService userSchedulerExecutor = Executors.newFixedThreadPool(4);
+
     /**
      * Start server
      */
@@ -969,15 +970,6 @@ public class ServerImpl implements Server {
         }
     };
 
-    /**
-     * private Map<String, Integer> idToLocalServerId; // NEED
-     * private Map<Integer, String> localServerIdToId; // NEED BY FIRST
-     * <p>
-     * private Map<Integer, Integer> idToTextId; // NEED
-     * <p>
-     * private Map<String, Integer> idToUsername; // NEED
-     */
-
     public boolean finalRecover(String prefixOld) {
         BufferedReader backupReader;
         try {
@@ -1000,6 +992,9 @@ public class ServerImpl implements Server {
                 request = backupReader.readLine();
                 String[] nums = request.split(" ");
                 idToTextId.put(Integer.parseInt(nums[0]), Integer.parseInt(nums[1]));
+                idToStatus.put(Integer.parseInt(nums[0]), new AtomicInteger(0));
+                idToSocket.put(Integer.parseInt(nums[0]), nullSocket);
+                idToThread.put(Integer.parseInt(nums[0]), nullThread);
             }
             request = backupReader.readLine();
             size = Integer.parseInt(request);
@@ -1114,14 +1109,10 @@ public class ServerImpl implements Server {
 
 
     class ServerStoreFile {
-        //int idOne;
-        //int idTwo;
         int teamId;
         int textId;
 
         ServerStoreFile(int teamId, int textId) {
-            //this.idOne = idOne;
-            //this.idTwo = idTwo;
             this.teamId = teamId;
             this.textId = textId;
         }
@@ -1161,8 +1152,6 @@ public class ServerImpl implements Server {
                             writerFirst.println(s);
                             writerFirst.flush();
                         }
-
-
                         lines = readerSecond.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
                         for (String s : lines) {
                             UpdateDocument doc = new UpdateDocument(s);
@@ -1184,21 +1173,8 @@ public class ServerImpl implements Server {
                                 break;
                             }
                         }
-                        /*
-                        for (int j = 0; j < judgeStore.games.size(); j++) {
-                            if (judgeStore.games.get(j).teamOneId == ssf.teamId && judgeStore.games.get(j).teamTwoId == ssf2.teamId) {
-                                toDeleteFirst = judgeStore.games.get(j).teamOneApproved;
-                                toDeleteSecond = judgeStore.games.get(j).teamTwoApproved;
-                                break;
-                            } else if (judgeStore.games.get(j).teamOneId == ssf2.teamId && judgeStore.games.get(j).teamTwoId == ssf.teamId) {
-                                toDeleteFirst = judgeStore.games.get(j).teamTwoApproved;
-                                toDeleteSecond = judgeStore.games.get(j).teamOneApproved;
-                                break;
-                            }
-                        }*/
                         List<Action> firstActionNeeded = new ArrayList<>();
                         List<Action> secondActionNeeded = new ArrayList<>();
-
                         for (int i = 0; i < listFirst.size(); i++) {
                             if (toDeleteFirst.isEmpty() || !listFirst.get(i).getLocation().equals(toDeleteFirst.get(0).getLocation())) {
                                 firstActionNeeded.add(listFirst.get(i));
@@ -1206,7 +1182,6 @@ public class ServerImpl implements Server {
                                 toDeleteFirst.remove(0);
                             }
                         }
-
                         for (int i = 0; i < listSecond.size(); i++) {
                             if (toDeleteSecond.isEmpty() || !listSecond.get(i).getLocation().equals(toDeleteSecond.get(0).getLocation())) {
                                 secondActionNeeded.add(listSecond.get(i));
@@ -1214,7 +1189,6 @@ public class ServerImpl implements Server {
                                 toDeleteSecond.remove(0);
                             }
                         }
-
                         conflicts.add(new ConcurrentLinkedQueue<>());
                         serverStore.addFullRecoverGame(ssf.teamId, ssf2.teamId, ssf.textId, firstActionNeeded, secondActionNeeded, writerFirst, writerSecond, prefixNew);
                     } catch (IOException e2) {
