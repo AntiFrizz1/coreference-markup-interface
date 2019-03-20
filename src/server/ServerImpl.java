@@ -83,7 +83,7 @@ public class ServerImpl implements Server {
 
     private Queue<Pair<Integer, Socket>> connectedUsers;
 
-    private Map<String, Integer> idToUsername; // NEED
+    private Map<String, String> idToUsername; // NEED
 
     static final char DELIMITER = '/';
 
@@ -149,6 +149,7 @@ public class ServerImpl implements Server {
             while (reader.ready()) {
                 String request = reader.readLine();
                 String[] str = request.split("\\|");
+                idToUsername.put(str[0], str[1]);
             }
         } catch (IOException e) {
             log("ServerImplRecover", e.getMessage());
@@ -216,7 +217,8 @@ public class ServerImpl implements Server {
                     StandardCharsets.UTF_8));
             while (reader.ready()) {
                 String request = reader.readLine();
-                String[] str = request.split("|");
+                String[] str = request.split("\\|");
+                idToUsername.put(str[0], str[1]);
             }
         } catch (IOException e) {
             log("ServerImpl", e.getMessage());
@@ -683,7 +685,7 @@ public class ServerImpl implements Server {
                 writer.close();
                 Thread.sleep(2000);
             } catch (InterruptedException | FileNotFoundException e) {
-                System.err.println("leaderBoardRunnable :=: Error :" + e.getMessage());
+                log("leaderBoardRunnable",  "Error: " + e.getMessage());
                 break;
             }
         }
@@ -692,7 +694,7 @@ public class ServerImpl implements Server {
     private int comparePairs(Pair<String, Integer> o1, Pair<String, Integer> o2) {
         if (o1.getValue() > o2.getValue()) {
             return 1;
-        } else if (o1.getValue() == o2.getValue()) {
+        } else if (o1.getValue().equals(o2.getValue())) {
             return 0;
         } else {
             return -1;
@@ -721,7 +723,7 @@ public class ServerImpl implements Server {
                     writer.flush();
                 }
             } catch (IOException e) {
-                System.out.println("Can't send texts to judge" + socket.toString());
+                log("JudgeInfo", "Can't send texts to judge" + socket.toString());
                 throw e;
             }
             worker = new Thread(judgeWorker);
@@ -756,11 +758,16 @@ public class ServerImpl implements Server {
                                 toJudgeAboutTeamOne.add(action1);
                                 toJudgeAboutTeamTwo.add(action2);
 
+                                int id1 = -1;
+                                int id2 = -1;
 
                                 if (!action1.isEmpty()) {
                                     for (int i = teamOneActions.size() - 1; i >= 0 && i >= teamOneActions.size() - 200 &&
                                             toJudgeAboutTeamOne.size() < 8; i--) {
                                         if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3) && teamOneActions.get(i).getChainId() == action1.getChainId()) {
+                                            if (decisions.get(i) == 3) {
+                                                id1 = teamTwoActions.get(i).getChainId();
+                                            }
                                             toJudgeAboutTeamOne.add(0, teamOneActions.get(i));
                                         }
                                     }
@@ -770,37 +777,18 @@ public class ServerImpl implements Server {
                                     for (int i = teamTwoActions.size() - 1; i >= 0 && i >= teamTwoActions.size() - 200 &&
                                             toJudgeAboutTeamTwo.size() < 8; i--) {
                                         if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 || decisions.get(i) == 3) && teamTwoActions.get(i).getChainId() == action2.getChainId()) {
+                                            if (decisions.get(i) == 3) {
+                                                id2 = teamOneActions.get(i).getChainId();
+                                            }
                                             toJudgeAboutTeamTwo.add(0, teamTwoActions.get(i));
                                         }
                                     }
                                 }
 
-                                /*if (toJudgeAboutTeamOne.size() == 1 && toJudgeAboutTeamTwo.size() == 1 && !f && !action1.isEmpty() && !action2.isEmpty()) {
-                                    for (int i = teamOneActions.size() - 100; i >= 0; i--) {
-                                        if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
-                                            toCheckAboutTeamOne.add(teamOneActions.get(i));
-                                            break;
-                                        }
-                                    }
-
-                                    for (int i = teamTwoActions.size() - 150; i >= 0; i--) {
-                                        if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 1 || decisions.get(i) == 3)) {
-                                            toCheckAboutTeamTwo.add(teamTwoActions.get(i));
-                                            break;
-                                        }
-                                    }
-
-                                    if (toCheckAboutTeamOne.size() != toCheckAboutTeamTwo.size()) {
-                                        break;
-                                    } else {
-
-                                    }
-                                }*/
-
                                 if (!action1.isEmpty() && !action2.isEmpty() && toJudgeAboutTeamOne.size() >= 2 && toJudgeAboutTeamTwo.size() >= 2 && action1.getLocation().equals(action2.getLocation())) {
                                     Action first = toJudgeAboutTeamOne.get(toJudgeAboutTeamOne.size() - 2);
                                     Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
-                                    if (first.getLocation().equals(second.getLocation())) {
+                                    if (id1 == id2) {
                                         if (conflict.complete()) {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
@@ -918,7 +906,7 @@ public class ServerImpl implements Server {
             backupWriter.println(idToUsername.size());
             backupWriter.flush();
             idToUsername.forEach((k, v) -> {
-                backupWriter.println(k + " " + v);
+                backupWriter.println(k + "%" + v);
                 backupWriter.flush();
             });
         } catch (FileNotFoundException e) {
@@ -1005,8 +993,8 @@ public class ServerImpl implements Server {
             size = Integer.parseInt(request);
             for (int i = 0; i < size; i++) {
                 request = backupReader.readLine();
-                String[] data = request.split(" ");
-                idToUsername.put(data[0], Integer.parseInt(data[1]));
+                String[] data = request.split("%");
+                idToUsername.put(data[0], data[1]);
             }
             BufferedReader leaderboardReader = new BufferedReader(new InputStreamReader(new FileInputStream(prefixOld + DELIMITER + "leaderboardInfo"), StandardCharsets.UTF_8));
             request = leaderboardReader.readLine();

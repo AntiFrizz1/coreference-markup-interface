@@ -113,11 +113,11 @@ public class ServerStore {
                 Game curGame = games.get(i);
                 if (!curGame.teamIdList.isEmpty()) {
                     Action actionFromTeamOne = null;
-                    if (!curGame.idToActionList.get(curGame.teamIdList.get(0)).isEmpty()) {
+                    if (curGame.idToActionList.get(curGame.teamIdList.get(0)) != null && !curGame.idToActionList.get(curGame.teamIdList.get(0)).isEmpty()) {
                         actionFromTeamOne = curGame.idToActionList.get(curGame.teamIdList.get(0)).get(0);
                     }
                     Action actionFromTeamTwo = null;
-                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
+                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && curGame.idToActionList.get(curGame.teamIdList.get(1)) != null && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
                         actionFromTeamTwo = curGame.idToActionList.get(curGame.teamIdList.get(1)).get(0);
                     }
 
