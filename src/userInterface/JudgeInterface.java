@@ -1,10 +1,8 @@
 package userInterface;
 
-import client.Conflict;
 import client.ConflictImpl;
 import client.Judge;
 import javafx.application.Application;
-import javafx.event.Event;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -25,7 +23,6 @@ public class JudgeInterface extends Application {
     final private int APP_HEIGHT = 720;
 
     private volatile Judge judge;
-    private Stage primaryStage;
 
     private JudgeController controller = new JudgeController();
     private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
@@ -36,12 +33,15 @@ public class JudgeInterface extends Application {
     }
 
     public void start(Stage primaryStage) {
-        this.primaryStage = primaryStage;
-        judgeLoginScreen();
+        judgeLoginScreen(primaryStage);
+        /*controller.setJudgeText(decisions);
+        judgeScene();*/
     }
 
-    private void work() {
+    private void work(Stage primaryStage) {
         primaryStage.setScene(startScene());
+        primaryStage.setMinHeight(400);
+        primaryStage.setMinWidth(600);
         primaryStage.show();
 
         while (true) {
@@ -69,7 +69,7 @@ public class JudgeInterface extends Application {
 
     private Scene startScene() {
         //TODO something cool
-        return new Scene(new BorderPane(), 200, 200);
+        return new Scene(new BorderPane(), 400, 600);
     }
 
     private ColumnConstraints makeColFromPercent(int value) {
@@ -168,9 +168,15 @@ public class JudgeInterface extends Application {
                 res.getChildren().addAll(both, nobody);
                 break;
             case NEWCHAIN_EMPTY:
-                first.setText("Подтвердить создание цепочки.");
-                second.setText("Отклонить создание цепочки.");
-                res.getChildren().addAll(first, second);
+                if (controller.isFirstEmpty()) {
+                    second.setText("Подтвердить создание цепочки(Принять решени второго участника).");
+                    first.setText("Отклонить создание цепочки(Принять решение первого участника).");
+                } else {
+                    first.setText("Подтвердить создание цепочки(Принять решени перевого участника).");
+                    second.setText("Отклонить создание цепочки(Принять решение второго участника).");
+                }
+                nobody.setText("Оба не правы.");
+                res.getChildren().addAll(first, second, nobody);
                 break;
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
@@ -183,12 +189,29 @@ public class JudgeInterface extends Application {
                 if (controller.isFirstEmpty()) {
                     second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
                     first.setText("Отклонить добавление элемента в цепочку(Принять решение первого участника).");
-                    res.getChildren().addAll(second, first);
                 } else {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
-                    res.getChildren().addAll(first, second);
                 }
+                res.getChildren().addAll(first, second);
+            case NEW_ADD:
+                if (controller.isFirstEmpty()) {
+                    second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
+                    first.setText("Подтвердить создание новой цепочки(Принять решение первого участника).");
+                } else {
+                    first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
+                    second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
+                }
+                both.setText("Обав правы.");
+                nobody.setText("Оба не правы.");
+                res.getChildren().addAll(first, second, both, nobody);
+            case NEW_DIF:
+                first.setText("Подтвердить решение первого участника.");
+                second.setText("Подтердить решение второго участника.");
+                both.setText("Обав правы.");
+                nobody.setText("Оба не правы.");
+                res.getChildren().addAll(first, second, both, nobody);
+
         }
 
         confirm.setOnAction(event -> {
@@ -203,7 +226,7 @@ public class JudgeInterface extends Application {
         return res;
     }
 
-    private void judgeLoginScreen() {
+    private void judgeLoginScreen(Stage primaryStage) {
         Stage stage = new Stage();
         stage.setTitle("Введите пароль");
 
@@ -238,7 +261,7 @@ public class JudgeInterface extends Application {
                     error.setText("Не удалось подключиться к серверу.");
                 } else {
                     stage.getScene().getWindow().hide();
-                    work();
+                    work(primaryStage);
                 }
             } else {
                 error.setText("Неверный пароль!");
@@ -339,11 +362,10 @@ public class JudgeInterface extends Application {
         main.getStyleClass().add("default-background");
         main.setMinSize(0.8 * APP_WIDTH, 0.8 * APP_HEIGHT);
 
-        RowConstraints row1 = new RowConstraints(0.2 * APP_HEIGHT);
+        RowConstraints row1 = new RowConstraints(0.3 * APP_HEIGHT);
         row1.setFillHeight(true);
         row1.setVgrow(Priority.NEVER);
         RowConstraints row2 = new RowConstraints();
-        //row2.setMinHeight(0.7 * APP_HEIGHT);
         row2.setVgrow(Priority.ALWAYS);
         main.getRowConstraints().addAll(
                 row1,
@@ -409,7 +431,7 @@ public class JudgeInterface extends Application {
         stage.setMinWidth(0.8 * APP_WIDTH);
         stage.setMinHeight(0.8 * APP_HEIGHT);
         stage.setScene(sc);
-        //stage.initModality(Modality.WINDOW_MODAL);
+        stage.initModality(Modality.WINDOW_MODAL);
         stage.showAndWait();
     }
 
@@ -435,6 +457,7 @@ public class JudgeInterface extends Application {
             Button space = new Button("   ");
             space.getStyleClass().add("word");
             space.setStyle("-fx-background-color: rgba(0,0,0,0)");
+            textPane.getChildren().add(space);
             if (whereSingle.contains(-i - 1)) {
                 space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
@@ -444,7 +467,6 @@ public class JudgeInterface extends Application {
                     space.getStyleClass().add("chain-selected-judge");
                 }
             }
-            textPane.getChildren().add(space);
         }
     }
 
@@ -497,7 +519,7 @@ public class JudgeInterface extends Application {
     }
 
 
-    private void confirmDecision(Stage primaryStage, String decision) {
+    private void confirmDecision(Stage mainStage, String decision) {
         Stage stage = new Stage();
         stage.setTitle("Подтвердите выбор решения конфликта");
         GridPane root = new GridPane();
@@ -520,7 +542,7 @@ public class JudgeInterface extends Application {
         Button ok = new Button("OK");
         ok.setOnAction(event -> {
             stage.getScene().getWindow().hide();
-            primaryStage.getScene().getWindow().hide();
+            mainStage.getScene().getWindow().hide();
             judge.sendDecision(controller.getDecision());
         });
         Button cancel = new Button("CANCEL");
@@ -552,7 +574,7 @@ public class JudgeInterface extends Application {
             stage.getScene().getWindow().hide();
         });
         stage.initModality(Modality.WINDOW_MODAL);
-        stage.initOwner(primaryStage);
+        stage.initOwner(mainStage);
         stage.showAndWait();
     }
 }
