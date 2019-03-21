@@ -18,7 +18,6 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -44,7 +43,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -1040,9 +1038,9 @@ public class Main extends Application {
 
 
         ok.setOnAction(event -> {
-            if (!name.getText().isEmpty()) {
+            if (!name.getText().trim().isEmpty()) {
                 stage.getScene().getWindow().hide();
-                controller.setNewChainName(name.getText());
+                controller.setNewChainName(name.getText().trim());
             }
         });
 
@@ -1056,6 +1054,7 @@ public class Main extends Application {
         stage.setScene(new Scene(root, 300, 120));
         stage.setResizable(false);
         stage.initModality(Modality.WINDOW_MODAL);
+        stage.setOnCloseRequest(Event::consume);
         stage.initOwner(primaryStage);
         stage.showAndWait();
     }
