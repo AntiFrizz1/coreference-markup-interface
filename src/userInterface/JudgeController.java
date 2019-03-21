@@ -102,19 +102,19 @@ public class JudgeController {
         kowalskiAnalysis();
     }
 
-    private String nonEmptyCap() {
+    private String emptyCap() {
         return isFirstEmpty ? "Первый" : "Второй";
     }
 
-    private String nonEmpty() {
+    private String empty() {
         return isFirstEmpty ? "первый" : "второй";
     }
 
-    private String emptyCap() {
+    private String nonEmptyCap() {
         return isFirstEmpty ? "Второй" : "Первый";
     }
 
-    private String empty() {
+    private String nonEmpty() {
         return isFirstEmpty ? "второй" : "первый";
     }
 
