@@ -43,8 +43,8 @@ public class ConflictImpl implements Conflict {
         secondWordsLocation = new HashSet<>();
         secondBlanksLocation = new HashSet<>();
 
-        firstChain = new ChainImpl(first.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
-        secondChain = new ChainImpl(second.stream().filter(a -> (!(a.getLocation() instanceof  Blank) || ((Blank)a.getLocation()).getPosition() != -1)).collect(Collectors.toList()));
+        firstChain = new ChainImpl(first.stream().filter(a -> (a.getChainId() != -1)).collect(Collectors.toList()));
+        secondChain = new ChainImpl(second.stream().filter(a -> (a.getChainId() != -1)).collect(Collectors.toList()));
 
         makeSets();
 

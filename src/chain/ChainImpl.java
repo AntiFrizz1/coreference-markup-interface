@@ -61,8 +61,10 @@ public class ChainImpl implements Chain {
     }
 
     public ChainImpl(List<Action> actions) {
-        id = actions.get(0).getChainId();
-        name = actions.get(0).getName();
+        if (!actions.isEmpty()) {
+            id = actions.get(0).getChainId();
+            name = actions.get(0).getName();
+        }
         locations = actions.stream().map(Action::getLocation).collect(Collectors.toList());
     }
 

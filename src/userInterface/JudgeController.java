@@ -3,6 +3,7 @@ package userInterface;
 import chain.Blank;
 import chain.Chain;
 import chain.Location;
+import chain.Phrase;
 import com.sun.net.httpserver.Filter;
 
 import java.util.List;
@@ -10,15 +11,18 @@ import java.util.Set;
 
 public class JudgeController {
 
-    enum Confl {NEWCHAIN_EMPTY, CONTCHAIN_EMPTY, NEW_SAME, ADD_SAME, ADD_EMPTY_SAME}
+    public JudgeController() {
+    }
+
+    enum Confl {NEWCHAIN_EMPTY, CONTCHAIN_EMPTY, NEW_SAME, ADD_SAME, ADD_EMPTY_SAME, NEW_DIF, NEW_ADD}
 
     private int decision;
     private List<String> judgeText;
     private Set<Integer> firstHighlights, secondHighlights, firstWhite, secondWhite, firstSingle, secondSingle;
     private Chain firstChain, secondChain;
     private boolean isSingle;
-    private Confl conflType = Confl.ADD_SAME;
-    private String info = "Один из участников решил создать новую цеепочку, состоящю из нулевой анафоры, в то время как второй учатсник не использова эту нулвую анафору ни в одной из цепочек";
+    private Confl conflType = Confl.NEW_DIF;
+    private String info = "Один из участников решил создать новую цеепочку, состоящю из нулевой анафоры, в то время как второй учатсник не использовал эту нулвую анафору ни в одной из цепочек";
     private boolean isFirstEmpty;
 
     boolean isFirstEmpty() {
@@ -98,6 +102,23 @@ public class JudgeController {
         kowalskiAnalysis();
     }
 
+    private String nonEmptyCap() {
+        return isFirstEmpty ? "Второй" : "Первый";
+    }
+
+    private String nonEmpty() {
+        return isFirstEmpty ? "второй" : "первый";
+    }
+
+    private String emptyCap() {
+        return isFirstEmpty ? "Первый" : "Второй";
+    }
+
+    private String empty() {
+        return isFirstEmpty ? "первый" : "второй" ;
+    }
+
+
     private void kowalskiAnalysis() {
         if (isSingle) {
             isFirstEmpty = firstChain.getLocations().isEmpty();
@@ -105,29 +126,47 @@ public class JudgeController {
             if (notEmpty.getLocations().size() == 1) {
                 conflType = Confl.NEWCHAIN_EMPTY;
                 if (notEmpty.getLocations().get(0) instanceof Blank) {
-                    info = "Один из участников решил создать новую цеепочку, состоящю из нулевой анафоры, в то время как второй учатсник не использова эту нулвую анафору ни в одной из цепочек";
+                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящю из нулевой анафоры, в то время как ").concat(empty()).concat(" участник не использовал эту нулевую анафору ни в одной из цепочек.");
                 } else {
-                    info = "Один из участников решил создать новую цепочку из фразы " + notEmpty.getLocations().get(0).toString() + ", в то время как второй участник не использовал эту фразу ни в одной из цепочек";
+                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящю из фразы ").concat(notEmpty.getLocations().get(0).toString()).concat(", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
                 }
             } else {
                 conflType = Confl.CONTCHAIN_EMPTY;
                 Location last = notEmpty.getLocations().get(notEmpty.getLocations().size() - 1);
 
                 if (last instanceof Blank) {
-                    info = "Один из участников решил продлжить цеепочку нулевой анафорой, в то время как второй участник не использовал эту нулевую анафору ни в одной из цепочек";
+                    info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ").concat(empty()).concat(" участник не использовал эту нулевую анафору ни в одной из цепочек.");
                 } else {
-                    info = "Один из участников решил продлжить цепочку фразой: " + last.toString() + ", в то время как второй участник не использовал эту фразу ни в одной из цепочек";
+                    info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ").concat(notEmpty.getLocations().get(0).toString()).concat(", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
                 }
             }
         } else {
             if (firstChain.getLocations().size() == 1 && secondChain.getLocations().size() == 1) {
-                conflType = Confl.NEW_SAME;
-                Location last = firstChain.getLocations().get(0);
+                Location firstLast = firstChain.getLocations().get(0);
+                Location secondLast = secondChain.getLocations().get(0);
+                if (firstLast.equals(secondLast)) {
+                    conflType = Confl.NEW_SAME;
 
-                if (last instanceof Blank) {
-                    info = "Оба участника решили создать новую цепочку из нулевой анафоры";
+                    if (firstLast instanceof Blank) {
+                        info = "Оба участника решили создать новую цепочку из нулевой анафоры";
+                    } else {
+                        info = "Оба участника решили создать новую цепочку из фразы ".concat(firstLast.toString());
+                    }
                 } else {
-                    info = "Оба участника решили создать новую цепочку из фразы " + last.toString();
+                    conflType = Confl.NEW_DIF;
+                    if (firstLast instanceof Blank) {
+                        if (secondLast instanceof Blank) {
+                            info = "Первый уастник решил создать новую цепочку из одной нулевой анафоры, а второй участник решил создать новую цепочку из другой";
+                        } else {
+                            info = "Первый участник решил создать новую цепочку из нулевой анафоры, а второй участник решил создать новую цепоку из фразы ".concat(secondLast.toString());
+                        }
+                    } else {
+                        if (secondLast instanceof Blank) {
+                            info = "Первый уастник решил создать новую цепочку из фразы ".concat(firstLast.toString()).concat(", а второй участник решил создать новую цепочку из нулевой анафоры");
+                        } else {
+                            info = "Первый уастник решил создать новую цепочку из фразы ".concat(firstLast.toString()).concat(", а второй участник решил создать новую цепочку из фразы ").concat(secondLast.toString());
+                        }
+                    }
                 }
             } else {
                 if (firstSingle.isEmpty() || secondSingle.isEmpty()) {
@@ -138,18 +177,32 @@ public class JudgeController {
                     Location last = notEmpty.getLocations().get(notEmpty.getLocations().size() - 1);
 
                     if (last instanceof Blank) {
-                        info = "Один из участников решил продолжить цепочку нулевой анафорой, в то время как второй участник не вносил эту нулевую анафору в эту цепочку";
+                        info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ".concat(empty()).concat(" участник не вносил эту нулевую анафору в эту цепочку"));
                     } else {
-                        info = "Один из участников решил продолжить цепочку фразой " + last.toString() + ", в то время как второй участник не вносил эту фразу в эту цепочку";
+                        info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ").concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник не вносил эту фразу в эту цепочку"));
                     }
                 } else {
-                    conflType = Confl.ADD_SAME;
-                    Location last = firstChain.getLocations().get(firstChain.getLocations().size() - 1);
+                    if (firstChain.getLocations().size() == 1 || secondChain.getLocations().size() == 1){
+                        conflType = Confl.NEW_ADD;
+                        isFirstEmpty = firstChain.getLocations().size() == 1;
+                        Chain notEmpty = isFirstEmpty ? firstChain : secondChain;
 
-                    if (last instanceof Blank) {
-                        info = "Один из участников решил добавить нулевую анафору в одну цепочку, в то время как второй участник решил добавить ее же в другую";
+                        Location last = notEmpty.getLocations().get(notEmpty.getLocations().size() - 1);
+
+                        if (last instanceof Blank){
+                            info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же нулевой анафоры."));
+                        } else {
+                            info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ".concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же фразы.")));
+                        }
                     } else {
-                        info = "Один из участников решил добавить фразу " + last.toString() + ", в то время как второкй участнки решил добавить ее же в другую";
+                        conflType = Confl.ADD_SAME;
+                        Location last = firstChain.getLocations().get(firstChain.getLocations().size() - 1);
+
+                        if (last instanceof Blank) {
+                            info = "Один из участников решил добавить нулевую анафору в одну цепочку, в то время как второй участник решил добавить ее же в другую";
+                        } else {
+                            info = "Один из участников решил добавить фразу " + last.toString() + ", в то время как второкй участнки решил добавить ее же в другую";
+                        }
                     }
                 }
             }

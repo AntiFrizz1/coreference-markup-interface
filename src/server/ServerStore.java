@@ -113,11 +113,11 @@ public class ServerStore {
                 Game curGame = games.get(i);
                 if (!curGame.teamIdList.isEmpty()) {
                     Action actionFromTeamOne = null;
-                    if (!curGame.idToActionList.get(curGame.teamIdList.get(0)).isEmpty()) {
+                    if (curGame.idToActionList.get(curGame.teamIdList.get(0)) != null && !curGame.idToActionList.get(curGame.teamIdList.get(0)).isEmpty()) {
                         actionFromTeamOne = curGame.idToActionList.get(curGame.teamIdList.get(0)).get(0);
                     }
                     Action actionFromTeamTwo = null;
-                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
+                    if (curGame.teamIdList.size() == 2 && curGame.idToActionList.size() == 2 && curGame.idToActionList.get(curGame.teamIdList.get(1)) != null && !curGame.idToActionList.get(curGame.teamIdList.get(1)).isEmpty()) {
                         actionFromTeamTwo = curGame.idToActionList.get(curGame.teamIdList.get(1)).get(0);
                     }
 
@@ -205,20 +205,35 @@ public class ServerStore {
                 Phrase phrase2 = (Phrase) o2;
                 int[] ar1 = phrase1.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
                 int[] ar2 = phrase2.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
-                int result;
+                /*int result;
                 for (int i = 0; i < ar1.length; i++) {
                     for (int j = 0; j < ar2.length; j++) {
                         if (ar1[i] == ar2[j]) {
                             return 0;
                         }
                     }
-                }
+                }*/
                 int res1 = phrase1.getPositions().stream().min(Integer::compareTo).get();
                 int res2 = phrase2.getPositions().stream().min(Integer::compareTo).get();
+
+                int res11 = phrase1.getPositions().stream().max(Integer::compareTo).get();
+                int res22 = phrase2.getPositions().stream().max(Integer::compareTo).get();
                 if (res1 > res2) {
                     return 1;
-                } else {
+                } else if (res1 < res2) {
                     return -1;
+                } else {
+                    if (res11 < res22) {
+                        return -1;
+                    } else if (res11 > res22) {
+                        return 1;
+                    } else {
+                        if (phrase1.getPositions().size() < phrase2.getPositions().size()) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    }
                 }
             } else {
                 Blank blank = (Blank) o2;
