@@ -156,6 +156,8 @@ public class JudgeInterface extends Application {
         second.setToggleGroup(group);
         both.setToggleGroup(group);
         nobody.setToggleGroup(group);
+        nobody.setText("Оба не правы.");
+        both.setText("Обав правы.");
 
         FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
         res.setAlignment(Pos.CENTER_LEFT);
@@ -174,13 +176,11 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить создание цепочки(Принять решени перевого участника).");
                     second.setText("Отклонить создание цепочки(Принять решение второго участника).");
                 }
-                nobody.setText("Оба не правы.");
-                res.getChildren().addAll(first, second, nobody);
+                res.getChildren().addAll(first, second);
                 break;
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
                 second.setText("Подтердить решение второго участника.");
-                nobody.setText("Оба не правы.");
                 res.getChildren().addAll(first, second, nobody);
                 break;
             case ADD_EMPTY_SAME:
@@ -202,17 +202,8 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
                 }
-                both.setText("Оба правы.");
-                nobody.setText("Оба не правы.");
-                res.getChildren().addAll(first, second, both, nobody);
+                res.getChildren().addAll(first, second, nobody);
                 break;
-            case NEW_DIF:
-                first.setText("Подтвердить решение первого участника.");
-                second.setText("Подтердить решение второго участника.");
-                both.setText("Оба правы.");
-                nobody.setText("Оба не правы.");
-                res.getChildren().addAll(first, second, both, nobody);
-
         }
 
         confirm.setOnAction(event -> {

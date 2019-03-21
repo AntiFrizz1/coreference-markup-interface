@@ -190,9 +190,9 @@ public class JudgeController {
                         Location last = notEmpty.getLocations().get(notEmpty.getLocations().size() - 1);
 
                         if (last instanceof Blank){
-                            info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же нулевой анафор."));
+                            info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же нулевой анафоры."));
                         } else {
-                            info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой".concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же фразы.")));
+                            info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ".concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же фразы.")));
                         }
                     } else {
                         conflType = Confl.ADD_SAME;
