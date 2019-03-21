@@ -48,7 +48,6 @@ public class JudgeInterface extends Application {
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
 
             if (conflict == null) {
-                //PIZDA
             } else {
                 controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
                 controller.getChains(conflict.firstChain, conflict.secondChain);
@@ -194,6 +193,7 @@ public class JudgeInterface extends Application {
                     second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
                 }
                 res.getChildren().addAll(first, second);
+                break;
             case NEW_ADD:
                 if (controller.isFirstEmpty()) {
                     second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
@@ -202,13 +202,14 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
                 }
-                both.setText("Обав правы.");
+                both.setText("Оба правы.");
                 nobody.setText("Оба не правы.");
                 res.getChildren().addAll(first, second, both, nobody);
+                break;
             case NEW_DIF:
                 first.setText("Подтвердить решение первого участника.");
                 second.setText("Подтердить решение второго участника.");
-                both.setText("Обав правы.");
+                both.setText("Оба правы.");
                 nobody.setText("Оба не правы.");
                 res.getChildren().addAll(first, second, both, nobody);
 
