@@ -14,4 +14,5 @@ import java.util.Set;
  */
 public interface Location extends Packable {
     Set<String> getWords();
+    boolean equals(Object obj);
 }
