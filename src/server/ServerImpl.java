@@ -108,7 +108,7 @@ public class ServerImpl implements Server {
     private Map<String, Integer> leaderBoard;
 
 
-    public ServerImpl(int portForUser, int portForJudge, String prefixOld, String prefixNew) {
+    public ServerImpl(int portForUser, int portForJudge, String prefixOld, String prefixNew, int mode) {
         logFileInitialize();
         this.portForJudge = portForJudge;
         this.portForUser = portForUser;
@@ -125,7 +125,7 @@ public class ServerImpl implements Server {
         clients = new ConcurrentLinkedQueue<>();
         judgesQueue = new ConcurrentLinkedQueue<>();
 
-        serverStore = new ServerStore();
+        serverStore = new ServerStore(mode);
         judgeStore = new JudgeStore();
 
         conflicts = new CopyOnWriteArrayList<>();
@@ -173,7 +173,7 @@ public class ServerImpl implements Server {
     }
 
 
-    public ServerImpl(int portForUser, int portForJudge) {
+    public ServerImpl(int portForUser, int portForJudge, int mode) {
         logFileInitialize();
         this.portForJudge = portForJudge;
         this.portForUser = portForUser;
@@ -191,7 +191,7 @@ public class ServerImpl implements Server {
         clients = new ConcurrentLinkedQueue<>();
         judgesQueue = new ConcurrentLinkedQueue<>();
 
-        serverStore = new ServerStore();
+        serverStore = new ServerStore(mode);
         judgeStore = new JudgeStore();
 
 
@@ -370,7 +370,7 @@ public class ServerImpl implements Server {
 
                         String stringId = reader.readLine();
                         log("judgeConnection", client.toString() + " id=" + stringId);
-                        if (stringId.equals("228")) {
+                        if (stringId.equals("1234")) {
                             writer.write(0);
                             writer.flush();
                             judges.add(new JudgeInfo(client, stringId));
@@ -608,7 +608,7 @@ public class ServerImpl implements Server {
                         Queue<ConflictInfo> conflictInfoQueue = conflicts.get(i);
                         if (!conflictInfoQueue.isEmpty()) {
                             ConflictInfo conflict = conflictInfoQueue.peek();
-                            if (conflict.status.get() == 0) {
+                            if (conflict.status.getStamp() == 0) {
                                 boolean f = false;
                                 List<JudgeInfo> judgeInfoList;
                                 synchronized (judges) {
@@ -623,7 +623,7 @@ public class ServerImpl implements Server {
                                         }
                                     }
                                 }
-                            } else if (conflict.status.get() == 1) {
+                            } else if (conflict.status.getStamp() == 1) {
                             } else {
                                 conflictInfoQueue.poll();
                             }
@@ -701,7 +701,7 @@ public class ServerImpl implements Server {
         }
     }
 
-    class JudgeInfo {
+    public class JudgeInfo {
         Socket socket;
         String id;
         /**
@@ -739,7 +739,7 @@ public class ServerImpl implements Server {
                 while (true) {
                     try {
                         if (task.isMarked()) {
-                            if (task.getReference().apply()) {
+                            if (task.getReference().apply(this)) {
                                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
                                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)));
 
@@ -789,7 +789,7 @@ public class ServerImpl implements Server {
                                     Action first = toJudgeAboutTeamOne.get(toJudgeAboutTeamOne.size() - 2);
                                     Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
                                     if (id1 == id2) {
-                                        if (conflict.complete()) {
+                                        if (conflict.complete(this)) {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamOneId), leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId), leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
                                             leaderBoardNeed.compareAndSet(false, true);
@@ -836,7 +836,7 @@ public class ServerImpl implements Server {
                             logWriter.flush();*/
                                 int decision = Integer.parseInt(request);
 
-                                if (conflict.complete()) {
+                                if (conflict.complete(this)) {
                                     judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2, conflict.textId, decision);
                                     synchronized (leaderBoard) {
                                         if (decision == 2 && !action2.isEmpty()) {

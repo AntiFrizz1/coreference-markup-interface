@@ -27,8 +27,12 @@ public class JudgeInterface extends Application {
     private JudgeController controller = new JudgeController();
     private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
 
+    private static String address = "62.109.13.129";
 
     public static void main(String[] args) {
+        if (args.length == 1) {
+            address = args[0];
+        }
         launch(args);
     }
 
@@ -157,7 +161,7 @@ public class JudgeInterface extends Application {
         both.setToggleGroup(group);
         nobody.setToggleGroup(group);
         nobody.setText("Оба не правы.");
-        both.setText("Обав правы.");
+        both.setText("Оба правы.");
 
         FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
         res.setAlignment(Pos.CENTER_LEFT);
@@ -165,7 +169,7 @@ public class JudgeInterface extends Application {
         switch (controller.getConflType()) {
             case NEW_SAME:
                 both.setText("Подтвердить создание цепочки.");
-                nobody.setText("Отклониь создание цепочки.");
+                nobody.setText("Отклонить создание цепочки.");
                 res.getChildren().addAll(both, nobody);
                 break;
             case NEWCHAIN_EMPTY:
@@ -202,7 +206,7 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
                 }
-                res.getChildren().addAll(first, second, nobody);
+                res.getChildren().addAll(first, second, both, nobody);
                 break;
         }
 
@@ -247,7 +251,7 @@ public class JudgeInterface extends Application {
 
         enter.setOnAction(event -> {
             if (password.getText().equals("1234")) {
-                judge = new Judge("228", 3334, "localhost");
+                judge = new Judge("1234", 3333, address);
 
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться к серверу.");

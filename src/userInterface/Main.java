@@ -62,6 +62,7 @@ public class Main extends Application {
     private String[] words = null;
     private boolean checkSentences = true;
     private Stage primaryStage;
+    private static String address = "62.109.13.129";
     /**
      * A search criteria for chains. Only works on separate links in chain (i.e. a chain link
      * must contain the whole string).
@@ -79,6 +80,10 @@ public class Main extends Application {
 
 
     public static void main(String[] args) {
+        if (args.length == 1) {
+            address = args[0];
+        }
+
         launch(args);
     }
 
@@ -119,7 +124,7 @@ public class Main extends Application {
         enterOnline.setOnAction(event -> {
             String login = id.getText();
             id.clear();
-            user = new User(login, 3333, "localhost");
+            user = new User(login, 3334, address);
             int ans = user.joinOnline();
             if (ans == 2) {
                 generateErrorScreen(stage, "Пользователь с таким ID уже авторизован!");
