@@ -542,7 +542,7 @@ public class Main extends Application {
                     controller.clearSelected();
                     controller.pressedButton(" ", controller.getSelectedBlank()); // sets selectedBlank to -1
                     controller.setTextPath(file.getName());
-                    File file1 = Paths.get("dump" + controller.textPath).toFile();
+                    File file1 = Paths.get(file.getPath().substring(0, file.getPath().length() - file.getName().length()) + "dump" + controller.textPath).toFile();
                     try {
                         if (file1.exists()) {
                             controller.restoreFromDump(file1);
