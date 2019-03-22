@@ -13,8 +13,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public class JudgeInterface extends Application {
@@ -24,8 +24,9 @@ public class JudgeInterface extends Application {
 
     private volatile Judge judge;
 
+    private boolean isFinish;
+
     private JudgeController controller = new JudgeController();
-    private List<String> decisions = Arrays.asList("Не принимать ничье решение", "Принять решение первого", "Принять решение второго", "Принять решения обоих");
 
 
     public static void main(String[] args) {
@@ -34,42 +35,43 @@ public class JudgeInterface extends Application {
 
     public void start(Stage primaryStage) {
         judgeLoginScreen(primaryStage);
-        /*controller.setJudgeText(decisions);
-        judgeScene();*/
+        //startScene().show();
     }
 
     private void work(Stage primaryStage) {
-        primaryStage.setScene(startScene());
-        primaryStage.setMinHeight(400);
-        primaryStage.setMinWidth(600);
-        primaryStage.show();
+        isFinish = false;
 
-        while (true) {
+        while (!isFinish) {
+            Stage mainScene = startScene();
+            mainScene.show();
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
-
-            if (conflict == null) {
-                //PIZDA
-            } else {
-                controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
-                controller.getChains(conflict.firstChain, conflict.secondChain);
-                //infoScene();
-                judgeScene();
-            }
+            controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
+            controller.getChains(conflict.firstChain, conflict.secondChain);
+            mainScene.getScene().getWindow().hide();
+            judgeScene();
         }
     }
 
 
-    public void setJudge(Judge judge) {
-        this.judge = judge;
-    }
+    private Stage startScene() {
+        Stage stage = new Stage();
+        stage.setTitle("Ожидание конфликта.");
+        stage.setMinWidth(800);
+        stage.setMinHeight(600);
+        Random random = new Random();
+        BorderPane pane = new BorderPane();
+        pane.setMinSize(800, 600);
+        pane.setId("waiting" + (Math.abs(random.nextInt()) % 7 + 1));
+        Scene scene = new Scene(pane, 800, 600);
+        scene.getStylesheets().add("styles.css");
 
-    public JudgeController getController() {
-        return controller;
-    }
-
-    private Scene startScene() {
-        //TODO something cool
-        return new Scene(new BorderPane(), 400, 600);
+        stage.setResizable(false);
+        stage.setScene(scene);
+        stage.setOnCloseRequest(event -> {
+            isFinish = true;
+            scene.getWindow().hide();
+        });
+        return stage;
     }
 
     private ColumnConstraints makeColFromPercent(int value) {
@@ -171,10 +173,10 @@ public class JudgeInterface extends Application {
                 break;
             case NEWCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить создание цепочки(Принять решени второго участника).");
+                    second.setText("Подтвердить создание цепочки(Принять решение второго участника).");
                     first.setText("Отклонить создание цепочки(Принять решение первого участника).");
                 } else {
-                    first.setText("Подтвердить создание цепочки(Принять решени перевого участника).");
+                    first.setText("Подтвердить создание цепочки(Принять решение первого участника).");
                     second.setText("Отклонить создание цепочки(Принять решение второго участника).");
                 }
                 res.getChildren().addAll(first, second);
