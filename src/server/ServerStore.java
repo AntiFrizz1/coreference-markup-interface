@@ -83,7 +83,7 @@ public class ServerStore {
     ServerStore() {
         games = new CopyOnWriteArrayList<>();
         gamesMap = new HashMap<>();
-        this.mode = 0;
+        this.mode = 1;
     }
 
     public void setServerWriter(String prefix) {
@@ -125,19 +125,19 @@ public class ServerStore {
                         continue;
                     }
 
-                    if (actionFromTeamOne != null && (mode == 1 ||
+                    if (actionFromTeamOne != null && (mode == 1 && (actionFromTeamTwo == null || compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) ||
                             (mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne,
                                 new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamIdList.get(0),
                                 curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
-                    } else if (actionFromTeamTwo != null && (mode == 1 || mode == 0 &&
+                    } else if (actionFromTeamTwo != null && (mode == 1  && (actionFromTeamOne == null || compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) || mode == 0 &&
                             compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(
                                 new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i,
                                 curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
-                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null) {
+                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) == 0) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i,
                                 curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
@@ -205,14 +205,19 @@ public class ServerStore {
                 Phrase phrase2 = (Phrase) o2;
                 int[] ar1 = phrase1.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
                 int[] ar2 = phrase2.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
-                /*int result;
-                for (int i = 0; i < ar1.length; i++) {
-                    for (int j = 0; j < ar2.length; j++) {
-                        if (ar1[i] == ar2[j]) {
-                            return 0;
+                if (ar1.length == ar2.length) {
+                    boolean f = true;
+                    for (int i = 0; i < ar1.length; i++) {
+                        if (ar1[i] != ar2[i]) {
+                            f = false;
+                            break;
                         }
                     }
-                }*/
+                    if (f) {
+                        return 0;
+                    }
+                }
+
                 int res1 = phrase1.getPositions().stream().min(Integer::compareTo).get();
                 int res2 = phrase2.getPositions().stream().min(Integer::compareTo).get();
 

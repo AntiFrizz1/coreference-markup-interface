@@ -1,8 +1,11 @@
 package document;
 
 import chain.Action;
+import server.ServerImpl;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.concurrent.atomic.AtomicStampedReference;
 
 /**
  * Consist data about conflict
@@ -15,8 +18,9 @@ public class ConflictInfo {
     public Action action1;
     public Action action2;
 
-    public AtomicInteger status;
     public Thread counter;
+
+    public AtomicStampedReference<ServerImpl.JudgeInfo> status;
 
     public ConflictInfo(ConflictData data) {
         this.action1 = data.action1;
@@ -24,25 +28,24 @@ public class ConflictInfo {
         this.teamOneId = data.teamOneId;
         this.teamTwoId = data.teamTwoId;
         this.textId = data.textId;
-        this.status = new AtomicInteger(0);
+        this.status = new AtomicStampedReference<>(null, 0);
         //System.out.println(textId);
     }
 
-    public boolean complete() {
-
-        return status.compareAndSet(1, 2);
+    public boolean complete(ServerImpl.JudgeInfo judge) {
+        return status.compareAndSet(judge, null, 1, 2);
     }
 
-    public boolean apply() {
-        if (status.compareAndSet(0, 1)) {
+    public boolean apply(ServerImpl.JudgeInfo judge) {
+        if (status.compareAndSet(null, judge, 0, 1)) {
             counter = new Thread(() -> {
-                while(status.get() != 2) {
+                while(status.getStamp() != 2) {
                     try {
                         Thread.sleep(120000);
                         System.out.println("conflict_info " + textId + " " + teamOneId + " " + teamTwoId  + " " + status + " " + this);
-                        int localStatus = status.get();
+                        int localStatus = status.getStamp();
                         if(localStatus == 1) {
-                            if (status.compareAndSet(localStatus, 0)) {
+                            if (status.compareAndSet(status.getReference(), null, localStatus, 0)) {
                                 break;
                             }
                         }

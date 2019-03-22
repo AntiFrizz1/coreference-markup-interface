@@ -9,10 +9,10 @@ import java.util.Scanner;
 public class SimpleServer {
     public static void main(String[] args) {
         ServerImpl server;
-        if (args.length != 0) {
-            server = new ServerImpl(3333, 3334, args[0], args[1]);
+        if (args.length == 3) {
+            server = new ServerImpl(3334, 3333, args[0], args[1], Integer.parseInt(args[2]));
         } else {
-            server = new ServerImpl(3333, 3334);
+            server = new ServerImpl(3334, 3333, Integer.parseInt(args[0]));
         }
         List<String> texts = new ArrayList<>(0);
         for (int i = 1; i <= 9; i++) {
