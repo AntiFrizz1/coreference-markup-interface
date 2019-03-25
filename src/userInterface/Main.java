@@ -1061,6 +1061,7 @@ public class Main extends Application {
         stage.initModality(Modality.WINDOW_MODAL);
         stage.setOnCloseRequest(Event::consume);
         stage.initOwner(primaryStage);
+        stage.setOnCloseRequest(Event::consume);
         stage.showAndWait();
     }
 }

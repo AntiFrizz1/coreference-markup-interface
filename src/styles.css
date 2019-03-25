@@ -5,6 +5,49 @@
     -fx-font-size: 20pt;
 }
 
+#waiting1 {
+    -fx-background-image: url("Waiting/1.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting2 {
+    -fx-background-image: url("Waiting/2.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting3 {
+    -fx-background-image: url("Waiting/3.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting4 {
+    -fx-background-image: url("Waiting/4.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting5 {
+    -fx-background-image: url("Waiting/5.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting6 {
+    -fx-background-image: url("Waiting/6.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+#waiting7 {
+    -fx-background-image: url("Waiting/7.png");
+    -fx-background-size: 800 600;
+    -fx-background-position: center center;
+}
+
+
 .default-outline {
     -fx-border-color: blue;
     -fx-border-width: 2px;
