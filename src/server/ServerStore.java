@@ -62,7 +62,7 @@ public class ServerStore {
                 writer.println(teamId + "text=" + textNum);
                 writer.flush();
             } catch (FileNotFoundException e) {
-                log("ServerStore.Game.addTeam", e.getMessage());
+                log("ServerStore.Game.addTeam", e.getMessage(), 0);
             }
         }
     }
@@ -90,14 +90,14 @@ public class ServerStore {
         try {
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMITER + "gamesServer"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
-            log("ServerStore.setServerWriter", e.getMessage());
+            log("ServerStore.setServerWriter", e.getMessage(), 0);
         }
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamId) {
         synchronized (games) {
             Game curGame = games.get(textNum);
-            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
+            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(ServerStore::compareActions).collect(Collectors.toList()));
             PrintWriter writer = curGame.idToWriter.get(teamId);
             for (Action action : actions) {
                 writer.println(action.pack());
@@ -173,7 +173,7 @@ public class ServerStore {
         }
     }
 
-    public int compareActions(Action action1, Action action2) {
+    public static int compareActions(Action action1, Action action2) {
         return compare(action1.getLocation(), action2.getLocation());
     }
 

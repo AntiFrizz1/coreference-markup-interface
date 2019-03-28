@@ -51,6 +51,8 @@ public abstract class AbstractClient implements Client {
 
     protected Thread receiverThread;
 
+    public boolean isServerWork = false;
+
     public AbstractClient(String id, int port, String serviceAddress) {
         try {
             this.id = id;
@@ -65,7 +67,6 @@ public abstract class AbstractClient implements Client {
 
     /**
      * Send connection information to server and waiting for positive response
-     *
      */
     protected int sendConnectionInfo() {
         while (true) {
@@ -105,7 +106,7 @@ public abstract class AbstractClient implements Client {
     }
 
     protected Runnable sender = () -> {
-        while(true) {
+        while (isServerWork) {
             if (!dataToSend.isEmpty()) {
                 writer.write(0);
                 writer.println(dataToSend.poll());
@@ -118,14 +119,13 @@ public abstract class AbstractClient implements Client {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
                 break;
-}
-}
+            }
+        }
     };
 
-    public boolean isServerWork = false;
 
     protected Runnable receiver = () -> {
-        while (true) {
+        while (isServerWork) {
             try {
                 int count = 0;
                 while (!reader.ready() && count < 3) {

@@ -29,7 +29,6 @@ public class ConflictInfo {
         this.teamTwoId = data.teamTwoId;
         this.textId = data.textId;
         this.status = new AtomicStampedReference<>(null, 0);
-        //System.out.println(textId);
     }
 
     public boolean complete(ServerImpl.JudgeInfo judge) {
@@ -42,15 +41,16 @@ public class ConflictInfo {
                 while(status.getStamp() != 2) {
                     try {
                         Thread.sleep(120000);
-                        System.out.println("conflict_info " + textId + " " + teamOneId + " " + teamTwoId  + " " + status + " " + this);
                         int localStatus = status.getStamp();
                         if(localStatus == 1) {
                             if (status.compareAndSet(status.getReference(), null, localStatus, 0)) {
+                                ServerImpl.log("ConflictInfo::apply", "conflict=" + toString() + " timed out", 0);
                                 break;
                             }
                         }
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        ServerImpl.log("ConflictInfo::apply", "conflict=" + toString() + " get Error: " + e.getMessage(), 0);
+                        break;
                     }
                 }
             });
@@ -59,5 +59,11 @@ public class ConflictInfo {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "[action1={" + action1.pack() + "}, action2={" + action2.pack() + "}, teamOneId=" +
+                teamOneId + ", teamTwoId=" + teamTwoId + ", textId=" + textId + "]";
     }
 }

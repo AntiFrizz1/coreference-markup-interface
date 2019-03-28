@@ -39,10 +39,10 @@ public class FileAnalyser {
         }
         try (Stream<Path> paths = Files.walk(Paths.get(dirName))) {
             List<String> files = paths.filter(Files::isRegularFile).map(Path::toString).filter(a -> a.contains("vs")).collect(Collectors.toList());
-            for (String path: files) {
+            for (String path : files) {
                 BufferedReader readerFirst = new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8));
                 List<String> lines = readerFirst.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-                for (String line: lines) {
+                for (String line : lines) {
                     String[] strings = line.split("@");
                     if (strings.length != 3) {
                         System.out.println("Unexpected data in file: " + path);
@@ -61,26 +61,10 @@ public class FileAnalyser {
 
                     switch (decision) {
                         case 1:
-                            if (!first.isEmpty()) {
-                                if (firstIdToAction.containsKey(first.getChainId())) {
-                                    actions.add(new Action(0, actionToLocalId.get(firstIdToAction.get(first.getChainId())), first.getLocation(), firstIdToAction.get(first.getChainId()).getName()));
-                                } else {
-                                    firstIdToAction.put(first.getChainId(), first);
-                                    actionToLocalId.put(first, localId++);
-                                    actions.add(new Action(1, actionToLocalId.get(firstIdToAction.get(first.getChainId())), first.getLocation(), firstIdToAction.get(first.getChainId()).getName()));
-                                }
-                            }
+                            localId = getLocalId(firstIdToAction, actionToLocalId, actions, localId, first);
                             break;
                         case 2:
-                            if (!second.isEmpty()) {
-                                if (secondIdToAction.containsKey(second.getChainId())) {
-                                    actions.add(new Action(0, actionToLocalId.get(secondIdToAction.get(second.getChainId())), second.getLocation(), secondIdToAction.get(second.getChainId()).getName()));
-                                } else {
-                                    secondIdToAction.put(second.getChainId(), second);
-                                    actionToLocalId.put(second, localId++);
-                                    actions.add(new Action(1, actionToLocalId.get(secondIdToAction.get(second.getChainId())), second.getLocation(), secondIdToAction.get(second.getChainId()).getName()));
-                                }
-                            }
+                            localId = getLocalId(secondIdToAction, actionToLocalId, actions, localId, second);
                             break;
                         case 3:
                             if (!first.isEmpty()) {
@@ -125,5 +109,18 @@ public class FileAnalyser {
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    private static int getLocalId(Map<Integer, Action> firstIdToAction, Map<Action, Integer> actionToLocalId, List<Action> actions, int localId, Action first) {
+        if (!first.isEmpty()) {
+            if (firstIdToAction.containsKey(first.getChainId())) {
+                actions.add(new Action(0, actionToLocalId.get(firstIdToAction.get(first.getChainId())), first.getLocation(), firstIdToAction.get(first.getChainId()).getName()));
+            } else {
+                firstIdToAction.put(first.getChainId(), first);
+                actionToLocalId.put(first, localId++);
+                actions.add(new Action(1, actionToLocalId.get(firstIdToAction.get(first.getChainId())), first.getLocation(), firstIdToAction.get(first.getChainId()).getName()));
+            }
+        }
+        return localId;
     }
 }

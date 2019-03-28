@@ -57,7 +57,7 @@ public class JudgeStore {
                 dumpWriter.println(teamIdList.get(0) + "vs" + teamIdList.get(1) + "text=" + textNum);
                 dumpWriter.flush();
             } catch (FileNotFoundException e) {
-                log("JudgeStore.Game.makeWriter", e.getMessage());
+                log("JudgeStore.Game.makeWriter", e.getMessage(), 0);
             }
         }
     }
@@ -76,7 +76,7 @@ public class JudgeStore {
             dumpWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                     prefix + ServerImpl.DELIMITER + "judgeStoreGames"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
-            log("JudgeStore.setJudgeWriter", e.getMessage());
+            log("JudgeStore.setJudgeWriter", e.getMessage(), 0);
         }
     }
 
