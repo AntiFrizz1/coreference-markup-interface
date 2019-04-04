@@ -41,20 +41,19 @@ public class JudgeInterface extends Application {
 
     public void start(Stage primaryStage) {
         judgeLoginScreen(primaryStage);
-        startScene().show();
     }
 
     private void work(Stage primaryStage) {
         isFinish = false;
+        Stage mainScene = startScene();
 
         while (!isFinish) {
-            Stage mainScene = startScene();
             mainScene.show();
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
             if (conflict == null || !judge.isServerWork) {
                 judge.kill();
-                isFinish = true;
-                continue;
+                mainScene.close();
+                break;
             }
             controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
             controller.getChains(conflict.firstChain, conflict.secondChain);
@@ -72,7 +71,7 @@ public class JudgeInterface extends Application {
         Random random = new Random();
         BorderPane pane = new BorderPane();
         pane.setMinSize(800, 600);
-        //pane.setId("waiting" + (Math.abs(random.nextInt()) % 7 + 1));
+        pane.setId("waiting" + (Math.abs(random.nextInt()) % 7 + 1));
         Scene scene = new Scene(pane, 800, 600);
         scene.getStylesheets().add("styles.css");
         pane.getStyleClass().add("default-background");
