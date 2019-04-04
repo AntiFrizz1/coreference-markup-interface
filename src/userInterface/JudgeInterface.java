@@ -26,16 +26,22 @@ public class JudgeInterface extends Application {
 
     private boolean isFinish;
 
+    private static String host = "62.109.13.129";
+
     private JudgeController controller = new JudgeController();
 
 
     public static void main(String[] args) {
+        if (args.length > 0) {
+            host = args[0];
+        }
         launch(args);
+
     }
 
     public void start(Stage primaryStage) {
         judgeLoginScreen(primaryStage);
-        //startScene().show();
+        startScene().show();
     }
 
     private void work(Stage primaryStage) {
@@ -45,6 +51,11 @@ public class JudgeInterface extends Application {
             Stage mainScene = startScene();
             mainScene.show();
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
+            if (conflict == null || !judge.isServerWork) {
+                judge.kill();
+                isFinish = true;
+                continue;
+            }
             controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
             controller.getChains(conflict.firstChain, conflict.secondChain);
             mainScene.getScene().getWindow().hide();
@@ -61,14 +72,18 @@ public class JudgeInterface extends Application {
         Random random = new Random();
         BorderPane pane = new BorderPane();
         pane.setMinSize(800, 600);
-        pane.setId("waiting" + (Math.abs(random.nextInt()) % 7 + 1));
+        //pane.setId("waiting" + (Math.abs(random.nextInt()) % 7 + 1));
         Scene scene = new Scene(pane, 800, 600);
         scene.getStylesheets().add("styles.css");
+        pane.getStyleClass().add("default-background");
 
         stage.setResizable(false);
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
             isFinish = true;
+            if (judge != null) {
+                judge.kill();
+            }
             scene.getWindow().hide();
         });
         return stage;
@@ -184,7 +199,8 @@ public class JudgeInterface extends Application {
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
                 second.setText("Подтердить решение второго участника.");
-                res.getChildren().addAll(first, second, nobody);
+                both.setText("Оба правы(объединить церочки");
+                res.getChildren().addAll(first, second, both, nobody);
                 break;
             case ADD_EMPTY_SAME:
             case CONTCHAIN_EMPTY:
@@ -196,6 +212,7 @@ public class JudgeInterface extends Application {
                     second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
                 }
                 res.getChildren().addAll(first, second);
+                break;
             case NEW_ADD:
                 if (controller.isFirstEmpty()) {
                     second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
@@ -249,7 +266,7 @@ public class JudgeInterface extends Application {
 
         enter.setOnAction(event -> {
             if (password.getText().equals("1234")) {
-                judge = new Judge("228", 3334, "localhost");
+                judge = new Judge("1234", 3333, host);
 
                 if (judge.joinOnline() != 0) {
                     error.setText("Не удалось подключиться к серверу.");
@@ -456,7 +473,7 @@ public class JudgeInterface extends Application {
                 space.setText("@");
                 space.getStyleClass().add("chain-selected-judge-highlight");
             } else {
-                if (whereBlank.contains(i)) {
+                if (whereBlank.contains(-i - 1)) {
                     space.setText("@");
                     space.getStyleClass().add("chain-selected-judge");
                 }

@@ -85,7 +85,22 @@ public class JudgeController {
         return secondSingle;
     }
 
-    public void getInfo(List<String> judgeText, Set<Integer> firstHighlights, Set<Integer> secondHighlights, Set<Integer> firstWhite, Set<Integer> secondWhite, Set<Integer> firstSingle, Set<Integer> secondSingle) {
+    private void printSet(Set<Integer> set) {
+        set.forEach(e -> {
+            System.out.print(e + " ");
+        });
+        System.out.println();
+    }
+
+    public void getInfo(
+            List<String> judgeText,
+            Set<Integer> firstHighlights,
+            Set<Integer> secondHighlights,
+            Set<Integer> firstWhite,
+            Set<Integer> secondWhite,
+            Set<Integer> firstSingle,
+            Set<Integer> secondSingle
+    ) {
         this.firstSingle = firstSingle;
         this.secondSingle = secondSingle;
         this.firstWhite = firstWhite;
@@ -93,6 +108,24 @@ public class JudgeController {
         this.judgeText = judgeText;
         this.firstHighlights = firstHighlights;
         this.secondHighlights = secondHighlights;
+
+        System.out.print("firstHighlights : ");
+        printSet(firstHighlights);
+
+        System.out.print("secondHighlights : ");
+        printSet(secondHighlights);
+
+        System.out.print("firstWhite : ");
+        printSet(firstWhite);
+
+        System.out.print("secondWhite : ");
+        printSet(secondWhite);
+
+        System.out.print("firstSingle : ");
+        printSet(firstSingle);
+
+        System.out.print("secondSingle : ");
+        printSet(secondSingle);
     }
 
     public void getChains(Chain firstChain, Chain secondChain) {
@@ -115,7 +148,7 @@ public class JudgeController {
     }
 
     private String empty() {
-        return isFirstEmpty ? "первый" : "второй" ;
+        return isFirstEmpty ? "первый" : "второй";
     }
 
 
@@ -137,7 +170,7 @@ public class JudgeController {
                 if (last instanceof Blank) {
                     info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ").concat(empty()).concat(" участник не использовал эту нулевую анафору ни в одной из цепочек.");
                 } else {
-                    info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ").concat(notEmpty.getLocations().get(0).toString()).concat(", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
+                    info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ").concat(last.toString()).concat(", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
                 }
             }
         } else {
@@ -182,14 +215,14 @@ public class JudgeController {
                         info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ").concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник не вносил эту фразу в эту цепочку"));
                     }
                 } else {
-                    if (firstChain.getLocations().size() == 1 || secondChain.getLocations().size() == 1){
+                    if (firstChain.getLocations().size() == 1 || secondChain.getLocations().size() == 1) {
                         conflType = Confl.NEW_ADD;
                         isFirstEmpty = firstChain.getLocations().size() == 1;
                         Chain notEmpty = isFirstEmpty ? firstChain : secondChain;
 
                         Location last = notEmpty.getLocations().get(notEmpty.getLocations().size() - 1);
 
-                        if (last instanceof Blank){
+                        if (last instanceof Blank) {
                             info = nonEmptyCap().concat(" участник решил продолжить цепочку нулевой анафорой, в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же нулевой анафоры."));
                         } else {
                             info = nonEmptyCap().concat(" участник решил продолжить цепочку фразой ".concat(last.toString()).concat(", в то время как ".concat(empty()).concat(" участник решил создать новую цепочку из этой же фразы.")));

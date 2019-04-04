@@ -126,4 +126,10 @@ public class Judge extends AbstractClient {
         }
 
     }
+
+    public void kill() {
+        isServerWork = false;
+        receiverThread.interrupt();
+        senderThread.interrupt();
+    }
 }

@@ -895,10 +895,11 @@ public class ServerImpl implements Server {
                                 }
 
                                 if ((!f1 || !f2) && !action1.isEmpty() && !action2.isEmpty()) {
-                                    completeTask(conflict, action1, action2);
-                                    task.compareAndSet(conflict, null, true, false);
                                     log("judgeWorker", "conflict=" + conflict.toString()
                                             + " one make new chain when another one add to existing chain", 1);
+                                    completeTask(conflict, action1, action2);
+                                    task.compareAndSet(conflict, null, true, false);
+
                                     continue;
                                 }
 
@@ -908,10 +909,11 @@ public class ServerImpl implements Server {
                                     Action first = toJudgeAboutTeamOne.get(toJudgeAboutTeamOne.size() - 2);
                                     Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
                                     if (first.getChainId() == id2 && second.getChainId() == id1) {
-                                        completeTask(conflict, action1, action2);
-                                        task.compareAndSet(conflict, null, true, false);
                                         log("judgeWorker", "conflict=" + conflict.toString()
                                                 + " actions belong to similar chains", 1);
+                                        completeTask(conflict, action1, action2);
+                                        task.compareAndSet(conflict, null, true, false);
+
                                         continue;
                                     }
                                 }
@@ -930,7 +932,8 @@ public class ServerImpl implements Server {
                                 if (teamTwo.pack() == null) {
                                     log("judgeWorker", "UpdateDocument::pack return null for teamTwo", 0);
                                 }
-
+                                log("judgeWorker", "conflict=" + conflict.toString()
+                                        + " send to judge with id=" + id, 1);
                                 dataToSend.add(new SendData(teamOne.pack(), teamTwo.pack(), conflict.textId));
 
                                 log("judgeWorker", "add conflict to dataToSend", 1);
@@ -945,9 +948,9 @@ public class ServerImpl implements Server {
                                     synchronized (judges) {
                                         socket.close();
                                         judges.remove(this);
-                                        receiver.interrupt();
-                                        sender.interrupt();
                                     }
+                                    receiver.interrupt();
+                                    sender.interrupt();
                                     break;
                                 }
                             /*logWriter.println("get decision from judge" + socket.toString());
