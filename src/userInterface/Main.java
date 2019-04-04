@@ -1,11 +1,6 @@
 package userInterface;
 
-import chain.Action;
-import chain.Blank;
-import chain.Chain;
-import chain.ChainImpl;
-import chain.Location;
-import chain.Phrase;
+import chain.*;
 import client.User;
 import document.Data;
 import javafx.application.Application;
@@ -18,33 +13,21 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Paths;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,8 +37,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class Main extends Application {
 
     private User user;
-    final private int APP_WIDTH = 800;
-    final private int APP_HEIGHT = 600;
+    final private int APP_WIDTH = 1144;
+    final private int APP_HEIGHT = 590;
     final private int RGB_BLACK = -16777216;
     private ControllerImpl controller;
     private int selectedSentenceStart = 0, selectedSentenceEnd = 0, textSizeInWords, displayedIndex, unsentSentences = 0;
@@ -237,19 +220,19 @@ public class Main extends Application {
         HBox buttons = new HBox(1);
         buttons.getStyleClass().add("default-background");
 
-        Button nnew = genButton("new");
+        Button nnew = genButton("icons/icon_new");
         addTooltip(nnew, "Новая цепочка");
-        Button add = genButton("plus");
+        Button add = genButton("icons/icon_add");
         addTooltip(add, "Продолжить цепочку");
-        Button empty = genButton("empty");
+        Button empty = genButton("icons/icon_anaphora");
         addTooltip(empty, "Добавить нулевую анафору");
-        Button undo = genButton("undo");
+        Button undo = genButton("icons/icon_undo");
         addTooltip(undo, "Отменить");
-        Button del = genButton("delete");
+        Button del = genButton("icons/Icon_delete");
         addTooltip(del, "Удалить цепочку или ее фрагмент");
         Button fileSelect = genButton("download");
         addTooltip(fileSelect, "Открыть текстовый файл");
-        Button dump = genButton("upload");
+        Button dump = genButton("icons/arrow");
         addTooltip(dump, "Сохранить разметку в файл");
         undo.setDisable(true);
 
@@ -263,7 +246,7 @@ public class Main extends Application {
         HBox search = new HBox(5);
 
         TextField textField = new TextField();
-        textField.setPromptText("Введите слово для поиска...");
+        textField.setPromptText("Найти слово...");
         Button left = genButton("prev");
         addTooltip(left, "Предыдущее предложение");
         Button right = genButton("next");
@@ -325,7 +308,7 @@ public class Main extends Application {
 
         //chains search
         TextField field = new TextField();
-        field.setPromptText("Введите текст для поиска в цепочках...");
+        field.setPromptText("Найти цепочку...");
         GridPane.setHalignment(field, HPos.LEFT);
         GridPane.setValignment(field, VPos.CENTER);
         GridPane.setFillWidth(field, false);
@@ -401,12 +384,24 @@ public class Main extends Application {
             event.consume();
         });
 
+        primaryStage.addEventHandler(ControllerImpl.RefreshChainEvent.REFRESH_CHAIN, event -> {
+            genChainsList(chainsList, text, controller.getChains());
+            for (Chain c: controller.getChains()) {
+                for (Location l: c.getLocations()) {
+                    updateColoring(l, c, text);
+                }
+            }
+            event.consume();
+        });
+
         /*
         The event handler used to generate the text when restoring the state of the program.
          */
         primaryStage.addEventHandler(ControllerImpl.MoveSelectedSentenceEvent.MOVE_SELECTED_SENTENCE,
                 event -> {
+                    checkSentences = false;
                     while (selectedSentenceStart < event.id) right.fire();
+                    checkSentences = true;
                     event.consume();
                 });
 
@@ -531,13 +526,13 @@ public class Main extends Application {
                     String txt = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8)).lines().collect(Collectors.joining(". "));
                     txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
                     words = null;
-                    controller.setText(txt);
                     unsentSentences = 0;
                     displayedIndex = 0;
                     selectedSentenceEnd = 0;
                     selectedSentenceStart = 0;
                     controller.clearSelected();
                     controller.pressedButton(" ", controller.getSelectedBlank()); // sets selectedBlank to -1
+                    controller.setText(txt);
                     controller.setTextPath(file.getName());
                     File file1 = Paths.get("dump" + controller.textPath).toFile();
                     try {

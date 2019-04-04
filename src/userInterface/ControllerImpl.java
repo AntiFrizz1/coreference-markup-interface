@@ -419,7 +419,7 @@ public class ControllerImpl implements Controller {
             if (!selected.containsKey(position)) selected.put(position, btn);
             else selected.remove(position);
             return true;
-        } else if (selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
+        } else if (btn.trim().isEmpty() && selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
             if (selectedBlank == -1) selectedBlank = position;
             else selectedBlank = -1;
             return true;
