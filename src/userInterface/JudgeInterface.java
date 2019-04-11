@@ -3,6 +3,11 @@ package userInterface;
 import client.ConflictImpl;
 import client.Judge;
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -30,13 +35,15 @@ public class JudgeInterface extends Application {
 
     private JudgeController controller = new JudgeController();
 
+    private BooleanProperty existConflict = new SimpleBooleanProperty(false);
+
+    private Stage mainScene;
 
     public static void main(String[] args) {
         if (args.length > 0) {
             host = args[0];
         }
         launch(args);
-
     }
 
     public void start(Stage primaryStage) {
@@ -45,25 +52,26 @@ public class JudgeInterface extends Application {
 
     private void work(Stage primaryStage) {
         isFinish = false;
-        Stage mainScene = startScene();
 
         while (!isFinish) {
-            mainScene.show();
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
             if (conflict == null || !judge.isServerWork) {
                 judge.kill();
                 mainScene.close();
                 break;
             }
+
             controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
             controller.getChains(conflict.firstChain, conflict.secondChain);
-            mainScene.getScene().getWindow().hide();
-            judgeScene();
+            Platform.runLater(() -> existConflict.setValue(!existConflict.getValue()));
+
+            /*mainScene.getScene().getWindow().hide();
+            judgeScene();*/
         }
     }
 
 
-    private Stage startScene() {
+    private void startScene() {
         Stage stage = new Stage();
         stage.setTitle("Ожидание конфликта.");
         stage.setMinWidth(800);
@@ -85,7 +93,14 @@ public class JudgeInterface extends Application {
             }
             scene.getWindow().hide();
         });
-        return stage;
+
+        existConflict.addListener((observable, oldValue, newValue) -> {
+            stage.getScene().getWindow().hide();
+            judgeScene();
+        });
+        mainScene = stage;
+
+        mainScene.show();
     }
 
     private ColumnConstraints makeColFromPercent(int value) {
@@ -271,7 +286,9 @@ public class JudgeInterface extends Application {
                     error.setText("Не удалось подключиться к серверу.");
                 } else {
                     stage.getScene().getWindow().hide();
-                    work(primaryStage);
+                    startScene();
+                    Thread worker = new Thread(() -> work(primaryStage));
+                    worker.start();
                 }
             } else {
                 error.setText("Неверный пароль!");
@@ -554,6 +571,7 @@ public class JudgeInterface extends Application {
             stage.getScene().getWindow().hide();
             mainStage.getScene().getWindow().hide();
             judge.sendDecision(controller.getDecision());
+            mainScene.show();
         });
         Button cancel = new Button("CANCEL");
         cancel.setOnAction(event -> {

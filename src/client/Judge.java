@@ -19,14 +19,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class Judge extends AbstractClient {
 
-    public List<String> texts;
+    private List<String> texts;
 
     public Judge(String id, int port, String serviceAddress) {
         super(id, port, serviceAddress);
         texts = new ArrayList<>();
     }
 
-    Queue<ConflictImpl> conflictQueue = new ConcurrentLinkedQueue<>();
+    public Queue<ConflictImpl> conflictQueue = new ConcurrentLinkedQueue<>();
 
     private Runnable judgeReceiver = () -> {
         while (isServerWork) {
