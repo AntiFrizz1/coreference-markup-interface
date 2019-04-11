@@ -57,7 +57,7 @@ public class JudgeInterface extends Application {
             ConflictImpl conflict = (ConflictImpl) judge.getInfo();
             if (conflict == null || !judge.isServerWork) {
                 judge.kill();
-                mainScene.close();
+                Platform.runLater(() -> mainScene.close());
                 break;
             }
 
@@ -449,6 +449,13 @@ public class JudgeInterface extends Application {
         main.add(textWrapper1, 0, 1);
         main.add(textWrapper2, 1, 1);
 
+        stage.setOnCloseRequest(event -> {
+            isFinish = true;
+            if (judge != null) {
+                judge.kill();
+            }
+            stage.hide();
+        });
 
         textWrapper1.getStyleClass().add("default-outline");
         textWrapper2.getStyleClass().add("default-outline");
