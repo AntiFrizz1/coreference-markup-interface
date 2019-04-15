@@ -85,12 +85,12 @@ public class JudgeController {
         return secondSingle;
     }
 
-    private void printSet(Set<Integer> set) {
+    /*private void printSet(Set<Integer> set) {
         set.forEach(e -> {
             System.out.print(e + " ");
         });
         System.out.println();
-    }
+    }*/
 
     public void getInfo(
             List<String> judgeText,
@@ -109,7 +109,7 @@ public class JudgeController {
         this.firstHighlights = firstHighlights;
         this.secondHighlights = secondHighlights;
 
-        System.out.print("firstHighlights : ");
+      /*  System.out.print("firstHighlights : ");
         printSet(firstHighlights);
 
         System.out.print("secondHighlights : ");
@@ -125,7 +125,7 @@ public class JudgeController {
         printSet(firstSingle);
 
         System.out.print("secondSingle : ");
-        printSet(secondSingle);
+        printSet(secondSingle);*/
     }
 
     public void getChains(Chain firstChain, Chain secondChain) {
