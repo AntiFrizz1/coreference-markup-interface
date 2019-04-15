@@ -14,7 +14,7 @@ public class SimpleServer {
         } else if (args.length == 1){
             server = new ServerImpl(3334, 3333, Integer.parseInt(args[0]), 1);
         } else  {
-            server = new ServerImpl(3334, 3333, 1, 1);
+            server = new ServerImpl(3334, 3333, 0, 1);
         }
         List<String> texts = new ArrayList<>(0);
         for (int i = 1; i <= 9; i++) {

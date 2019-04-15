@@ -296,46 +296,53 @@ public class ServerImpl implements Server {
         }
     }
 
-    private ExecutorService userConnectionExecutor = Executors.newFixedThreadPool(4);
-    private ExecutorService userReConnectionExecutor = Executors.newFixedThreadPool(4);
-    private ExecutorService userSchedulerExecutor = Executors.newFixedThreadPool(4);
+    /*private ExecutorService userConnectionExecutor = Executors.newFixedThreadPool(10);
+    private ExecutorService userReConnectionExecutor = Executors.newFixedThreadPool(10);
+    private ExecutorService userSchedulerExecutor = Executors.newFixedThreadPool(10);*/
+    private ExecutorService judgeConnectionExecutor = Executors.newFixedThreadPool(4);
 
     /**
      * Start server
      */
     public void run() {
-        Thread userListenerThread = new Thread(userListener);
+        //Thread userListenerThread = new Thread(userListener);
         Thread judgeListenerThread = new Thread(judgeListener);
         Thread serverStoreWorkerThread = new Thread(serverStore.worker);
         Thread conflictInfoSchedulerThread = new Thread(conflictInfoScheduler);
         Thread backupThread = new Thread(backupWorker);
         Thread leaderboardThread = new Thread(leaderBoardWorker);
-        Thread judgeConnectionThread = new Thread(judgeConnection);
+        Thread leaderBoardPageThread = new Thread(leaderBoardRunnable);
 
-        for (int i = 0; i < 4; i++) {
+        /*for (int i = 0; i < 10; i++) {
             userConnectionExecutor.execute(userConnection);
         }
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 10; i++) {
             userSchedulerExecutor.execute(userScheduler);
         }
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 10; i++) {
             userReConnectionExecutor.execute(userReconnection);
+        }*/
+
+        for (int i = 0; i < 10; i++) {
+            judgeConnectionExecutor.execute(judgeConnection);
+
         }
 
-        userListenerThread.start();
+        //userListenerThread.start();
         judgeListenerThread.start();
         serverStoreWorkerThread.start();
         conflictInfoSchedulerThread.start();
         backupThread.start();
         leaderboardThread.start();
-        judgeConnectionThread.start();
+        leaderBoardPageThread.start();
 
         log("run", "all runnable started", 1);
 
         try {
-            userListenerThread.join();
+            //userListenerThread.join();
+            judgeListenerThread.join();
         } catch (InterruptedException e) {
             log("run", e.getMessage(), 0);
         }
@@ -385,7 +392,7 @@ public class ServerImpl implements Server {
 
                         String stringId = reader.readLine();
                         log("judgeConnection", client.toString() + " id=" + stringId, 0);
-                        if (stringId.equals("1234")) {
+                        if (judgeIds.contains(stringId)) {
                             writer.write(0);
                             writer.flush();
                             judges.add(new JudgeInfo(client, stringId));
@@ -693,45 +700,15 @@ public class ServerImpl implements Server {
 
     private Runnable leaderBoardRunnable = () -> {
         while (true) {
-            StringBuilder htmlBuilder = new StringBuilder();
-            htmlBuilder.append("<!DOCTYPE html>\n" +
-                    "<html lang=\"ru\">\n" +
-                    "<head>\n" +
-                    "   <meta charset=\"UTF-8\">\n" +
-                    "   <title>Таблица Лидеров</title>\n" +
-                    "   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
-                    "   <link rel=\"stylesheet\" href=\"style.css\">" +
-                    "    " +
-                    "</head>\n" +
-                    "<body>" +
-                    "<div class=\"div-table\">\n" +
-                    "   <h1>Таблица лидеров</h1>" +
-                    "   <table class=\"table\">\n" +
-                    "       <thead>\n" +
-                    "           <tr>\n" +
-                    "               <th>Название команды</th>\n" +
-                    "               <th>Количество очков</th>\n" +
-                    "           </tr>\n" +
-                    "       </thead>\n" +
-                    "       <tbody id=\"table-body\">\n");
-            List<Pair<String, Integer>> local = leaderBoard.entrySet().stream()
-                    .map(k -> new Pair<>(k.getKey(), k.getValue())).sorted(this::comparePairs).collect(Collectors.toList());
-            Collections.reverse(local);
-            for (int i = 0; i < local.size(); i++) {
-                htmlBuilder.append(
-                        "       <tr>\n           <td>").append(idToUsername.get(local.get(i).getKey())).append("</td>\n").append(
-                        "           <td>").append(local.get(i).getValue()).append("</td>\n").append(
-                        "       </tr>\n");
+            int size = 0;
+            for (Queue<ConflictInfo> conflict : conflicts) {
+                size += conflict.size();
             }
-
-            htmlBuilder.append(
-                    "       </tbody>\n" +
-                            "   </table>\n" +
-                            "</div>\n" +
-                            "</body>\n" +
-                            "</html>\n");
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<!DOCTYPE html>\n" + "<html lang=\"ru\">\n" + "<head>\n" + "   <meta charset=\"UTF-8\">\n" + "   <title>Осталось конфликтов</title>\n" + "   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" + "   <link rel=\"stylesheet\" href=\"style.css\">" + "    " + "</head>\n" + "<body>" + "<div class=\"div-table\">\n" + "   <h1>Осталось ").append(size).append(" конфликтов</h1>").append("</div>\n").append("</body>");
             try {
-                PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream("leaderboard.html"), StandardCharsets.UTF_8)));
+                PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                        "index.html"), StandardCharsets.UTF_8)));
                 writer.println(htmlBuilder.toString());
                 writer.flush();
                 writer.close();
@@ -842,8 +819,8 @@ public class ServerImpl implements Server {
                                 toJudgeAboutTeamOne.add(action1);
                                 toJudgeAboutTeamTwo.add(action2);
 
-                                int id1 = -1;
-                                int id2 = -1;
+                                Set<Integer> id1 = new HashSet<>();
+                                Set<Integer> id2 = new HashSet<>();
 
                                 boolean f1 = false;
 
@@ -853,9 +830,6 @@ public class ServerImpl implements Server {
                                         if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 ||
                                                 decisions.get(i) == 3) &&
                                                 teamOneActions.get(i).getChainId() == action1.getChainId()) {
-                                            if (decisions.get(i) == 3) {
-                                                id1 = teamTwoActions.get(i).getChainId();
-                                            }
                                             toJudgeAboutTeamOne.add(0, teamOneActions.get(i));
                                         }
                                     }
@@ -865,7 +839,9 @@ public class ServerImpl implements Server {
                                                 decisions.get(i) == 3) &&
                                                 teamOneActions.get(i).getChainId() == action1.getChainId()) {
                                             f1 = true;
-                                            break;
+                                        }
+                                        if ((decisions.get(i) == 3)) {
+                                            id1.add(teamTwoActions.get(i).getChainId());
                                         }
                                     }
                                 }
@@ -878,9 +854,6 @@ public class ServerImpl implements Server {
                                         if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 ||
                                                 decisions.get(i) == 3) &&
                                                 teamTwoActions.get(i).getChainId() == action2.getChainId()) {
-                                            if (decisions.get(i) == 3) {
-                                                id2 = teamOneActions.get(i).getChainId();
-                                            }
                                             toJudgeAboutTeamTwo.add(0, teamTwoActions.get(i));
                                         }
                                     }
@@ -889,7 +862,9 @@ public class ServerImpl implements Server {
                                                 decisions.get(i) == 3) &&
                                                 teamTwoActions.get(i).getChainId() == action2.getChainId()) {
                                             f2 = true;
-                                            break;
+                                        }
+                                        if (decisions.get(i) == 3) {
+                                            id2.add(teamOneActions.get(i).getChainId());
                                         }
                                     }
                                 }
@@ -908,7 +883,7 @@ public class ServerImpl implements Server {
                                         action1.getLocation().equals(action2.getLocation())) {
                                     Action first = toJudgeAboutTeamOne.get(toJudgeAboutTeamOne.size() - 2);
                                     Action second = toJudgeAboutTeamTwo.get(toJudgeAboutTeamTwo.size() - 2);
-                                    if (first.getChainId() == id2 && second.getChainId() == id1) {
+                                    if (id2.contains(first.getChainId()) && id1.contains(second.getChainId())) {
                                         log("judgeWorker", "conflict=" + conflict.toString()
                                                 + " actions belong to similar chains", 1);
                                         completeTask(conflict, action1, action2);
@@ -953,8 +928,6 @@ public class ServerImpl implements Server {
                                     sender.interrupt();
                                     break;
                                 }
-                            /*logWriter.println("get decision from judge" + socket.toString());
-                            logWriter.flush();*/
                                 int decision = Integer.parseInt(request);
 
                                 if (conflict.complete(this)) {

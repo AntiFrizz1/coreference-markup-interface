@@ -31,7 +31,7 @@ public class JudgeInterface extends Application {
 
     private boolean isFinish;
 
-    private static String host = "62.109.13.129";
+    private static String host = "178.128.38.25";
 
     private JudgeController controller = new JudgeController();
 
@@ -197,7 +197,7 @@ public class JudgeInterface extends Application {
         switch (controller.getConflType()) {
             case NEW_SAME:
                 both.setText("Подтвердить создание цепочки.");
-                nobody.setText("Отклониь создание цепочки.");
+                nobody.setText("Отклонить создание цепочки.");
                 res.getChildren().addAll(both, nobody);
                 break;
             case NEWCHAIN_EMPTY:
@@ -212,8 +212,8 @@ public class JudgeInterface extends Application {
                 break;
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
-                second.setText("Подтердить решение второго участника.");
-                both.setText("Оба правы(объединить церочки");
+                second.setText("Подтвердить решение второго участника.");
+                both.setText("Оба правы(Объединить цепочки");
                 res.getChildren().addAll(first, second, both, nobody);
                 break;
             case ADD_EMPTY_SAME:
@@ -260,7 +260,7 @@ public class JudgeInterface extends Application {
         GridPane subRoot = baseUserSubPart();
 
 
-        PasswordField password = new PasswordField();
+        TextField password = new TextField();
         password.setPromptText("Введите пароль судьи...");
         GridPane.setValignment(password, VPos.CENTER);
         GridPane.setHalignment(password, HPos.CENTER);
@@ -279,19 +279,17 @@ public class JudgeInterface extends Application {
         error.setStyle("-fx-fill: red; -fx-font-size: 15pt;");
 
         enter.setOnAction(event -> {
-            if (password.getText().equals("1234")) {
-                judge = new Judge("1234", 3333, host);
-
-                if (judge.joinOnline() != 0) {
-                    error.setText("Не удалось подключиться к серверу.");
-                } else {
-                    stage.getScene().getWindow().hide();
-                    startScene();
-                    Thread worker = new Thread(() -> work(primaryStage));
-                    worker.start();
-                }
-            } else {
+            judge = new Judge(password.getText(), 3333, host);
+            int ans = judge.joinOnline();
+            if (ans == 2) {
                 error.setText("Неверный пароль!");
+            } else if (ans == 0) {
+                stage.getScene().getWindow().hide();
+                startScene();
+                Thread worker = new Thread(() -> work(primaryStage));
+                worker.start();
+            } else{
+                error.setText("Не удалось подключиться к серверу");
             }
         });
 

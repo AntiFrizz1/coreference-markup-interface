@@ -75,7 +75,8 @@ public class Judge extends AbstractClient {
 
     @Override
     public int joinOnline() {
-        if (sendConnectionInfo() == 0) {
+        int out = sendConnectionInfo();
+        if (out == 0) {
             System.out.println("Successful connect to server as judge with id = " + id);
             readAllTextes();
             receiverThread = new Thread(judgeReceiver);
@@ -86,7 +87,7 @@ public class Judge extends AbstractClient {
             return 0;
         } else {
             System.err.println("Can't connect to server as judge with id = " + id);
-            return -1;
+            return out;
         }
     }
 
