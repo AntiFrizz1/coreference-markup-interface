@@ -137,7 +137,6 @@ public abstract class AbstractClient implements Client {
                     break;
                 }
                 int out = reader.read();
-                System.out.println(out);
                 if (out != 0) {
                     isServerWork = false;
                     break;

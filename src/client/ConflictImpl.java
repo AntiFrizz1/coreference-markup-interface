@@ -30,10 +30,6 @@ public class ConflictImpl implements Conflict {
 
 
     public ConflictImpl(String list1, String list2, String text) {
-        System.out.println(":============================:");
-        System.out.println("list1 :=: " + list1);
-        System.out.println("list2 :=: " + list2);
-        System.out.println("text :=: " + text);
         UpdateDocument doc1 = new UpdateDocument(list1);
         UpdateDocument doc2 = new UpdateDocument(list2);
         first = doc1.getActions();

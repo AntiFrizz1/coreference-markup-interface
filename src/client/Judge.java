@@ -41,7 +41,6 @@ public class Judge extends AbstractClient {
                     break;
                 }
                 int out = reader.read();
-                System.out.println(out);
                 if (out == 0) {
                 } else if (out == 1) {
                     while (!reader.ready()) {
