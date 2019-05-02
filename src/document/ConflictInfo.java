@@ -38,12 +38,15 @@ public class ConflictInfo {
     public boolean apply(ServerImpl.JudgeInfo judge) {
         if (status.compareAndSet(null, judge, 0, 1)) {
             counter = new Thread(() -> {
+                int i = 0;
                 while(status.getStamp() != 2) {
                     try {
                         Thread.sleep(120000);
                         int localStatus = status.getStamp();
-                        if(localStatus == 1) {
+                        i++;
+                        if (localStatus == 1 && (status.getReference().isDown || i > 15)) {
                             if (status.compareAndSet(status.getReference(), null, localStatus, 0)) {
+                                i = 0;
                                 ServerImpl.log("ConflictInfo::apply", "conflict=" + toString() + " timed out", 0);
                                 break;
                             }

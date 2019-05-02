@@ -165,6 +165,8 @@ public class JudgeInterface extends Application {
         RadioButton second = new RadioButton("Second");
         RadioButton both = new RadioButton("Both");
         RadioButton nobody = new RadioButton("Nobody");
+        RadioButton bothDiff = new RadioButton("BothDiff");
+        RadioButton nobodyWithMyAnswer = new RadioButton("NobodyWithMyAnswer");
         Button confirm = new Button("Подтвердить выбор");
         confirm.getStyleClass().add("button-font");
 
@@ -184,21 +186,35 @@ public class JudgeInterface extends Application {
             controller.setDecision(0);
         });
 
+        nobodyWithMyAnswer.setOnAction(event -> {
+            controller.setDecision(-1);
+        });
+
+        bothDiff.setOnAction(event -> {
+            controller.setDecision(4);
+        });
+
         first.setToggleGroup(group);
         second.setToggleGroup(group);
         both.setToggleGroup(group);
         nobody.setToggleGroup(group);
+        nobodyWithMyAnswer.setToggleGroup(group);
+        bothDiff.setToggleGroup(group);
+
         nobody.setText("Оба не правы.");
         both.setText("Обав правы.");
+        nobodyWithMyAnswer.setText("Оба не правы(Предложить свой вариант)");
+        bothDiff.setText("Оба правы(Но должны находится в разных цепочках)");
 
         FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
         res.setAlignment(Pos.CENTER_LEFT);
-
+        JudgeController.Confl a = controller.getConflType();
+        System.out.println(a.toString());
         switch (controller.getConflType()) {
             case NEW_SAME:
                 both.setText("Подтвердить создание цепочки.");
                 nobody.setText("Отклонить создание цепочки.");
-                res.getChildren().addAll(both, nobody);
+                res.getChildren().addAll(both, nobody, nobodyWithMyAnswer);
                 break;
             case NEWCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
@@ -208,13 +224,13 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить создание цепочки(Принять решение первого участника).");
                     second.setText("Отклонить создание цепочки(Принять решение второго участника).");
                 }
-                res.getChildren().addAll(first, second);
+                res.getChildren().addAll(first, second, nobodyWithMyAnswer);
                 break;
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
                 second.setText("Подтвердить решение второго участника.");
                 both.setText("Оба правы(Объединить цепочки");
-                res.getChildren().addAll(first, second, both, nobody);
+                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
             case ADD_EMPTY_SAME:
             case CONTCHAIN_EMPTY:
@@ -225,7 +241,7 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
                 }
-                res.getChildren().addAll(first, second);
+                res.getChildren().addAll(first, second, nobodyWithMyAnswer);
                 break;
             case NEW_ADD:
                 if (controller.isFirstEmpty()) {
@@ -235,13 +251,24 @@ public class JudgeInterface extends Application {
                     first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
                     second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
                 }
-                res.getChildren().addAll(first, second, nobody);
+                res.getChildren().addAll(first, second, nobody, nobodyWithMyAnswer);
+                break;
+            case NEW_DIF:
+                first.setText("Подтвердить решение первого участника.");
+                second.setText("Подтвердить решение второго участника.");
+                both.setText("Оба правы(Объединить цепочки");
+                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
         }
 
         confirm.setOnAction(event -> {
             if (group.getSelectedToggle() != null) {
-                confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
+                if (controller.getDecision() == -1) {
+                    //TODO:сделать вот такую функцию
+                    makeAnswer(/**/);
+                } else {
+                    confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
+                }
             } else {
                 errorScene(stage, "Вы ничего не выбрали.");
             }
@@ -551,6 +578,11 @@ public class JudgeInterface extends Application {
     }
 
 
+    private void makeAnswer() {
+        /*TODO:тута открывается окошко как из клиента. Где показана текущая цепочка и предлогается добавить в нее что-то или создать новую*/
+        /*только непонятно, какой делать id у новой цепочки и вообще можно ли делать новую цепочку*/
+    }
+
     private void confirmDecision(Stage mainStage, String decision) {
         Stage stage = new Stage();
         stage.setTitle("Подтвердите выбор решения конфликта");
@@ -578,6 +610,7 @@ public class JudgeInterface extends Application {
             judge.sendDecision(controller.getDecision());
             mainScene.show();
         });
+
         Button cancel = new Button("CANCEL");
         cancel.setOnAction(event -> {
             stage.getScene().getWindow().hide();

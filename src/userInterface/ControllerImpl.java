@@ -60,7 +60,7 @@ public class ControllerImpl implements Controller {
     private Chain curChain;
     private Map<Integer, String> selected;
     private int selectedBlank = -1, maxChainId = 0;
-    private String newChainName; //TODO НАССАТЬ НА ЕБАЛО ВЛАДА
+    private String newChainName;
     private List<Action> actions;  // TODO: send this to the server and then empty it after each send
     private List<Chain> removedChains;
     private Stage primaryStage;  // TODO: this will be used to show the conflict window

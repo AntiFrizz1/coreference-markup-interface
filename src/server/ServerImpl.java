@@ -516,7 +516,7 @@ public class ServerImpl implements Server {
 
                     log("userReconnection", "load actions for user with id=" +
                             localServerIdToId.get(id), 1);
-                    actionList.sort(ServerStore::compareActions);
+                    actionList.sort(ServerStore::trueCompareActions);
 
                     Data data = new Data(texts.get(textId), actionList);
                     log("userReconnection", "make Data for user with id=" +
@@ -742,7 +742,7 @@ public class ServerImpl implements Server {
         Thread receiver;
         volatile BufferedReader reader;
         volatile PrintWriter writer;
-        boolean isDown = false;
+        public boolean isDown = false;
 
         JudgeInfo(Socket socket, String id) throws IOException {
             this.id = id;
@@ -805,7 +805,7 @@ public class ServerImpl implements Server {
                                 Action action2 = conflict.action2;
 
                                 if (!action1.isEmpty() && !action2.isEmpty() && action1.getAction() == 1
-                                        && action2.getAction() == 1) {
+                                        && action2.getAction() == 1 && ServerStore.trueCompareActions(action1, action2) == 0) {
                                     completeTask(conflict, action1, action2);
                                     task.compareAndSet(conflict, null, true, false);
                                     log("judgeWorker", "conflict=" + conflict.toString() +
@@ -869,7 +869,7 @@ public class ServerImpl implements Server {
                                     }
                                 }
 
-                                if ((!f1 || !f2) && !action1.isEmpty() && !action2.isEmpty()) {
+                                if ((!f1 || !f2) && !action1.isEmpty() && !action2.isEmpty() && ServerStore.trueCompareActions(action1, action2) == 0) {
                                     log("judgeWorker", "conflict=" + conflict.toString()
                                             + " one make new chain when another one add to existing chain", 1);
                                     completeTask(conflict, action1, action2);
@@ -924,6 +924,7 @@ public class ServerImpl implements Server {
                                         socket.close();
                                         judges.remove(this);
                                     }
+                                    isDown = true;
                                     receiver.interrupt();
                                     sender.interrupt();
                                     break;
@@ -974,6 +975,7 @@ public class ServerImpl implements Server {
                         synchronized (judges) {
                             judges.remove(this);
                         }
+                        isDown = true;
                         receiver.interrupt();
                         sender.interrupt();
                         log("judgeWorker", "judge id=" + id + " Error: " + e.getMessage(), 0);
@@ -985,6 +987,7 @@ public class ServerImpl implements Server {
                 synchronized (judges) {
                     judges.remove(this);
                 }
+                isDown = true;
                 receiver.interrupt();
                 sender.interrupt();
                 log("judgeWorker", "judge id=" + id + " Error: " + e.getMessage(), 0);
@@ -1373,8 +1376,8 @@ public class ServerImpl implements Server {
                             listSecond.addAll(doc.getActions());
                         }
 
-                        listFirst.sort(ServerStore::compareActions);
-                        listSecond.sort(ServerStore::compareActions);
+                        listFirst.sort(ServerStore::trueCompareActions);
+                        listSecond.sort(ServerStore::trueCompareActions);
 
                         listFirst.forEach(a -> {
                             writerFirst.println(a.pack());
