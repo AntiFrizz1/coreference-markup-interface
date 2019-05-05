@@ -6,14 +6,27 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.geometry.*;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -579,8 +592,14 @@ public class JudgeInterface extends Application {
 
 
     private void makeAnswer() {
-        /*TODO:тута открывается окошко как из клиента. Где показана текущая цепочка и предлогается добавить в нее что-то или создать новую*/
-        /*только непонятно, какой делать id у новой цепочки и вообще можно ли делать новую цепочку*/
+        Stage stage = new Stage();
+        ControllerImpl cont = new ControllerImpl(stage);
+        cont.loginJudge();
+        UserInterface ui = new UserInterface(stage, null, cont);
+        //ui.restoreState(); // TODO: передаешь сюда первым аргументом текст который надо туда подать, вторым лист экшнов,
+        // содержащих в себе цепочку
+        ui.genScene();
+        ui.getActions();  // TODO: все экшны которые судья туда вбил, делай с ними дальше что надо
     }
 
     private void confirmDecision(Stage mainStage, String decision) {

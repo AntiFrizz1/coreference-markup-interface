@@ -116,20 +116,12 @@ public class ControllerImpl implements Controller {
         return isJudge;
     }
 
-    boolean isLoggedUser() {
-        return isLoggedUser;
-    }
-
-    public void loginJudge() {
+    void loginJudge() {
         isJudge = true;
     }
 
-    public void loginUser(int id) {
-        userId = id;
-        if (userId > 100) isJudge = true;
-            // TODO: call to server to mark that a user has logged in
-        else isLoggedUser = true;
-        onlineMode();
+    boolean isLoggedUser() {
+        return isLoggedUser;
     }
 
     @Override
@@ -530,7 +522,7 @@ public class ControllerImpl implements Controller {
         return ac.getKey();
     }
 
-    public int getPrevStatesSize() {
+    int getPrevStatesSize() {
         return prevStates.size();
     }
 
@@ -581,7 +573,7 @@ public class ControllerImpl implements Controller {
      * @param wordId the word's position in the whole text
      * @return true whether a chain contains this word in one of its locations, false otherwise
      */
-    public boolean chainContainsWord(Chain chain, int wordId) {
+    boolean chainContainsWord(Chain chain, int wordId) {
         return chain.getLocations().stream().filter(l -> l instanceof Phrase).map(ph -> ((Phrase) ph).getPositions())
                 .anyMatch(s -> s.contains(wordId));
     }
@@ -593,36 +585,36 @@ public class ControllerImpl implements Controller {
      * @param blankId the blank's position in the whole text
      * @return true whether a chain contains this blank in one of its locations, false otherwise
      */
-    public boolean chainContainsBlank(Chain chain, int blankId) {
+    boolean chainContainsBlank(Chain chain, int blankId) {
         return chain.getLocations().stream().filter(l -> l instanceof Blank).map(bl -> ((Blank) bl).getPosition())
                 .anyMatch(s -> s == blankId);
     }
 
     static class RefreshEvent extends Event {
-        public static final EventType<RefreshEvent> REFRESH_TEXT =
+        static final EventType<RefreshEvent> REFRESH_TEXT =
                 new EventType<>(Event.ANY, "REFRESH_TEXT");
 
-        public RefreshEvent() {
+        RefreshEvent() {
             super(REFRESH_TEXT);
         }
     }
 
     static class RefreshChainEvent extends Event {
-        public static final EventType<RefreshChainEvent> REFRESH_CHAIN =
+        static final EventType<RefreshChainEvent> REFRESH_CHAIN =
                 new EventType<>(Event.ANY, "REFRESH_CHAIN");
 
-        public RefreshChainEvent() {
+        RefreshChainEvent() {
             super(REFRESH_CHAIN);
         }
     }
 
     static class MoveSelectedSentenceEvent extends Event {
-        public static final EventType<MoveSelectedSentenceEvent> MOVE_SELECTED_SENTENCE =
+        static final EventType<MoveSelectedSentenceEvent> MOVE_SELECTED_SENTENCE =
                 new EventType<>(Event.ANY, "MOVE_SELECTED_SENTENCE");
 
         public int id;
 
-        public MoveSelectedSentenceEvent(int location) {
+        MoveSelectedSentenceEvent(int location) {
             super(MOVE_SELECTED_SENTENCE);
             id = location;
         }
