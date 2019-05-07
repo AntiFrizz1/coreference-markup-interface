@@ -106,10 +106,12 @@ public class UserInterface {
         addTooltip(fileSelect, "Открыть текстовый файл");
         Button dump = genButton("icons/arrow");
         addTooltip(dump, "Сохранить разметку в файл");
+        Button accept = genButton("icons/arrow");
+        addTooltip(accept, "Сохранить разметку");
         undo.setDisable(true);
 
         if (!controller.isJudge()) buttons.getChildren().addAll(nnew, add, empty, undo, del, fileSelect, dump);
-        else buttons.getChildren().addAll(nnew, add, empty, undo);
+        else buttons.getChildren().addAll(nnew, add, empty, undo, accept);
 
         GridPane.setFillWidth(buttons, false);
         GridPane.setFillHeight(buttons, false);
@@ -511,6 +513,10 @@ public class UserInterface {
         sc.getStylesheets().add("styles.css");
         primaryStage.setOnCloseRequest(event -> {
             if (user != null) user.kill();
+            else controller.clearActions();
+            sc.getWindow().hide();
+        });
+        accept.setOnAction(event -> {
             sc.getWindow().hide();
         });
         primaryStage.setMinWidth(0.8 * APP_WIDTH);

@@ -158,7 +158,6 @@ public class ControllerImpl implements Controller {
             }
         }
         chains = new ArrayList<>(chain.values());
-        System.out.println(chains);
         setText(text);
         callChainRefresh();
         callMoveSentence(maxId);
