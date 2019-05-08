@@ -602,11 +602,8 @@ public class JudgeInterface extends Application {
         Stage stage = new Stage();
         ControllerImpl cont = new ControllerImpl(stage);
         cont.loginJudge();
-        // TODO: сделать выбор чей именно вариант изменять первого или второго в зависимости от этого вызыват разные функции для получения листа экшнов
-        // controller.getPreparedFirstActionsList() или controller.getPreparedSecondActionsList()
         UserInterface ui = new UserInterface(stage, null, cont);
-        ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions); // TODO: передаешь сюда первым аргументом текст который надо туда подать, вторым лист экшнов,
-        // содержащих в себе цепочку
+        ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions);
         ui.genScene();
         return ui.getActions();
     }
@@ -627,7 +624,6 @@ public class JudgeInterface extends Application {
 
         List<Action> answer = new ArrayList<>();
 
-        // TODO: подстроить под ид цепочек для каждого человека
         for (i = 0; i < newActions.size(); i++) {
             Action action = newActions.get(i);
             answer.add(new Action(action.getAction(), id, action.getLocation(), name));
