@@ -1,6 +1,9 @@
 package userInterface;
 
 import chain.Action;
+import chain.Blank;
+import chain.Location;
+import chain.Phrase;
 import client.ConflictImpl;
 import client.Judge;
 import document.UpdateDocument;
@@ -598,12 +601,12 @@ public class JudgeInterface extends Application {
     }
 
 
-    private List<Action> getActionsFromWindow(List<Action> oldActions) {
+    private List<Action> getActionsFromWindow(List<Action> oldActions, int startFrom) {
         Stage stage = new Stage();
         ControllerImpl cont = new ControllerImpl(stage);
         cont.loginJudge();
         UserInterface ui = new UserInterface(stage, null, cont);
-        ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions);
+        ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions, startFrom);
         ui.genScene();
         return ui.getActions();
     }
@@ -631,6 +634,14 @@ public class JudgeInterface extends Application {
         return answer;
     }
 
+    private int getLastLocation(List<Action> actions) {
+        Location location = actions.get(actions.size() - 1).getLocation();
+        if (location instanceof Blank) {
+            return ((Blank) location).getPosition();
+        } else {
+            return ((Phrase) location).getPositions().stream().min(Integer::compareTo).get();
+        }
+    }
 
     private void makeAnswer(Stage mainStage) {
         List<Action> oldFirstActions = controller.getPreparedFirstActionsList();
@@ -642,13 +653,14 @@ public class JudgeInterface extends Application {
         int secondChainId = controller.getSecondActionsList().get(0).getChainId();
         String secondChainName = controller.getSecondActionsList().get(0).getName();
 
-        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions);
+        // что-то не двигается
+        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions, 100);
 
         if (newFirstActions.isEmpty()) {
             return;
         }
-
-        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions);
+        // и тут тоже
+        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions, getLastLocation(controller.getSecondActionsList()));
 
         if (newSecondActions.isEmpty()) {
             return;

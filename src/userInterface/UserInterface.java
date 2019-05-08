@@ -84,6 +84,10 @@ public class UserInterface {
         controller.restoreState(text, actions);
     }
 
+    public void restoreState(String text, List<Action> actions, int startFrom) {
+        controller.restoreState(text, actions, startFrom);
+    }
+
     /**
      * Generates the main UI window for the app.
      */
