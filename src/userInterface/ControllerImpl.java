@@ -139,46 +139,14 @@ public class ControllerImpl implements Controller {
     }
 
     public void restoreState(String text, List<Action> actions) {
-        Map<Integer, Chain> chain = new HashMap<>();
-        int maxId = 0;
-        for (Action a : actions) {
-            int id = a.getChainId();
-            if (chain.containsKey(id)) {
-                chain.get(id).addPart(a.getLocation());
-            } else {
-                ChainImpl newChain = new ChainImpl(a);
-                newChain.setColor(generateRandomColor());
-                chain.put(id, newChain);
-            }
-            if (a.getLocation() instanceof Blank) {
-                maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
-            } else if (a.getLocation() instanceof Phrase) {
-                maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
-                        .max(Comparator.naturalOrder()).orElse(0));
-            }
-        }
-        chains = new ArrayList<>(chain.values());
-        setText(text);
-        callChainRefresh();
-        callMoveSentence(maxId);
+        restoreState(text, actions, -1);
     }
 
-    public void restoreFromDump(File file) throws IOException {
-        BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
-//        String textPath = r.readLine();
-//        File f = new File(textPath);
-//        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
-//        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
-        List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-        List<Action> actions = new ArrayList<>();
-        for (String s : lines) {
-            actions.addAll(new UpdateDocument(s).getActions());
-        }
-//        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
+    public void restoreState(String text, List<Action> actions, int startFrom) {
         Map<Integer, Chain> chain = new HashMap<>();
         int maxId = 0;
         for (Action a : actions) {
-            if (a.getAction() == ADDWORD || a.getAction() == ADDCHAIN) {
+            if (a.getAction() == ADDWORD || a.getAction() == ADDCHAIN) {  // TODO: здесь подразумевается что от сервера приходят только экшны с 0 и 1
                 int id = a.getChainId();
                 maxChainId = Math.max(maxChainId, id);
                 if (chain.containsKey(id)) {
@@ -203,10 +171,25 @@ public class ControllerImpl implements Controller {
             }
         }
         chains = new ArrayList<>(chain.values());
-//        System.out.println(chains);
-//        setText(text);
+        setText(text);
         callChainRefresh();
+        if (startFrom >= 0) maxId = startFrom;
         callMoveSentence(maxId);
+    }
+
+    public void restoreFromDump(File file) throws IOException {
+        BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
+//        String textPath = r.readLine();
+//        File f = new File(textPath);
+//        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
+//        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
+        List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+        List<Action> actions = new ArrayList<>();
+        for (String s : lines) {
+            actions.addAll(new UpdateDocument(s).getActions());
+        }
+//        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
+        restoreState(text, actions);
     }
 
 
