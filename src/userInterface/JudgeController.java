@@ -2,6 +2,7 @@ package userInterface;
 
 import chain.*;
 import com.sun.net.httpserver.Filter;
+import com.sun.org.apache.bcel.internal.generic.ACONST_NULL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,11 +112,20 @@ public class JudgeController {
     }
 
     List<Action> getPreparedFirstActionsList() {
-        return copyAndRemoveLast(firstActionsList);
+        return normalize(copyAndRemoveLast(firstActionsList));
     }
 
     List<Action> getPreparedSecondActionsList() {
-        return copyAndRemoveLast(secondActionsList);
+        return normalize(copyAndRemoveLast(secondActionsList));
+    }
+
+    private List<Action> normalize(List<Action> actions) {
+        List<Action> newActions = new ArrayList<>();
+        for (int i = 0; i < actions.size(); i++) {
+            Action action = actions.get(i);
+            newActions.add(new Action(i == 0 ? 1 : 0, action.getChainId(), action.getLocation(), action.getName()));
+        }
+        return newActions;
     }
 
     private List<Action> copyAndRemoveLast(List<Action> actions) {

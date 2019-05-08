@@ -601,11 +601,11 @@ public class JudgeInterface extends Application {
     }
 
 
-    private List<Action> getActionsFromWindow(List<Action> oldActions, int startFrom) {
+    private List<Action> getActionsFromWindow(List<Action> oldActions, int startFrom, String windowName) {
         Stage stage = new Stage();
         ControllerImpl cont = new ControllerImpl(stage);
         cont.loginJudge();
-        UserInterface ui = new UserInterface(stage, null, cont);
+        UserInterface ui = new UserInterface(stage, null, cont, windowName);
         ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions, startFrom);
         ui.genScene();
         return ui.getActions();
@@ -654,13 +654,13 @@ public class JudgeInterface extends Application {
         String secondChainName = controller.getSecondActionsList().get(0).getName();
 
         // что-то не двигается
-        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions, 100);
+        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions, 100, "Выполните разметку для первого участника");
 
         if (newFirstActions.isEmpty()) {
             return;
         }
         // и тут тоже
-        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions, getLastLocation(controller.getSecondActionsList()));
+        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions, getLastLocation(controller.getSecondActionsList()), "Выполните разметку для второго клиента");
 
         if (newSecondActions.isEmpty()) {
             return;
