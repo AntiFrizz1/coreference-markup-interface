@@ -66,8 +66,12 @@ public class UserInterface {
     private String chainFilter = "";
 
     UserInterface(Stage primaryStage, User user, ControllerImpl controller) {
+        this(primaryStage, user, controller, "Разметка кореференсов");
+    }
+
+    UserInterface(Stage primaryStage, User user, ControllerImpl controller, String title) {
         this.primaryStage = primaryStage;
-        this.primaryStage.setTitle("Разметка кореференсов");
+        this.primaryStage.setTitle(title);
         this.user = user;
         this.controller = controller;
     }
@@ -555,7 +559,7 @@ public class UserInterface {
      */
     private void generateText(FlowPane textPane, ScrollPane outer) {
         List<Chain> chains = controller.getChains();
-
+        System.out.println(outer.getHeight());
         /*
         A clone pane used to determine whether we should stop adding new buttons.
          */
