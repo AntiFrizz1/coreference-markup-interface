@@ -29,12 +29,13 @@ public class ConflictImpl implements Conflict {
     public Chain firstChain, secondChain;
 
 
-    public ConflictImpl(String list1, String list2, String text) {
+    public ConflictImpl(String list1, String list2, int textId, String text) {
         UpdateDocument doc1 = new UpdateDocument(list1);
         UpdateDocument doc2 = new UpdateDocument(list2);
         first = doc1.getActions();
         second = doc2.getActions();
 
+        this.textId = textId;
         this.text = text;
 
         firstWordsLocation = new HashSet<>();

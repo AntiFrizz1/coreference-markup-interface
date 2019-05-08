@@ -828,7 +828,7 @@ public class ServerImpl implements Server {
                                     for (int i = teamOneActions.size() - 1; i >= 0 &&
                                             toJudgeAboutTeamOne.size() < 8; i--) {
                                         if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 ||
-                                                decisions.get(i) == 3) &&
+                                                decisions.get(i) == 3 || decisions.get(i) == 4 || decisions.get(i) == -1) &&
                                                 teamOneActions.get(i).getChainId() == action1.getChainId()) {
                                             toJudgeAboutTeamOne.add(0, teamOneActions.get(i));
                                         }
@@ -836,7 +836,7 @@ public class ServerImpl implements Server {
 
                                     for (int i = teamOneActions.size() - 1; i >= 0; i--) {
                                         if (!teamOneActions.get(i).isEmpty() && (decisions.get(i) == 1 ||
-                                                decisions.get(i) == 3) &&
+                                                decisions.get(i) == 3 || decisions.get(i) == 4 || decisions.get(i) == -1) &&
                                                 teamOneActions.get(i).getChainId() == action1.getChainId()) {
                                             f1 = true;
                                         }
@@ -852,14 +852,14 @@ public class ServerImpl implements Server {
                                     for (int i = teamTwoActions.size() - 1; i >= 0 &&
                                             toJudgeAboutTeamTwo.size() < 8; i--) {
                                         if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 ||
-                                                decisions.get(i) == 3) &&
+                                                decisions.get(i) == 3 || decisions.get(i) == 4 || decisions.get(i) == -1) &&
                                                 teamTwoActions.get(i).getChainId() == action2.getChainId()) {
                                             toJudgeAboutTeamTwo.add(0, teamTwoActions.get(i));
                                         }
                                     }
                                     for (int i = teamTwoActions.size() - 1; i >= 0; i--) {
                                         if (!teamTwoActions.get(i).isEmpty() && (decisions.get(i) == 2 ||
-                                                decisions.get(i) == 3) &&
+                                                decisions.get(i) == 3 || decisions.get(i) == 4 || decisions.get(i) == -1) &&
                                                 teamTwoActions.get(i).getChainId() == action2.getChainId()) {
                                             f2 = true;
                                         }
@@ -929,11 +929,56 @@ public class ServerImpl implements Server {
                                     sender.interrupt();
                                     break;
                                 }
-                                int decision = Integer.parseInt(request);
+                                int decision = -2;
+                                String[] requestArray = null;
+                                try {
+                                    decision = Integer.parseInt(request);
+                                } catch (NumberFormatException e) {
+                                    requestArray = request.split("@");
+                                    if (requestArray.length != 3) {
+                                        log("judgeWorker", "incorrect request from judge id=" + id, 0);
+                                        synchronized (judges) {
+                                            socket.close();
+                                            judges.remove(this);
+                                        }
+                                        isDown = true;
+                                        receiver.interrupt();
+                                        sender.interrupt();
+                                        break;
+                                    }
+                                    decision = Integer.parseInt(requestArray[0]);
+                                }
 
                                 if (conflict.complete(this)) {
-                                    judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2,
-                                            conflict.textId, decision);
+                                    if (decision == -1) {
+                                        if (requestArray == null || requestArray.length != 3) {
+                                            log("judgeWorker", "null actions list string from judge with id=" + id, 0);
+                                            synchronized (judges) {
+                                                socket.close();
+                                                judges.remove(this);
+                                            }
+                                            isDown = true;
+                                            receiver.interrupt();
+                                            sender.interrupt();
+                                            break;
+                                        }
+
+                                        String firstActionListString = requestArray[1];
+                                        String secondActionListString = requestArray[2];
+
+                                        UpdateDocument firstDoc = new UpdateDocument(firstActionListString);
+                                        List<Action> firstActions = firstDoc.getActions();
+
+                                        UpdateDocument secondDoc = new UpdateDocument(secondActionListString);
+                                        List<Action> secondActions = secondDoc.getActions();
+
+                                        for (int i = 0; i < firstActions.size(); i++) {
+                                            judgeStore.putOneAction(conflict.teamOneId, firstActions.get(i), conflict.teamTwoId, secondActions.get(i), conflict.textId, decision);
+                                        }
+                                    } else {
+                                        judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2,
+                                                conflict.textId, decision);
+                                    }
                                     synchronized (leaderBoard) {
                                         if (decision == 2 && !action2.isEmpty()) {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamOneId),
@@ -959,6 +1004,13 @@ public class ServerImpl implements Server {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId),
                                                     leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) - 20);
                                         }
+                                        if (decision == -1) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId),
+                                                    leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) - 20);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId),
+                                                    leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) - 20);
+                                        }
+                                        // TODO: Написать что делать если встертили -1 и 4
                                     }
                                     leaderBoardNeed.compareAndSet(false, true);
                                     log("judgeWorker", "judge id=" + id + " complete task with decision " +

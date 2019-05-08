@@ -1,11 +1,9 @@
 package userInterface;
 
-import chain.Blank;
-import chain.Chain;
-import chain.Location;
-import chain.Phrase;
+import chain.*;
 import com.sun.net.httpserver.Filter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -24,6 +22,9 @@ public class JudgeController {
     private Confl conflType = Confl.NEW_DIF;
     private String info = "Один из участников решил создать новую цеепочку, состоящю из нулевой анафоры, в то время как второй учатсник не использовал эту нулвую анафору ни в одной из цепочек";
     private boolean isFirstEmpty;
+    private int textId;
+    private List<Action> firstActionsList;
+    private List<Action> secondActionsList;
 
     boolean isFirstEmpty() {
         return isFirstEmpty;
@@ -84,6 +85,49 @@ public class JudgeController {
     Set<Integer> getSecondSingle() {
         return secondSingle;
     }
+
+    int getTextId() {
+        return textId;
+    }
+
+    void setTextId(int textId) {
+        this.textId = textId;
+    }
+
+    void setFirstActionsList(List<Action> firstActionsList) {
+        this.firstActionsList = firstActionsList;
+    }
+
+    void setSecondActionsList(List<Action> secondActionsList) {
+        this.secondActionsList = secondActionsList;
+    }
+
+    List<Action> getFirstActionsList() {
+        return firstActionsList;
+    }
+
+    List<Action> getSecondActionsList() {
+        return secondActionsList;
+    }
+
+    List<Action> getPreparedFirstActionsList() {
+        return copyAndRemoveLast(firstActionsList);
+    }
+
+    List<Action> getPreparedSecondActionsList() {
+        return copyAndRemoveLast(secondActionsList);
+    }
+
+    private List<Action> copyAndRemoveLast(List<Action> actions) {
+        List<Action> newList = new ArrayList<>();
+
+        for (int i = 0; i < actions.size() - 1; i++) {
+            newList.add(actions.get(i));
+        }
+
+        return newList;
+    }
+
 
     /*private void printSet(Set<Integer> set) {
         set.forEach(e -> {

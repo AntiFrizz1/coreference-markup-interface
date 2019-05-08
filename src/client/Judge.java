@@ -63,7 +63,7 @@ public class Judge extends AbstractClient {
                         break;
                     }
                     int id = Integer.parseInt(third);
-                    conflictQueue.add(new ConflictImpl(first, second, texts.get(id)));
+                    conflictQueue.add(new ConflictImpl(first, second, id, texts.get(id)));
                 }
             } catch (InterruptedException | IOException e) {
                 isServerWork = false;
@@ -131,5 +131,13 @@ public class Judge extends AbstractClient {
         isServerWork = false;
         receiverThread.interrupt();
         senderThread.interrupt();
+    }
+
+    public String getTextByIndex(int index) {
+        return texts.get(index);
+    }
+
+    public void sendDecisionWithActionList(int decision, String firstActionList, String secondActionList) {
+        dataToSend.add(String.valueOf(decision) + "@" + firstActionList + "@" + secondActionList);
     }
 }

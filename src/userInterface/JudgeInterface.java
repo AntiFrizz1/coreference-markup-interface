@@ -1,7 +1,9 @@
 package userInterface;
 
+import chain.Action;
 import client.ConflictImpl;
 import client.Judge;
+import document.UpdateDocument;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -31,6 +33,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -76,6 +79,10 @@ public class JudgeInterface extends Application {
 
             controller.getInfo(conflict.wordList, conflict.firstWordsLocation, conflict.secondWordsLocation, conflict.firstBlanksLocation, conflict.secondBlanksLocation, conflict.firstLast, conflict.secondLast);
             controller.getChains(conflict.firstChain, conflict.secondChain);
+            controller.setTextId(conflict.textId);
+            controller.setFirstActionsList(conflict.first);
+            controller.setSecondActionsList(conflict.second);
+
             Platform.runLater(() -> existConflict.setValue(!existConflict.getValue()));
 
             /*mainScene.getScene().getWindow().hide();
@@ -242,7 +249,7 @@ public class JudgeInterface extends Application {
             case ADD_SAME:
                 first.setText("Подтвердить решение первого участника.");
                 second.setText("Подтвердить решение второго участника.");
-                both.setText("Оба правы(Объединить цепочки");
+                both.setText("Оба правы(Объединить цепочки)");
                 res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
             case ADD_EMPTY_SAME:
@@ -278,7 +285,7 @@ public class JudgeInterface extends Application {
             if (group.getSelectedToggle() != null) {
                 if (controller.getDecision() == -1) {
                     //TODO:сделать вот такую функцию
-                    makeAnswer(/**/);
+                    makeAnswer(stage);
                 } else {
                     confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
                 }
@@ -591,15 +598,79 @@ public class JudgeInterface extends Application {
     }
 
 
-    private void makeAnswer() {
+    private List<Action> getActionsFromWindow(List<Action> oldActions) {
         Stage stage = new Stage();
         ControllerImpl cont = new ControllerImpl(stage);
         cont.loginJudge();
+        // TODO: сделать выбор чей именно вариант изменять первого или второго в зависимости от этого вызыват разные функции для получения листа экшнов
+        // controller.getPreparedFirstActionsList() или controller.getPreparedSecondActionsList()
         UserInterface ui = new UserInterface(stage, null, cont);
-        //ui.restoreState(); // TODO: передаешь сюда первым аргументом текст который надо туда подать, вторым лист экшнов,
+        ui.restoreState(judge.getTextByIndex(controller.getTextId()), oldActions); // TODO: передаешь сюда первым аргументом текст который надо туда подать, вторым лист экшнов,
         // содержащих в себе цепочку
         ui.genScene();
-        ui.getActions();  // TODO: все экшны которые судья туда вбил, делай с ними дальше что надо
+        return ui.getActions();
+    }
+
+    private List<Action> prepareActions(int id, String name, List<Action> newActions, List<Action> oldActions) {
+        if (newActions.size() == 0) {
+            return new ArrayList<>();
+        }
+        int i = 0;
+        while (oldActions.size() != 0 && newActions.size() != 0 && oldActions.get(i).getLocation().equals(newActions.get(0).getLocation())) {
+            newActions.remove(0);
+            i++;
+        }
+
+        if (newActions.size() == 0) {
+            return new ArrayList<>();
+        }
+
+        List<Action> answer = new ArrayList<>();
+
+        // TODO: подстроить под ид цепочек для каждого человека
+        for (i = 0; i < newActions.size(); i++) {
+            Action action = newActions.get(i);
+            answer.add(new Action(action.getAction(), id, action.getLocation(), name));
+        }
+        return answer;
+    }
+
+
+    private void makeAnswer(Stage mainStage) {
+        List<Action> oldFirstActions = controller.getPreparedFirstActionsList();
+        List<Action> oldSecondActions = controller.getPreparedSecondActionsList();
+
+        int firstChainId = controller.getFirstActionsList().get(0).getChainId();
+        String firstChainName = controller.getFirstActionsList().get(0).getName();
+
+        int secondChainId = controller.getSecondActionsList().get(0).getChainId();
+        String secondChainName = controller.getSecondActionsList().get(0).getName();
+
+        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions);
+
+        if (newFirstActions.isEmpty()) {
+            return;
+        }
+
+        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions);
+
+        if (newSecondActions.isEmpty()) {
+            return;
+        }
+
+        List<Action> firstActionsToServer = prepareActions(firstChainId, firstChainName, newFirstActions, oldFirstActions);
+        List<Action> secondActionsToServer = prepareActions(secondChainId, secondChainName, newSecondActions, oldSecondActions);
+
+        if (firstActionsToServer.isEmpty() || secondActionsToServer.isEmpty()) {
+            return;
+        }
+
+        mainStage.getScene().getWindow().hide();
+        mainScene.show();
+        UpdateDocument firstDoc = new UpdateDocument(firstActionsToServer);
+        UpdateDocument secondDoc = new UpdateDocument(secondActionsToServer);
+
+        judge.sendDecisionWithActionList(-1, firstDoc.pack(), secondDoc.pack());
     }
 
     private void confirmDecision(Stage mainStage, String decision) {
