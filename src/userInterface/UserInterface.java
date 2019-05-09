@@ -177,7 +177,6 @@ public class UserInterface {
         textWrapper.setPadding(new Insets(20, 20, 20, 20));
         FlowPane text = new FlowPane();
         textWrapper.setContent(text);
-        generateText(text, textWrapper);
         textWrapper.getStyleClass().add("default-outline");
         GridPane.setMargin(textWrapper, new Insets(10));
 
@@ -274,7 +273,7 @@ public class UserInterface {
         primaryStage.addEventHandler(ControllerImpl.MoveSelectedSentenceEvent.MOVE_SELECTED_SENTENCE,
                 event -> {
                     checkSentences = false;
-                    while (selectedSentenceStart < event.id) right.fire();
+                    while (selectedSentenceEnd < event.id) right.fire();
                     checkSentences = true;
                     event.consume();
                 });
@@ -519,6 +518,9 @@ public class UserInterface {
 
         Scene sc = new Scene(overall, APP_WIDTH, APP_HEIGHT);
         sc.getStylesheets().add("styles.css");
+        overall.applyCss();
+        overall.layout();
+        generateText(text, textWrapper);  // generating text here to ensure that the layout is defined
         primaryStage.setOnCloseRequest(event -> {
             if (user != null) user.kill();
             else controller.clearActions();
@@ -563,7 +565,6 @@ public class UserInterface {
      */
     private void generateText(FlowPane textPane, ScrollPane outer) {
         List<Chain> chains = controller.getChains();
-        System.out.println(outer.getHeight());
         /*
         A clone pane used to determine whether we should stop adding new buttons.
          */

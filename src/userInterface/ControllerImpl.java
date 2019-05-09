@@ -7,6 +7,7 @@ import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
 import document.UpdateDocument;
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.stage.Stage;
@@ -174,7 +175,8 @@ public class ControllerImpl implements Controller {
         setText(text);
         callChainRefresh();
         if (startFrom >= 0) maxId = startFrom;
-        callMoveSentence(maxId);
+        final int fmaxId = maxId;
+        Platform.runLater(() -> callMoveSentence(fmaxId));
     }
 
     public void restoreFromDump(File file) throws IOException {
