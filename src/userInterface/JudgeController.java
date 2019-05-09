@@ -21,7 +21,7 @@ public class JudgeController {
     private Chain firstChain, secondChain;
     private boolean isSingle;
     private Confl conflType = Confl.NEW_DIF;
-    private String info = "Один из участников решил создать новую цеепочку, состоящю из нулевой анафоры, в то время как второй учатсник не использовал эту нулвую анафору ни в одной из цепочек";
+    private String info = "Один из участников решил создать новую цепочку, состоящую из нулевой анафоры, в то время как второй учатсник не использовал эту нулвую анафору ни в одной из цепочек";
     private boolean isFirstEmpty;
     private int textId;
     private List<Action> firstActionsList;
@@ -213,9 +213,9 @@ public class JudgeController {
             if (notEmpty.getLocations().size() == 1) {
                 conflType = Confl.NEWCHAIN_EMPTY;
                 if (notEmpty.getLocations().get(0) instanceof Blank) {
-                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящю из нулевой анафоры, в то время как ").concat(empty()).concat(" участник не использовал эту нулевую анафору ни в одной из цепочек.");
+                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящую из нулевой анафоры, в то время как ").concat(empty()).concat(" участник не использовал эту нулевую анафору ни в одной из цепочек.");
                 } else {
-                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящю из фразы \"").concat(notEmpty.getLocations().get(0).toString()).concat("\", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
+                    info = nonEmptyCap().concat(" участник решил создать новую цепочку, состоящую из фразы \"").concat(notEmpty.getLocations().get(0).toString()).concat("\", в то время как ").concat(empty()).concat(" участник не использовал эту фразу ни в одной из цепочек.");
                 }
             } else {
                 conflType = Confl.CONTCHAIN_EMPTY;

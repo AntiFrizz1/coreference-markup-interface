@@ -96,7 +96,7 @@ public class JudgeInterface extends Application {
 
     private void startScene() {
         Stage stage = new Stage();
-        stage.setTitle("Ожидание конфликта.");
+        stage.setTitle("Ожидание конфликта");
         stage.setMinWidth(800);
         stage.setMinHeight(600);
         Random random = new Random();
@@ -224,10 +224,10 @@ public class JudgeInterface extends Application {
         nobodyWithMyAnswer.setToggleGroup(group);
         bothDiff.setToggleGroup(group);
 
-        nobody.setText("Оба не правы.");
-        both.setText("Обав правы.");
-        nobodyWithMyAnswer.setText("Оба не правы(Предложить свой вариант)");
-        bothDiff.setText("Оба правы(Но должны находится в разных цепочках)");
+        nobody.setText("Оба не правы");
+        both.setText("Обав правы");
+        nobodyWithMyAnswer.setText("Оба не правы (Предложить свой вариант)");
+        bothDiff.setText("Оба правы (Но должны находиться в разных цепочках)");
 
         FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
         res.setAlignment(Pos.CENTER_LEFT);
@@ -235,51 +235,51 @@ public class JudgeInterface extends Application {
         System.out.println(a.toString());
         switch (controller.getConflType()) {
             case NEW_SAME:
-                both.setText("Подтвердить создание цепочки.");
-                nobody.setText("Отклонить создание цепочки.");
+                both.setText("Подтвердить создание цепочки");
+                nobody.setText("Отклонить создание цепочки");
                 res.getChildren().addAll(both, nobody, nobodyWithMyAnswer);
                 break;
             case NEWCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить создание цепочки(Принять решение второго участника).");
-                    first.setText("Отклонить создание цепочки(Принять решение первого участника).");
+                    second.setText("Подтвердить создание цепочки (Принять решение второго участника)");
+                    first.setText("Отклонить создание цепочки (Принять решение первого участника)");
                 } else {
-                    first.setText("Подтвердить создание цепочки(Принять решение первого участника).");
-                    second.setText("Отклонить создание цепочки(Принять решение второго участника).");
+                    first.setText("Подтвердить создание цепочки (Принять решение первого участника)");
+                    second.setText("Отклонить создание цепочки (Принять решение второго участника)");
                 }
                 res.getChildren().addAll(first, second, nobodyWithMyAnswer);
                 break;
             case ADD_SAME:
-                first.setText("Подтвердить решение первого участника.");
-                second.setText("Подтвердить решение второго участника.");
-                both.setText("Оба правы(Объединить цепочки)");
+                first.setText("Подтвердить решение первого участника");
+                second.setText("Подтвердить решение второго участника");
+                both.setText("Оба правы (Объединить цепочки)");
                 res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
             case ADD_EMPTY_SAME:
             case CONTCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
-                    first.setText("Отклонить добавление элемента в цепочку(Принять решение первого участника).");
+                    second.setText("Подтвердить добавление элемента в цепочку (Принять решение второго участника)");
+                    first.setText("Отклонить добавление элемента в цепочку (Принять решение первого участника)");
                 } else {
-                    first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
-                    second.setText("Отклонить добавление элемента в цепочку(Принять решение второго участника).");
+                    first.setText("Подтвердить добавление элемента в цепочку (Принять решение первого участника)");
+                    second.setText("Отклонить добавление элемента в цепочку (Принять решение второго участника)");
                 }
                 res.getChildren().addAll(first, second, nobodyWithMyAnswer);
                 break;
             case NEW_ADD:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить добавление элемента в цепочку(Принять решение второго участника).");
-                    first.setText("Подтвердить создание новой цепочки(Принять решение первого участника).");
+                    second.setText("Подтвердить добавление элемента в цепочку (Принять решение второго участника)");
+                    first.setText("Подтвердить создание новой цепочки (Принять решение первого участника)");
                 } else {
-                    first.setText("Подтвердить добавление элемента в цепочку(Принять решение первого участника).");
-                    second.setText("Подтвердить создание новой цепочки(Принять решение второго участника).");
+                    first.setText("Подтвердить добавление элемента в цепочку (Принять решение первого участника)");
+                    second.setText("Подтвердить создание новой цепочки (Принять решение второго участника)");
                 }
                 res.getChildren().addAll(first, second, nobody, nobodyWithMyAnswer);
                 break;
             case NEW_DIF:
-                first.setText("Подтвердить решение первого участника.");
-                second.setText("Подтвердить решение второго участника.");
-                both.setText("Оба правы(Объединить цепочки");
+                first.setText("Подтвердить решение первого участника");
+                second.setText("Подтвердить решение второго участника");
+                both.setText("Оба правы (Объединить цепочки)");
                 res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
         }
@@ -287,13 +287,12 @@ public class JudgeInterface extends Application {
         confirm.setOnAction(event -> {
             if (group.getSelectedToggle() != null) {
                 if (controller.getDecision() == -1) {
-                    //TODO:сделать вот такую функцию
                     makeAnswer(stage);
                 } else {
                     confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
                 }
             } else {
-                errorScene(stage, "Вы ничего не выбрали.");
+                errorScene(stage, "Вы ничего не выбрали");
             }
         });
         res.getChildren().add(confirm);
@@ -653,14 +652,22 @@ public class JudgeInterface extends Application {
         int secondChainId = controller.getSecondActionsList().get(0).getChainId();
         String secondChainName = controller.getSecondActionsList().get(0).getName();
 
-        // что-то не двигается
-        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions, 100, "Выполните разметку для первого участника");
+        int startFromFirst = getLastLocation(controller.getFirstActionsList());
+        int startFromSecond = getLastLocation(controller.getSecondActionsList());
+
+        if (startFromFirst < 0 && startFromSecond > 0) {
+            startFromFirst = startFromSecond;
+        } else if (startFromFirst > 0 && startFromSecond < 0) {
+            startFromSecond = startFromFirst;
+        }
+
+        List<Action> newFirstActions = getActionsFromWindow(oldFirstActions, startFromFirst, "Выполните разметку для первого участника");
 
         if (newFirstActions.isEmpty()) {
             return;
         }
-        // и тут тоже
-        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions, getLastLocation(controller.getSecondActionsList()), "Выполните разметку для второго клиента");
+
+        List<Action> newSecondActions = getActionsFromWindow(oldSecondActions, startFromSecond, "Выполните разметку для второго участника");
 
         if (newSecondActions.isEmpty()) {
             return;
@@ -701,7 +708,7 @@ public class JudgeInterface extends Application {
         ScrollPane scroll = genInfo(600, "Вы выбрали: ".concat(decision).concat("\nПодтвердите ваш выбор"));
         HBox box = new HBox(20);
 
-        Button ok = new Button("OK");
+        Button ok = new Button("ОК");
         ok.setOnAction(event -> {
             stage.getScene().getWindow().hide();
             mainStage.getScene().getWindow().hide();
@@ -709,7 +716,7 @@ public class JudgeInterface extends Application {
             mainScene.show();
         });
 
-        Button cancel = new Button("CANCEL");
+        Button cancel = new Button("Отмена");
         cancel.setOnAction(event -> {
             stage.getScene().getWindow().hide();
         });
