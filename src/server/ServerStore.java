@@ -62,7 +62,7 @@ public class ServerStore {
                 writer.println(teamId + "text=" + textNum);
                 writer.flush();
             } catch (FileNotFoundException e) {
-                log("ServerStore.Game.addTeam", e.getMessage());
+                log("ServerStore.Game.addTeam", e.getMessage(), 0);
             }
         }
     }
@@ -90,14 +90,14 @@ public class ServerStore {
         try {
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(prefix + ServerImpl.DELIMITER + "gamesServer"), StandardCharsets.UTF_8)));
         } catch (FileNotFoundException e) {
-            log("ServerStore.setServerWriter", e.getMessage());
+            log("ServerStore.setServerWriter", e.getMessage(), 0);
         }
     }
 
     boolean putActions(List<Action> actions, int textNum, int teamId) {
         synchronized (games) {
             Game curGame = games.get(textNum);
-            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(this::compareActions).collect(Collectors.toList()));
+            curGame.idToActionList.get(teamId).addAll(actions.stream().sorted(ServerStore::trueCompareActions).collect(Collectors.toList()));
             PrintWriter writer = curGame.idToWriter.get(teamId);
             for (Action action : actions) {
                 writer.println(action.pack());
@@ -125,19 +125,19 @@ public class ServerStore {
                         continue;
                     }
 
-                    if (actionFromTeamOne != null && (mode == 1 && (actionFromTeamTwo == null || compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) ||
-                            (mode == 0 && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
+                    if (actionFromTeamOne != null && (mode == 1 && (actionFromTeamTwo == null || compareForServerStore(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0) ||
+                            (mode == 0 && compareForServerStore(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) < 0))) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne,
                                 new Action(-1, -1, new Blank(1), "qq"), i, curGame.teamIdList.get(0),
                                 curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
-                    } else if (actionFromTeamTwo != null && (mode == 1  && (actionFromTeamOne == null || compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) || mode == 0 &&
-                            compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
+                    } else if (actionFromTeamTwo != null && (mode == 1  && (actionFromTeamOne == null || compareForServerStore(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0) || mode == 0 &&
+                            compareForServerStore(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) > 0)) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(
                                 new Action(-1, -1, new Blank(1), "qq"), actionFromTeamTwo, i,
                                 curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(1)).remove(0);
-                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null && compare(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) == 0) {
+                    } else if (actionFromTeamOne != null && actionFromTeamTwo != null && compareForServerStore(actionFromTeamOne.getLocation(), actionFromTeamTwo.getLocation()) == 0) {
                         conflicts.get(i).add(new ConflictInfo(new ConflictData(actionFromTeamOne, actionFromTeamTwo, i,
                                 curGame.teamIdList.get(0), curGame.teamIdList.get(1))));
                         curGame.idToActionList.get(curGame.teamIdList.get(0)).remove(0);
@@ -173,11 +173,107 @@ public class ServerStore {
         }
     }
 
-    public int compareActions(Action action1, Action action2) {
-        return compare(action1.getLocation(), action2.getLocation());
+    public static int compareActionsForServerStore(Action action1, Action action2) {
+        return compareForServerStore(action1.getLocation(), action2.getLocation());
     }
 
-    public static int compare(Location o1, Location o2) {
+    public static int trueCompareActions(Action action1, Action action2) {
+        return trueCompare(action1.getLocation(), action2.getLocation());
+    }
+
+    private static boolean isHasSameElement(Set<Integer> a1, Set<Integer> a2) {
+        for (int a: a1) {
+            if (a2.contains(a)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int compareForServerStore(Location o1, Location o2) {
+        if (o1 instanceof Blank) {
+            if (o2 instanceof Phrase) {
+                Blank blank = (Blank) o1;
+                Phrase phrase = (Phrase) o2;
+                int ar = phrase.getPositions().stream().min(Comparator.naturalOrder()).get();
+                if (ar > blank.getPosition()) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else {
+                int id1 = ((Blank) o1).getPosition();
+                int id2 = ((Blank) o2).getPosition();
+                if (id1 < id2) {
+                    return -1;
+                } else if (id1 == id2) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        } else {
+            if (o2 instanceof Phrase) {
+                Phrase phrase1 = (Phrase) o1;
+                Phrase phrase2 = (Phrase) o2;
+                int[] ar1 = phrase1.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
+                int[] ar2 = phrase2.getPositions().stream().mapToInt(Integer::valueOf).sorted().toArray();
+                if (ar1.length == ar2.length) {
+                    boolean f = true;
+                    for (int i = 0; i < ar1.length; i++) {
+                        if (ar1[i] != ar2[i]) {
+                            f = false;
+                            break;
+                        }
+                    }
+                    if (f) {
+                        return 0;
+                    }
+                }
+
+                Set<Integer> positions1 = new HashSet<>(phrase1.getPositions());
+                Set<Integer> positions2 = new HashSet<>(phrase2.getPositions());
+
+                if (isHasSameElement(positions1, positions2)) {
+                    return 0;
+                }
+
+                int res1 = phrase1.getPositions().stream().min(Integer::compareTo).get();
+                int res2 = phrase2.getPositions().stream().min(Integer::compareTo).get();
+
+                int res11 = phrase1.getPositions().stream().max(Integer::compareTo).get();
+                int res22 = phrase2.getPositions().stream().max(Integer::compareTo).get();
+                if (res1 > res2) {
+                    return 1;
+                } else if (res1 < res2) {
+                    return -1;
+                } else {
+                    if (res11 < res22) {
+                        return -1;
+                    } else if (res11 > res22) {
+                        return 1;
+                    } else {
+                        if (phrase1.getPositions().size() < phrase2.getPositions().size()) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    }
+                }
+            } else {
+                Blank blank = (Blank) o2;
+                Phrase phrase = (Phrase) o1;
+                int ar = phrase.getPositions().stream().min(Comparator.naturalOrder()).get();
+                if (ar > blank.getPosition()) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        }
+    }
+
+    public static int trueCompare(Location o1, Location o2) {
         if (o1 instanceof Blank) {
             if (o2 instanceof Phrase) {
                 Blank blank = (Blank) o1;

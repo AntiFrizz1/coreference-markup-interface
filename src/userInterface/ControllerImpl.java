@@ -7,6 +7,7 @@ import chain.ChainImpl;
 import chain.Location;
 import chain.Phrase;
 import document.UpdateDocument;
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.stage.Stage;
@@ -60,7 +61,7 @@ public class ControllerImpl implements Controller {
     private Chain curChain;
     private Map<Integer, String> selected;
     private int selectedBlank = -1, maxChainId = 0;
-    private String newChainName; //TODO НАССАТЬ НА ЕБАЛО ВЛАДА
+    private String newChainName;
     private List<Action> actions;  // TODO: send this to the server and then empty it after each send
     private List<Chain> removedChains;
     private Stage primaryStage;  // TODO: this will be used to show the conflict window
@@ -116,20 +117,12 @@ public class ControllerImpl implements Controller {
         return isJudge;
     }
 
-    boolean isLoggedUser() {
-        return isLoggedUser;
-    }
-
-    public void loginJudge() {
+    void loginJudge() {
         isJudge = true;
     }
 
-    public void loginUser(int id) {
-        userId = id;
-        if (userId > 100) isJudge = true;
-            // TODO: call to server to mark that a user has logged in
-        else isLoggedUser = true;
-        onlineMode();
+    boolean isLoggedUser() {
+        return isLoggedUser;
     }
 
     @Override
@@ -147,47 +140,14 @@ public class ControllerImpl implements Controller {
     }
 
     public void restoreState(String text, List<Action> actions) {
-        Map<Integer, Chain> chain = new HashMap<>();
-        int maxId = 0;
-        for (Action a : actions) {
-            int id = a.getChainId();
-            if (chain.containsKey(id)) {
-                chain.get(id).addPart(a.getLocation());
-            } else {
-                ChainImpl newChain = new ChainImpl(a);
-                newChain.setColor(generateRandomColor());
-                chain.put(id, newChain);
-            }
-            if (a.getLocation() instanceof Blank) {
-                maxId = Math.max(maxId, ((Blank) a.getLocation()).getPosition());
-            } else if (a.getLocation() instanceof Phrase) {
-                maxId = Math.max(maxId, ((Phrase) a.getLocation()).getPositions().stream()
-                        .max(Comparator.naturalOrder()).orElse(0));
-            }
-        }
-        chains = new ArrayList<>(chain.values());
-        System.out.println(chains);
-        setText(text);
-        callChainRefresh();
-        callMoveSentence(maxId);
+        restoreState(text, actions, -1);
     }
 
-    public void restoreFromDump(File file) throws IOException {
-        BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
-//        String textPath = r.readLine();
-//        File f = new File(textPath);
-//        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
-//        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
-        List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-        List<Action> actions = new ArrayList<>();
-        for (String s : lines) {
-            actions.addAll(new UpdateDocument(s).getActions());
-        }
-//        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
+    public void restoreState(String text, List<Action> actions, int startFrom) {
         Map<Integer, Chain> chain = new HashMap<>();
         int maxId = 0;
         for (Action a : actions) {
-            if (a.getAction() == ADDWORD || a.getAction() == ADDCHAIN) {
+            if (a.getAction() == ADDWORD || a.getAction() == ADDCHAIN) {  // TODO: здесь подразумевается что от сервера приходят только экшны с 0 и 1
                 int id = a.getChainId();
                 maxChainId = Math.max(maxChainId, id);
                 if (chain.containsKey(id)) {
@@ -212,10 +172,26 @@ public class ControllerImpl implements Controller {
             }
         }
         chains = new ArrayList<>(chain.values());
-//        System.out.println(chains);
-//        setText(text);
+        setText(text);
         callChainRefresh();
-        callMoveSentence(maxId);
+        if (startFrom >= 0) maxId = startFrom;
+        final int fmaxId = maxId;
+        Platform.runLater(() -> callMoveSentence(fmaxId));
+    }
+
+    public void restoreFromDump(File file) throws IOException {
+        BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
+//        String textPath = r.readLine();
+//        File f = new File(textPath);
+//        String txt = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8)).lines().collect(Collectors.joining(". "));
+//        txt = txt.replaceAll("\\s+", " ").replaceAll("\\.+", ".").replaceAll("(\\. )+", ". ");
+        List<String> lines = r.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+        List<Action> actions = new ArrayList<>();
+        for (String s : lines) {
+            actions.addAll(new UpdateDocument(s).getActions());
+        }
+//        List<Action> actions = new UpdateDocument(r.readLine()).getActions();
+        restoreState(text, actions);
     }
 
 
@@ -419,7 +395,7 @@ public class ControllerImpl implements Controller {
             if (!selected.containsKey(position)) selected.put(position, btn);
             else selected.remove(position);
             return true;
-        } else if (selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
+        } else if (btn.trim().isEmpty() && selected.isEmpty() && (selectedBlank == -1 || selectedBlank == position)) {
             if (selectedBlank == -1) selectedBlank = position;
             else selectedBlank = -1;
             return true;
@@ -530,7 +506,7 @@ public class ControllerImpl implements Controller {
         return ac.getKey();
     }
 
-    public int getPrevStatesSize() {
+    int getPrevStatesSize() {
         return prevStates.size();
     }
 
@@ -581,7 +557,7 @@ public class ControllerImpl implements Controller {
      * @param wordId the word's position in the whole text
      * @return true whether a chain contains this word in one of its locations, false otherwise
      */
-    public boolean chainContainsWord(Chain chain, int wordId) {
+    boolean chainContainsWord(Chain chain, int wordId) {
         return chain.getLocations().stream().filter(l -> l instanceof Phrase).map(ph -> ((Phrase) ph).getPositions())
                 .anyMatch(s -> s.contains(wordId));
     }
@@ -593,36 +569,36 @@ public class ControllerImpl implements Controller {
      * @param blankId the blank's position in the whole text
      * @return true whether a chain contains this blank in one of its locations, false otherwise
      */
-    public boolean chainContainsBlank(Chain chain, int blankId) {
+    boolean chainContainsBlank(Chain chain, int blankId) {
         return chain.getLocations().stream().filter(l -> l instanceof Blank).map(bl -> ((Blank) bl).getPosition())
                 .anyMatch(s -> s == blankId);
     }
 
     static class RefreshEvent extends Event {
-        public static final EventType<RefreshEvent> REFRESH_TEXT =
+        static final EventType<RefreshEvent> REFRESH_TEXT =
                 new EventType<>(Event.ANY, "REFRESH_TEXT");
 
-        public RefreshEvent() {
+        RefreshEvent() {
             super(REFRESH_TEXT);
         }
     }
 
     static class RefreshChainEvent extends Event {
-        public static final EventType<RefreshChainEvent> REFRESH_CHAIN =
+        static final EventType<RefreshChainEvent> REFRESH_CHAIN =
                 new EventType<>(Event.ANY, "REFRESH_CHAIN");
 
-        public RefreshChainEvent() {
+        RefreshChainEvent() {
             super(REFRESH_CHAIN);
         }
     }
 
     static class MoveSelectedSentenceEvent extends Event {
-        public static final EventType<MoveSelectedSentenceEvent> MOVE_SELECTED_SENTENCE =
+        static final EventType<MoveSelectedSentenceEvent> MOVE_SELECTED_SENTENCE =
                 new EventType<>(Event.ANY, "MOVE_SELECTED_SENTENCE");
 
         public int id;
 
-        public MoveSelectedSentenceEvent(int location) {
+        MoveSelectedSentenceEvent(int location) {
             super(MOVE_SELECTED_SENTENCE);
             id = location;
         }

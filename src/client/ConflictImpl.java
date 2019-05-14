@@ -29,12 +29,13 @@ public class ConflictImpl implements Conflict {
     public Chain firstChain, secondChain;
 
 
-    public ConflictImpl(String list1, String list2, String text) {
+    public ConflictImpl(String list1, String list2, int textId, String text) {
         UpdateDocument doc1 = new UpdateDocument(list1);
         UpdateDocument doc2 = new UpdateDocument(list2);
         first = doc1.getActions();
         second = doc2.getActions();
 
+        this.textId = textId;
         this.text = text;
 
         firstWordsLocation = new HashSet<>();
@@ -99,8 +100,8 @@ public class ConflictImpl implements Conflict {
             }
 
         }
-        left = Math.max(0, left - 20);
-        right = Math.min(words.size() - 1, right + 20);
+        left = Math.max(0, left - 30);
+        right = Math.min(words.size() - 1, right + 30);
 
         wordList = words.subList(left, right);
 
@@ -125,19 +126,19 @@ public class ConflictImpl implements Conflict {
         if (firstTmp == null) {
             firstLast = new HashSet<>();
         } else if (firstTmp instanceof Phrase) {
-            firstLast = ((Phrase) firstTmp).getPositions();
+            firstLast = ((Phrase) firstTmp).getPositions().stream().map(e -> (e - finalLeft)).collect(Collectors.toSet());
         } else if (firstTmp instanceof Blank) {
             firstLast = new HashSet<>();
-            firstLast.add(-((Blank) firstTmp).getPosition() - 1);
+            firstLast.add(-(((Blank) firstTmp).getPosition() - finalLeft) - 1);
         }
 
         if (secondTmp == null) {
             secondLast = new HashSet<>();
         } else if (secondTmp instanceof Phrase) {
-            secondLast = ((Phrase) secondTmp).getPositions();
+            secondLast = ((Phrase) secondTmp).getPositions().stream().map(e -> (e - finalLeft)).collect(Collectors.toSet());
         } else if (secondTmp instanceof Blank) {
             secondLast = new HashSet<>();
-            secondLast.add(-((Blank) secondTmp).getPosition() - 1);
+            secondLast.add(-(((Blank) secondTmp).getPosition() - finalLeft) - 1);
         }
     }
 

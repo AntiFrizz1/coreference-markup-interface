@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 /**
@@ -17,60 +19,92 @@ import java.util.List;
  */
 public class Judge extends AbstractClient {
 
-    public List<String> texts;
+    private List<String> texts;
 
     public Judge(String id, int port, String serviceAddress) {
         super(id, port, serviceAddress);
         texts = new ArrayList<>();
     }
-    //private Listener listener;
+
+    public Queue<ConflictImpl> conflictQueue = new ConcurrentLinkedQueue<>();
+
+    private Runnable judgeReceiver = () -> {
+        while (isServerWork) {
+            try {
+                int count = 0;
+                while (!reader.ready() && count < 3) {
+                    Thread.sleep(5000);
+                    count++;
+                }
+                if (count == 3) {
+                    isServerWork = false;
+                    break;
+                }
+                int out = reader.read();
+                if (out == 0) {
+                } else if (out == 1) {
+                    while (!reader.ready()) {
+                        Thread.sleep(200);
+                    }
+                    String first = reader.readLine();
+
+                    while (!reader.ready()) {
+                        Thread.sleep(200);
+                    }
+                    String second = reader.readLine();
+
+                    while (!reader.ready()) {
+                        Thread.sleep(200);
+                    }
+                    String third = reader.readLine();
+
+                    if (first == null || second == null || third == null) {
+                        isServerWork = false;
+                        break;
+                    }
+                    int id = Integer.parseInt(third);
+                    conflictQueue.add(new ConflictImpl(first, second, id, texts.get(id)));
+                }
+            } catch (InterruptedException | IOException e) {
+                isServerWork = false;
+                break;
+            }
+        }
+    };
 
     @Override
     public int joinOnline() {
-        if (sendConnectionInfo() == 0) {
+        int out = sendConnectionInfo();
+        if (out == 0) {
             System.out.println("Successful connect to server as judge with id = " + id);
             readAllTextes();
+            receiverThread = new Thread(judgeReceiver);
+            senderThread = new Thread(sender);
+            isServerWork = true;
+            receiverThread.start();
+            senderThread.start();
             return 0;
         } else {
             System.err.println("Can't connect to server as judge with id = " + id);
-            return -1;
+            return out;
         }
     }
 
     public void sendDecision(int decision) {
-        writer.println(decision);
-        writer.flush();
+        dataToSend.add(String.valueOf(decision));
     }
 
     public Conflict getInfo() {
 
-        try {
-            while (!reader.ready()) {
-                Thread.sleep(1000);
+        while (isServerWork) {
+            try {
+                while (conflictQueue.isEmpty() && isServerWork) {
+                    Thread.sleep(1000);
+                }
+                return conflictQueue.poll();
+            } catch (InterruptedException e) {
+                break;
             }
-            String first = reader.readLine();
-
-            while (!reader.ready()) {
-                Thread.sleep(1000);
-            }
-            String second = reader.readLine();
-
-            while (!reader.ready()) {
-                Thread.sleep(1000);
-            }
-            String third = reader.readLine();
-
-            if (first == null || second == null || third == null) {
-                connect();
-                /*sendConnectionInfo();*/
-            } else {
-                int id = Integer.parseInt(third);
-                return new ConflictImpl(first, second, texts.get(id));
-            }
-        } catch (IOException e) {
-            System.err.println("Can't get information from server");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
         return null;
     }
@@ -91,5 +125,19 @@ public class Judge extends AbstractClient {
             e.printStackTrace();
         }
 
+    }
+
+    public void kill() {
+        isServerWork = false;
+        receiverThread.interrupt();
+        senderThread.interrupt();
+    }
+
+    public String getTextByIndex(int index) {
+        return texts.get(index);
+    }
+
+    public void sendDecisionWithActionList(int decision, String firstActionList, String secondActionList) {
+        dataToSend.add(String.valueOf(decision) + "@" + firstActionList + "@" + secondActionList);
     }
 }
