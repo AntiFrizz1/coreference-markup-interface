@@ -973,7 +973,15 @@ public class ServerImpl implements Server {
                                         List<Action> secondActions = secondDoc.getActions();
 
                                         for (int i = 0; i < firstActions.size(); i++) {
-                                            judgeStore.putOneAction(conflict.teamOneId, firstActions.get(i), conflict.teamTwoId, secondActions.get(i), conflict.textId, decision);
+                                            judgeStore.putOneAction(
+                                                    conflict.teamOneId,
+                                                    firstActions.get(i),
+                                                    conflict.teamTwoId,
+                                                    secondActions.get(i),
+                                                    conflict.textId,
+                                                    ServerStore.trueCompareActions(
+                                                            firstActions.get(i), secondActions.get(i)) == 0 ? 3 : -1
+                                            );
                                         }
                                     } else {
                                         judgeStore.putOneAction(conflict.teamOneId, action1, conflict.teamTwoId, action2,
@@ -1010,7 +1018,12 @@ public class ServerImpl implements Server {
                                             leaderBoard.put(localServerIdToId.get(conflict.teamTwoId),
                                                     leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) - 20);
                                         }
-                                        // TODO: Написать что делать если встертили -1 и 4
+                                        if (decision == 4) {
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamOneId),
+                                                    leaderBoard.get(localServerIdToId.get(conflict.teamOneId)) + 5);
+                                            leaderBoard.put(localServerIdToId.get(conflict.teamTwoId),
+                                                    leaderBoard.get(localServerIdToId.get(conflict.teamTwoId)) + 5);
+                                        }
                                     }
                                     leaderBoardNeed.compareAndSet(false, true);
                                     log("judgeWorker", "judge id=" + id + " complete task with decision " +
@@ -1056,7 +1069,6 @@ public class ServerImpl implements Server {
                 this.textId = textId;
             }
         }
-
 
 
         Runnable receiverWorker = () -> {

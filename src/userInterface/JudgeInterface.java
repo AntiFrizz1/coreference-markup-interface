@@ -634,7 +634,13 @@ public class JudgeInterface extends Application {
     }
 
     private int getLastLocation(List<Action> actions) {
+        Action lastAction = actions.get(actions.size() - 1);
         Location location = actions.get(actions.size() - 1).getLocation();
+
+        if (lastAction.isEmpty()) {
+            return -1;
+        }
+
         if (location instanceof Blank) {
             return ((Blank) location).getPosition();
         } else {
