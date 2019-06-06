@@ -384,28 +384,30 @@ public class ServerImpl implements Server {
                         log("judgeConnection", "socket is null", 1);
                         continue;
                     }
-                    try {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(),
-                                StandardCharsets.UTF_8));
-                        PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
-                                client.getOutputStream(), StandardCharsets.UTF_8)));
+                    new Thread(() -> {
+                        try {
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(),
+                                    StandardCharsets.UTF_8));
+                            PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+                                    client.getOutputStream(), StandardCharsets.UTF_8)));
 
-                        String stringId = reader.readLine();
-                        log("judgeConnection", client.toString() + " id=" + stringId, 0);
-                        if (judgeIds.contains(stringId)) {
-                            writer.write(0);
-                            writer.flush();
-                            judges.add(new JudgeInfo(client, stringId));
-                            log("judgeConnection", "judge with id=" + stringId +
-                                    " added to judges", 1);
-                        } else {
-                            writer.write(2);
-                            writer.flush();
-                            log("judgeConnection", "client with incorrect id=" + stringId, 1);
+                            String stringId = reader.readLine();
+                            log("judgeConnection", client.toString() + " id=" + stringId, 0);
+                            if (judgeIds.contains(stringId)) {
+                                writer.write(0);
+                                writer.flush();
+                                judges.add(new JudgeInfo(client, stringId));
+                                log("judgeConnection", "judge with id=" + stringId +
+                                        " added to judges", 1);
+                            } else {
+                                writer.write(2);
+                                writer.flush();
+                                log("judgeConnection", "client with incorrect id=" + stringId, 1);
+                            }
+                        } catch (Exception e) {
+                            log("judgeConnection", e.getMessage(), 0);
                         }
-                    } catch (Exception e) {
-                        log("judgeConnection", e.getMessage(), 0);
-                    }
+                    }).start();
                 } else {
                     Thread.sleep(1000);
                 }
@@ -428,45 +430,47 @@ public class ServerImpl implements Server {
                         log("userConnection", "socket is null", 1);
                         continue;
                     }
-                    try {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(),
-                                StandardCharsets.UTF_8));
-                        PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
-                                client.getOutputStream(), StandardCharsets.UTF_8)));
+                    new Thread(() -> {
+                        try {
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(),
+                                    StandardCharsets.UTF_8));
+                            PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+                                    client.getOutputStream(), StandardCharsets.UTF_8)));
 
-                        String stringId = reader.readLine();
-                        log("userConnection", client.toString() + " id=" + stringId, 0);
-                        if (idToLocalServerId.containsKey(stringId)) {
-                            int id = idToLocalServerId.get(stringId);
-                            if (idToStatus.get(id).compareAndSet(0, 1)) {
-                                log("userConnection", stringId + " serverAns=1", 0);
-                                writer.write(1);
-                                writer.flush();
-                                reconnectQueue.add(new Pair<>(id, client));
-                                log("userConnection", "user with id=" + stringId +
-                                        " added to reconnectQueue", 1);
+                            String stringId = reader.readLine();
+                            log("userConnection", client.toString() + " id=" + stringId, 0);
+                            if (idToLocalServerId.containsKey(stringId)) {
+                                int id = idToLocalServerId.get(stringId);
+                                if (idToStatus.get(id).compareAndSet(0, 1)) {
+                                    log("userConnection", stringId + " serverAns=1", 0);
+                                    writer.write(1);
+                                    writer.flush();
+                                    reconnectQueue.add(new Pair<>(id, client));
+                                    log("userConnection", "user with id=" + stringId +
+                                            " added to reconnectQueue", 1);
+                                } else {
+                                    log("userConnection", stringId + " serverAns=2", 0);
+                                    writer.write(2);
+                                    writer.flush();
+                                }
                             } else {
-                                log("userConnection", stringId + " serverAns=2", 0);
-                                writer.write(2);
+                                int id = clientNumber.getAndIncrement();
+                                idToLocalServerId.put(stringId, id);
+                                localServerIdToId.put(id, stringId);
+                                log("userConnection", stringId + " serverAns=0", 0);
+                                writer.write(0);
                                 writer.flush();
+                                idToSocket.put(id, client);
+                                idToStatus.put(id, new AtomicInteger(1));
+                                connectedUsers.add(new Pair<>(id, client));
+                                log("userConnection", "user with id=" + stringId +
+                                        " added to connectedUsers", 1);
                             }
-                        } else {
-                            int id = clientNumber.getAndIncrement();
-                            idToLocalServerId.put(stringId, id);
-                            localServerIdToId.put(id, stringId);
-                            log("userConnection", stringId + " serverAns=0", 0);
-                            writer.write(0);
-                            writer.flush();
-                            idToSocket.put(id, client);
-                            idToStatus.put(id, new AtomicInteger(1));
-                            connectedUsers.add(new Pair<>(id, client));
-                            log("userConnection", "user with id=" + stringId +
-                                    " added to connectedUsers", 1);
-                        }
 
-                    } catch (Exception e) {
-                        log("userConnection", e.getMessage(), 0);
-                    }
+                        } catch (Exception e) {
+                            log("userConnection", e.getMessage(), 0);
+                        }
+                    }).start();
                 } else {
                     Thread.sleep(1000);
                 }

@@ -282,6 +282,11 @@ public class JudgeInterface extends Application {
                 both.setText("Оба правы (Объединить цепочки)");
                 res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
                 break;
+            default:
+                first.setText("Подтвердить решение первого участника");
+                second.setText("Подтвердить решение второго участника");
+                both.setText("Оба правы (Объединить цепочки)");
+                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
         }
 
         confirm.setOnAction(event -> {
