@@ -11,27 +11,13 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
+import javafx.collections.FXCollections;
+import javafx.geometry.*;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -182,52 +168,10 @@ public class JudgeInterface extends Application {
     }
 
     private FlowPane genChoices(Stage stage) {
-        ToggleGroup group = new ToggleGroup();
-
-        RadioButton first = new RadioButton("First");
-        RadioButton second = new RadioButton("Second");
-        RadioButton both = new RadioButton("Both");
-        RadioButton nobody = new RadioButton("Nobody");
-        RadioButton bothDiff = new RadioButton("BothDiff");
-        RadioButton nobodyWithMyAnswer = new RadioButton("NobodyWithMyAnswer");
         Button confirm = new Button("Подтвердить выбор");
         confirm.getStyleClass().add("button-font");
 
-        first.setOnAction(event -> {
-            controller.setDecision(1);
-        });
-
-        second.setOnAction(event -> {
-            controller.setDecision(2);
-        });
-
-        both.setOnAction(event -> {
-            controller.setDecision(3);
-        });
-
-        nobody.setOnAction(event -> {
-            controller.setDecision(0);
-        });
-
-        nobodyWithMyAnswer.setOnAction(event -> {
-            controller.setDecision(-1);
-        });
-
-        bothDiff.setOnAction(event -> {
-            controller.setDecision(4);
-        });
-
-        first.setToggleGroup(group);
-        second.setToggleGroup(group);
-        both.setToggleGroup(group);
-        nobody.setToggleGroup(group);
-        nobodyWithMyAnswer.setToggleGroup(group);
-        bothDiff.setToggleGroup(group);
-
-        nobody.setText("Оба не правы");
-        both.setText("Обав правы");
-        nobodyWithMyAnswer.setText("Оба не правы (Предложить свой вариант)");
-        bothDiff.setText("Оба правы (Но должны находиться в разных цепочках)");
+        ComboBox<String> comboBox = new ComboBox<>();
 
         FlowPane res = new FlowPane(Orientation.VERTICAL, 10, 10);
         res.setAlignment(Pos.CENTER_LEFT);
@@ -235,72 +179,139 @@ public class JudgeInterface extends Application {
         System.out.println(a.toString());
         switch (controller.getConflType()) {
             case NEW_SAME:
-                both.setText("Подтвердить создание цепочки");
-                nobody.setText("Отклонить создание цепочки");
-                res.getChildren().addAll(both, nobody, nobodyWithMyAnswer);
+                comboBox.setItems(FXCollections.observableArrayList("Подтвердить создание цепочки", "Отклонить создание цепочки"));
+                comboBox.setOnAction(event -> {
+                    switch (comboBox.getItems().indexOf(comboBox.getValue())) {
+                        case 0:
+                            controller.setDecision(3);
+                            break;
+                        case 1:
+                            controller.setDecision(0);
+                            break;
+                    }
+                });
                 break;
             case NEWCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить создание цепочки (Принять решение второго участника)");
-                    first.setText("Отклонить создание цепочки (Принять решение первого участника)");
-                } else {
-                    first.setText("Подтвердить создание цепочки (Принять решение первого участника)");
-                    second.setText("Отклонить создание цепочки (Принять решение второго участника)");
-                }
-                res.getChildren().addAll(first, second, nobodyWithMyAnswer);
-                break;
-            case ADD_SAME:
-                first.setText("Подтвердить решение первого участника");
-                second.setText("Подтвердить решение второго участника");
-                both.setText("Оба правы (Объединить цепочки)");
-                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
+                    comboBox.setItems(FXCollections.observableArrayList("Отклонить создание цепочки (Принять решение первого участника)", "Подтвердить создание цепочки (Принять решение второго участника)"));
+                    } else {
+                    comboBox.setItems(FXCollections.observableArrayList("Подтвердить создание цепочки (Принять решение первого участника)", "Отклонить создание цепочки (Принять решение второго участника)"));
+                        }
+                comboBox.getItems().add("Оба не правы (Предложить свой вариант)");
+                comboBox.setOnAction(event -> {
+                    switch (comboBox.getItems().indexOf(comboBox.getValue())) {
+                        case 0:
+                            controller.setDecision(1);
+                            break;
+                        case 1:
+                            controller.setDecision(2);
+                            break;
+                        case 2:
+                            controller.setDecision(-1);
+                            break;
+                    }
+                });
                 break;
             case ADD_EMPTY_SAME:
             case CONTCHAIN_EMPTY:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить добавление элемента в цепочку (Принять решение второго участника)");
-                    first.setText("Отклонить добавление элемента в цепочку (Принять решение первого участника)");
+                    comboBox.setItems(FXCollections.observableArrayList("Отклонить добавление элемента в цепочку (Принять решение первого участника)",
+                            "Подтвердить добавление элемента в цепочку (Принять решение второго участника)"
+                    ));
                 } else {
-                    first.setText("Подтвердить добавление элемента в цепочку (Принять решение первого участника)");
-                    second.setText("Отклонить добавление элемента в цепочку (Принять решение второго участника)");
-                }
-                res.getChildren().addAll(first, second, nobodyWithMyAnswer);
+                    comboBox.setItems(FXCollections.observableArrayList("Подтвердить добавление элемента в цепочку (Принять решение первого участника)",
+                            "Отклонить добавление элемента в цепочку (Принять решение второго участника)"
+                    ));
+                    }
+                comboBox.getItems().add("Оба не правы (Предложить свой вариант)");
+                comboBox.setOnAction(event -> {
+                    switch (comboBox.getItems().indexOf(comboBox.getValue())) {
+                        case 0:
+                            controller.setDecision(1);
+                            break;
+                        case 1:
+                            controller.setDecision(2);
+                            break;
+                        case 2:
+                            controller.setDecision(-1);
+                            break;
+                    }
+                });
                 break;
             case NEW_ADD:
                 if (controller.isFirstEmpty()) {
-                    second.setText("Подтвердить добавление элемента в цепочку (Принять решение второго участника)");
-                    first.setText("Подтвердить создание новой цепочки (Принять решение первого участника)");
+                    comboBox.setItems(FXCollections.observableArrayList("Подтвердить создание новой цепочки (Принять решение первого участника)",
+                            "Подтвердить добавление элемента в цепочку (Принять решение второго участника)"
+                    ));
                 } else {
-                    first.setText("Подтвердить добавление элемента в цепочку (Принять решение первого участника)");
-                    second.setText("Подтвердить создание новой цепочки (Принять решение второго участника)");
+                    comboBox.setItems(FXCollections.observableArrayList("Подтвердить добавление элемента в цепочку (Принять решение первого участника)",
+                            "Подтвердить создание новой цепочки (Принять решение второго участника)"
+                    ));
                 }
-                res.getChildren().addAll(first, second, nobody, nobodyWithMyAnswer);
-                break;
-            case NEW_DIF:
-                first.setText("Подтвердить решение первого участника");
-                second.setText("Подтвердить решение второго участника");
-                both.setText("Оба правы (Объединить цепочки)");
-                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
+                comboBox.getItems().addAll("Оба не правы", "Оба не правы (Предложить свой вариант)");
+
+                comboBox.setOnAction(event -> {
+                    switch (comboBox.getItems().indexOf(comboBox.getValue())) {
+                        case 0:
+                            controller.setDecision(1);
+                            break;
+                        case 1:
+                            controller.setDecision(2);
+                            break;
+                        case 2:
+                            controller.setDecision(0);
+                            break;
+                        case 3:
+                            controller.setDecision(-1);
+                            break;
+                    }
+                });
                 break;
             default:
-                first.setText("Подтвердить решение первого участника");
-                second.setText("Подтвердить решение второго участника");
-                both.setText("Оба правы (Объединить цепочки)");
-                res.getChildren().addAll(first, second, both, bothDiff, nobody, nobodyWithMyAnswer);
+                comboBox.setItems(FXCollections.observableArrayList("Подтвердить решение первого участника",
+                        "Подтвердить решение второго участника",
+                        "Оба правы (Объединить цепочки)",
+                        "Оба правы (Но должны находиться в разных цепочках)",
+                        "Оба не правы",
+                        "Оба не правы (Предложить свой вариант)"
+                ));
+                comboBox.setOnAction(event -> {
+                    switch (comboBox.getItems().indexOf(comboBox.getValue())) {
+                        case 0:
+                            controller.setDecision(1);
+                            break;
+                        case 1:
+                            controller.setDecision(2);
+                            break;
+                        case 2:
+                            controller.setDecision(3);
+                            break;
+                        case 3:
+                            controller.setDecision(4);
+                            break;
+                        case 4:
+                            controller.setDecision(0);
+                            break;
+                        case 5:
+                            controller.setDecision(-1);
+                            break;
+                    }
+                });
         }
 
+        comboBox.setMaxWidth(500);
         confirm.setOnAction(event -> {
-            if (group.getSelectedToggle() != null) {
+            if (comboBox.getValue() != null) {
                 if (controller.getDecision() == -1) {
                     makeAnswer(stage);
                 } else {
-                    confirmDecision(stage, ((RadioButton) group.getSelectedToggle()).getText());
+                    confirmDecision(stage, comboBox.getValue());
                 }
             } else {
                 errorScene(stage, "Вы ничего не выбрали");
             }
         });
-        res.getChildren().add(confirm);
+        res.getChildren().addAll(comboBox, confirm);
 
         return res;
     }
@@ -338,6 +349,7 @@ public class JudgeInterface extends Application {
             if (ans == 2) {
                 error.setText("Неверный пароль!");
             } else if (ans == 0) {
+                error.setText("");
                 stage.getScene().getWindow().hide();
                 startScene();
                 Thread worker = new Thread(() -> work(primaryStage));
